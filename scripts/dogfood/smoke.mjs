@@ -92,6 +92,7 @@ try {
         'NumericTarget.tsx',
         'OpenCountRange.tsx',
         'Emphasis.tsx',
+        'LinkedControls.tsx',
       ],
     }),
   )

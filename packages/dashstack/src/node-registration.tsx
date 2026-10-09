@@ -71,6 +71,7 @@ type NodeRegistry = {
 }
 
 type DeclarationContextValue = {
+  readonly pin?: unknown
   readonly token: Token
   readonly kind: DeclarationKind
   readonly owner: DeclarationOwner
@@ -81,7 +82,7 @@ const RegistryContext = createContext<NodeRegistry | null>(null)
 const DeclarationContext = createContext<DeclarationContextValue | null>(null)
 const DashletLeafContext = createContext(false)
 
-function classifyNodeId(value: unknown): NodeIdFailureReason | undefined {
+export function classifyNodeId(value: unknown): NodeIdFailureReason | undefined {
   if (typeof value !== 'string') return 'not-string'
   if (value.trim().length === 0) return 'empty'
   if (value !== value.trim()) return 'surrounding-whitespace'
@@ -130,8 +131,6 @@ function firstFailure(
     if (matches.length > 1) return { reason: 'multiple-registrations', id: declaration.id }
     const [registration] = matches
     if (registration.id !== declaration.id) return { reason: 'id-mismatch', id: declaration.id }
-    if (declaration.owner === 'group' && registration.kind !== 'dashlet')
-      return { reason: 'kind-mismatch', id: declaration.id }
     if (declaration.kind !== 'custom' && declaration.kind !== registration.kind)
       return { reason: 'kind-mismatch', id: declaration.id }
   }
@@ -237,11 +236,13 @@ export function DashStackNodeDeclarationBoundary({
   id,
   kind,
   owner,
+  pin,
   children,
 }: {
   readonly id: unknown
   readonly kind: DeclarationKind
   readonly owner: DeclarationOwner
+  readonly pin?: unknown
   readonly children?: ReactNode
 }) {
   const registry = useContext(RegistryContext)
@@ -256,7 +257,7 @@ export function DashStackNodeDeclarationBoundary({
   }, [id, kind, owner, registry, token])
 
   return (
-    <DeclarationContext.Provider value={{ token, kind, owner, id }}>
+    <DeclarationContext.Provider value={{ token, kind, owner, id, pin }}>
       {children}
     </DeclarationContext.Provider>
   )
@@ -296,6 +297,8 @@ export function useCommittedDashStackNode(kind: NodeKind, id: unknown): void {
   const registry = useContext(RegistryContext)
   const declaration = useContext(DeclarationContext)
   const nestedDashlet = useContext(DashletLeafContext)
+  if (declaration?.pin !== undefined && (kind !== 'group' || declaration.owner !== 'list'))
+    throw new TypeError('Only root DashGroups accept pin.')
   const nexus = usePicodashNexus() as ScopedNexus<PicodashFieldDefinitions>
   const tokenRef = useRef<Token | null>(null)
   if (tokenRef.current === null) tokenRef.current = {}

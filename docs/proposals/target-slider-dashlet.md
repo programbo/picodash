@@ -1,5 +1,9 @@
 # TargetSliderDashlet
 
+> Historical design exploration. Implemented by [ADR 0008](../adr/0008-organizational-subgroups-and-linked-controls.md).
+> The [linked controls guide](../development/linked-controls.md) owns the final `result` union and public APIs;
+> draft alternatives and open questions below are retained as design history, not current instructions.
+
 > Contract: Draft
 > Implementation: Planned
 > Evidence: None for this component. Existing public layout and binding contracts are linked below.

@@ -11,6 +11,7 @@ type RegisteredTarget = {
 
 export type DashletPrimaryFocusCoordinator = {
   readonly register: (ref: DashletPrimaryFocusRef) => () => void
+  readonly focusControl: () => boolean
   readonly focusPrimary: () => void
   readonly repair: () => void
 }
@@ -135,6 +136,7 @@ function createCoordinator({ shellRef, primaryFocusRef }: CoordinatorOptions) {
 
   return {
     register,
+    focusControl: focusTarget,
     focusPrimary,
     repair,
     setPrimaryRef: (ref: DashletPrimaryFocusRef | undefined): void => {

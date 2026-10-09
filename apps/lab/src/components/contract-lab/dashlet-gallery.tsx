@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePicodashNexusSelector } from '@picodash/nexus/react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
   PicodashThemeProvider,
@@ -17,6 +18,7 @@ import {
   NumberDashlet,
   SwitchDashlet,
   SliderDashlet,
+  TargetSliderDashlet,
   DisplayDashlet,
   StatusDashlet,
   ColorDashlet,
@@ -30,9 +32,20 @@ import {
 import { GalleryCharts } from './gallery-charts'
 import { ContractLab } from './contract-lab'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
-import { styleLabBridgeDisclosure, styleLabBridgePermissions } from './style-lab-model'
+import type {
+  PicodashDevBridgeDisclosure,
+  PicodashDevBridgePermissions,
+} from '@picodash/dev-bridge'
+const galleryBridgeDisclosure: PicodashDevBridgeDisclosure = {
+  valueFields: ['switchValue', 'number', 'target'],
+  scopeIds: ['gallery-controls'],
+  diagnostics: false,
+}
+const galleryBridgePermissions: PicodashDevBridgePermissions = {
+  writableFields: ['number', 'target'],
+}
 
-import { createGalleryNexus } from './gallery-model'
+import { createGalleryNexus, type GalleryNexus } from './gallery-model'
 import {
   LinkedSlider,
   LinkedRange,
@@ -399,8 +412,8 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
         nexus={nexus}
         registrationId="dashlet-gallery"
         label="Dashlet gallery"
-        disclosure={styleLabBridgeDisclosure}
-        permissions={styleLabBridgePermissions}
+        disclosure={galleryBridgeDisclosure}
+        permissions={galleryBridgePermissions}
       />
       <main
         data-dashlet-gallery
@@ -479,6 +492,22 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
                   }),
                 )}
               <DashGroup
+                id="target-feedback"
+                label="Target feedback"
+                readOnly={readOnly}
+                disabled={disabled}
+              >
+                <DashGroup id="target-values" label="Requested and achieved">
+                  <GalleryTarget id="target-bore" label="Bore" nexus={nexus} />
+                  <NumberDashlet
+                    id="target-number"
+                    label="Linked target"
+                    field={nexus.fields.target}
+                    step={0.01}
+                  />
+                </DashGroup>
+              </DashGroup>
+              <DashGroup
                 id="date-time"
                 label="Date & time"
                 labelColor={theme === 'dark' ? '#e9b95b' : '#886000'}
@@ -530,5 +559,27 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
         </div>
       </main>
     </PicodashThemeProvider>
+  )
+}
+
+function GalleryTarget({ id, label, nexus }: { id: string; label: string; nexus: GalleryNexus }) {
+  const target = usePicodashNexusSelector(nexus, (state) => state.values.target)
+  const achieved = target <= 1 ? 0 : Math.max(2, Math.round(target * 2) / 2)
+  return (
+    <TargetSliderDashlet
+      id={id}
+      label={label}
+      field={nexus.fields.target}
+      min={0}
+      max={10}
+      step={0.01}
+      marks={[
+        { value: 0, label: '0' },
+        { value: 2, label: '2' },
+        { value: 10, label: '10' },
+      ]}
+      result={{ status: 'ready', value: achieved }}
+      formatValue={(value) => `${value} mm`}
+    />
   )
 }

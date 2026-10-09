@@ -33,6 +33,7 @@ forward without changing an older immutable bundle.
 
 For custom displays, shared UI/agent priority policy, compound invalid drafts, documents, and
 persistence boundaries, continue with [the application recipes](consumer-recipes.md).
+For groups, TargetSlider, gestures and linked attention, see [linked controls](linked-controls.md).
 For custom numeric controls, see [NumberField targets and achieved readouts](numeric-targets.md).
 For Any maximum and feasible slider intervals, see [open-ended ranges](open-ended-ranges.md).
 

@@ -206,12 +206,14 @@ function ValueBindingContent({
               field={nexus.fields.interval}
               formatValue={(value) => `${value} seconds`}
             />
-            <Dashlet id="actions" label="Stack actions" pin="end">
-              <ActionMenu label="Stack actions">
-                <DashStackResetValuesItem />
-                <DashStackResetStackItem />
-              </ActionMenu>
-            </Dashlet>
+            <DashGroup id="actions-pinned" aria-label="actions pinned controls" pin="end">
+              <Dashlet id="actions" label="Stack actions">
+                <ActionMenu label="Stack actions">
+                  <DashStackResetValuesItem />
+                  <DashStackResetStackItem />
+                </ActionMenu>
+              </Dashlet>
+            </DashGroup>
           </DashStack>
           <DashStack
             nexus={nexus}
@@ -221,12 +223,14 @@ function ValueBindingContent({
             reorderable
           >
             {renderComposedValueBindings({ nexus, disabled })}
-            <Dashlet id="actions" label="Stack actions" pin="end">
-              <ActionMenu label="Stack actions">
-                <DashStackResetValuesItem />
-                <DashStackResetStackItem />
-              </ActionMenu>
-            </Dashlet>
+            <DashGroup id="actions-pinned" aria-label="actions pinned controls" pin="end">
+              <Dashlet id="actions" label="Stack actions">
+                <ActionMenu label="Stack actions">
+                  <DashStackResetValuesItem />
+                  <DashStackResetStackItem />
+                </ActionMenu>
+              </Dashlet>
+            </DashGroup>
           </DashStack>
         </div>
         <CuratedDashlets nexus={nexus} disabled={disabled} />

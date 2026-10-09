@@ -79,6 +79,7 @@ export type {
   StaleDraftConflict,
   BindingInteractionState,
   ItemInteractionState,
+  ItemInteractionSource,
   ScopeInteractionState,
   RootMetadataCommands,
   ScopedMetadataCommands,
@@ -174,3 +175,10 @@ export type {
   PicodashExportFreshnessInput,
   PicodashImportFreshnessInput,
 } from './documents.js'
+
+export type {
+  NumericGesture,
+  NumericGestureOptions,
+  NumericGestureEnd,
+  NumericGestureCancelReason,
+} from './numeric-gesture.js'

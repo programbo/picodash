@@ -1769,11 +1769,15 @@ describe('@picodash/dashstack alpha shell', () => {
           children: createElement(DashGroup, {
             id: 'group',
             label: 'Group',
-            children: createElement(DashGroup, { id: 'nested-group', label: 'Nested' }),
+            children: createElement(DashGroup, {
+              id: 'nested-group',
+              label: 'Nested',
+              collapsible: true,
+            }),
           }),
         }),
       ),
-    ).toThrow('DashGroup cannot contain another DashGroup.')
+    ).toThrow('Subgroups cannot collapse or pin.')
     expect(() => nexus.destroy()).not.toThrow()
   })
 
@@ -2077,21 +2081,10 @@ describe('@picodash/dashstack alpha shell', () => {
         createElement(Dashlet, { id: `${id}-two`, label: 'Two', key: 'two' }),
       ]
     }
-    function Group({ id }: { readonly id: string }) {
-      return createElement(DashGroup, { id, label: 'Nested group' })
-    }
     failures.push(
       { name: 'missing-registration', children: createElement(Missing, { id: 'missing' }) },
       { name: 'id-mismatch', children: createElement(Mismatch, { id: 'declared' }) },
       { name: 'multiple-registrations', children: createElement(Multiple, { id: 'many' }) },
-      {
-        name: 'kind-mismatch',
-        children: createElement(DashGroup, {
-          id: 'parent-group',
-          label: 'Parent',
-          children: createElement(Group, { id: 'nested-group' }),
-        }),
-      },
       {
         name: 'nested-node',
         children: createElement(
@@ -2147,7 +2140,7 @@ describe('@picodash/dashstack alpha shell', () => {
         { id: 'order-metadata', nexus },
         createElement(Dashlet, { id: 'first', label: 'First' }),
         createElement(Dashlet, { id: 'second', label: 'Second' }),
-        createElement(Dashlet, { id: 'pinned', label: 'Pinned', pin: 'start' }),
+        createElement(DashGroup, { id: 'pinned', label: 'Pinned', pin: 'start' }),
         createElement(
           DashGroup,
           { id: 'group', label: 'Group' },
@@ -2504,12 +2497,20 @@ describe('@picodash/dashstack alpha shell', () => {
       createElement(
         DashStack,
         { id: 'order-pin', nexus },
-        createElement(Dashlet, { id: 'start', label: 'Start', pin: 'start' }),
+        createElement(
+          DashGroup,
+          { id: 'start-group', 'aria-label': 'Start', pin: 'start' },
+          createElement(Dashlet, { id: 'start', label: 'Start' }),
+        ),
         createElement(Dashlet, { id: 'auto-a', label: 'Auto A' }),
         createElement(Dashlet, { id: 'auto-b', label: 'Auto B' }),
         createElement(Dashlet, { id: 'auto-c', label: 'Auto C' }),
         createElement(Dashlet, { id: 'auto-d', label: 'Auto D' }),
-        createElement(Dashlet, { id: 'end', label: 'End', pin: 'end' }),
+        createElement(
+          DashGroup,
+          { id: 'end-group', 'aria-label': 'End', pin: 'end' },
+          createElement(Dashlet, { id: 'end', label: 'End' }),
+        ),
       ),
     )
     const order = () =>
@@ -2591,12 +2592,12 @@ describe('@picodash/dashstack alpha shell', () => {
     })
     expect(order()).toEqual(['start', 'auto-b', 'auto-c', 'auto-d', 'auto-a', 'end'])
     expect(scoped.getState().scope?.dashStack?.rootOrder).toEqual([
-      'start',
+      'start-group',
       'auto-b',
       'auto-c',
       'auto-d',
       'auto-a',
-      'end',
+      'end-group',
     ])
     act(() => renderer.unmount())
     nexus.destroy()

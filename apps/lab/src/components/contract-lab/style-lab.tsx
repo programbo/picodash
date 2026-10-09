@@ -83,15 +83,20 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
         data-style-lab-panel="basics-readout"
       >
         <DashStack aria-label="Basics and readout Dashlets" reorderable>
-          <SearchDashlet
-            id="style-lab-search"
-            field={nexus.fields.search}
-            label="SearchDashlet"
-            placeholder="Search"
+          <DashGroup
+            id="style-lab-search-pinned"
+            aria-label="style-lab-search pinned controls"
             pin="start"
-            layout="block"
-            data-style-lab-lane="start"
-          />
+          >
+            <SearchDashlet
+              id="style-lab-search"
+              field={nexus.fields.search}
+              label="SearchDashlet"
+              placeholder="Search"
+              layout="block"
+              data-style-lab-lane="start"
+            />
+          </DashGroup>
 
           <DashGroup id="style-lab-basics" label="Basics">
             <TextDashlet id="style-lab-text" field={nexus.fields.text} label="TextDashlet" />

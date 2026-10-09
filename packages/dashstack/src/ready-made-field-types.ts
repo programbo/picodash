@@ -119,11 +119,17 @@ export type ExactCompoundFieldProps<
   Expected extends PicodashJsonValue & object,
 > = FieldProps<CompatibleExactField<Field, Expected>>
 
-type DashletBindingField = PicodashField<Record<string, PicodashJsonValue>, string>
+type DashletBindingField<T extends PicodashJsonValue> = PicodashField<Record<string, T>, string>
 
 /** Bridges a type-only value view back to the public Dashlet shell's nominal field handle. */
+export function asDashletBindingField<T extends PicodashJsonValue>(
+  field: PicodashFieldOf<T>,
+): DashletBindingField<T>
 export function asDashletBindingField(
   field: PicodashFieldOf<PicodashJsonValue>,
-): DashletBindingField {
-  return field as unknown as DashletBindingField
+): DashletBindingField<PicodashJsonValue>
+export function asDashletBindingField(
+  field: PicodashFieldOf<PicodashJsonValue>,
+): DashletBindingField<PicodashJsonValue> {
+  return field as unknown as DashletBindingField<PicodashJsonValue>
 }

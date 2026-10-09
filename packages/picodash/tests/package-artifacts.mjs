@@ -82,6 +82,7 @@ assert.deepEqual(
     'SegmentedDashlet',
     'SelectDashlet',
     'SliderDashlet',
+    'TargetSliderDashlet',
     'StatusDashlet',
     'SwitchDashlet',
     'TextDashlet',
@@ -89,6 +90,12 @@ assert.deepEqual(
     'PicodashProvider',
     'createPicodashNexus',
     'usePicodashNexusSelector',
+    'getDashStackStructure',
+    'subscribeDashStackStructure',
+    'revealDashlet',
+    'useDashStackStructure',
+    'useDashStackGroupOrder',
+    'useDashStackOrder',
   ].sort(),
 )
 const uiRuntime = await import(

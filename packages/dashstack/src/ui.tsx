@@ -20,12 +20,14 @@ import {
   TextArea,
   TextField as AriaTextField,
 } from 'react-aria-components'
-import { useId, useRef, type CSSProperties, type ReactNode } from 'react'
+import { useContext, useId, useRef, type CSSProperties, type ReactNode } from 'react'
+import { SliderTrackAccessoryContext } from './slider-accessory.js'
 import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
 import { ChoiceOptionContent } from './choice-option-content.js'
 import { validateChoiceOptions } from './ui-choices.js'
 import { composeControlClassName } from './ui-class-name.js'
 import { ChoicePopover } from './ui-popover.js'
+import { useNumericControlGesture, type NumericGestureFactory } from './numeric-control-gesture.js'
 import { validateSliderOptions, type SliderOptions } from './slider-options.js'
 
 export type DashStackControlProps = {
@@ -237,8 +239,9 @@ export function NumberField({
 }
 
 export type SliderMark = { readonly value: number; readonly label?: ReactNode }
-export type SliderProps = DashStackControlProps &
-  SliderOptions & {
+export type SliderProps = DashStackControlProps & {
+  readonly createGesture?: NumericGestureFactory
+} & SliderOptions & {
     readonly value: number
     readonly onChange: (value: number) => void
     readonly min?: number
@@ -277,10 +280,20 @@ export function Slider({
   formatOptions,
   allowedRange,
   fillOrigin,
+  createGesture,
   ...props
 }: SliderProps) {
   validateSliderConfiguration(min, max, step, marks)
   validateSliderOptions(min, max, step, { allowedRange, fillOrigin })
+  const accessory = useContext(SliderTrackAccessoryContext)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const change = useNumericControlGesture({
+    ref: rootRef,
+    createGesture,
+    onChange,
+    configuration: JSON.stringify([min, max, step, allowedRange]),
+    disabled: !!(props.disabled || props.readOnly),
+  })
   const constraintId = useId()
   const lower = allowedRange?.min ?? min
   const upper = allowedRange?.max ?? max
@@ -295,11 +308,12 @@ export function Slider({
   return (
     <>
       <AriaSlider
+        ref={rootRef}
         id={props.id}
         className={composeControlClassName('picodash-dashstack-slider', props.className)}
         value={value}
         onChange={
-          props.readOnly ? undefined : (next) => onChange(Math.max(lower, Math.min(upper, next)))
+          props.readOnly ? undefined : (next) => change(Math.max(lower, Math.min(upper, next)))
         }
         minValue={min}
         maxValue={max}
@@ -352,7 +366,6 @@ export function Slider({
             index={0}
             inputRef={inputRef}
             data-picodash-dashstack-slider-thumb
-            aria-label={props['aria-label']}
             aria-labelledby={props['aria-labelledby']}
             aria-describedby={
               [readOnlyDescription.describedBy, allowedRange ? constraintId : undefined]
@@ -362,6 +375,7 @@ export function Slider({
             isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
             aria-errormessage={props['aria-errormessage']}
           />
+          {accessory}
           {marks?.length ? (
             <span aria-hidden="true" data-picodash-dashstack-slider-marks>
               {marks.map((mark, index) => (
@@ -669,3 +683,6 @@ export type {
   StatusTone,
   TimeFieldProps,
 } from './ui-values.js'
+
+export { TargetSlider } from './target-slider.js'
+export type { TargetSliderProps, TargetSliderResult } from './target-slider.js'

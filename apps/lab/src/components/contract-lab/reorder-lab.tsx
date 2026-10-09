@@ -31,12 +31,17 @@ export function ReorderLab({ nexus }: { readonly nexus: ValueBindingNexus }) {
           headingLevel={3}
           reorderable
         >
-          <DisplayDashlet
-            id="start-workspace"
-            label="Pinned · Workspace"
-            field={nexus.fields.name}
+          <DashGroup
+            id="start-workspace-pinned"
+            aria-label="start-workspace pinned controls"
             pin="start"
-          />
+          >
+            <DisplayDashlet
+              id="start-workspace"
+              label="Pinned · Workspace"
+              field={nexus.fields.name}
+            />
+          </DashGroup>
           <DashGroup id="start-status" label="Pinned · Status" pin="start" collapsible>
             <DisplayDashlet
               id="start-live"
@@ -108,18 +113,21 @@ export function ReorderLab({ nexus }: { readonly nexus: ValueBindingNexus }) {
             field={nexus.fields.name}
             formatValue={(value) => `Settings for ${value}`}
           />
-          <DisplayDashlet
-            id="end-cadence"
-            label="Pinned · Cadence"
-            field={nexus.fields.interval}
-            pin="end"
-            formatValue={(value) => `${value}s`}
-          />
-          <Dashlet id="end-actions" label="Pinned · Actions" pin="end">
-            <ActionMenu label="Reordering actions">
-              <DashStackResetStackItem />
-            </ActionMenu>
-          </Dashlet>
+          <DashGroup id="end-cadence-pinned" aria-label="end-cadence pinned controls" pin="end">
+            <DisplayDashlet
+              id="end-cadence"
+              label="Pinned · Cadence"
+              field={nexus.fields.interval}
+              formatValue={(value) => `${value}s`}
+            />
+          </DashGroup>
+          <DashGroup id="end-actions-pinned" aria-label="end-actions pinned controls" pin="end">
+            <Dashlet id="end-actions" label="Pinned · Actions">
+              <ActionMenu label="Reordering actions">
+                <DashStackResetStackItem />
+              </ActionMenu>
+            </Dashlet>
+          </DashGroup>
         </DashStack>
       </div>
     </section>

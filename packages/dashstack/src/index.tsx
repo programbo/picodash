@@ -1,5 +1,7 @@
 'use client'
 
+import { useItemAttention } from './item-attention.js'
+
 import {
   Children,
   Fragment,
@@ -64,6 +66,15 @@ import {
 } from './primary-focus.js'
 import { createReorderPresentation, reorderLayoutRect } from './reorder-presentation.js'
 import { createDisclosureFeedback } from './feedback-motion.js'
+import {
+  useStructureFocus,
+  DashStackStructureContext,
+  DashGroupAncestryContext,
+  structureFor,
+  useStructureNode,
+} from './structure.js'
+export { useDashStackStructure, useDashStackGroupOrder } from './structure.js'
+export type { DashStackStructure, DashStackNode } from './structure.js'
 import { Dialog, DialogTrigger } from 'react-aria-components'
 import {
   createNodeRegistry,
@@ -121,6 +132,7 @@ import {
   SelectDashlet,
   SegmentedDashlet,
   SliderDashlet,
+  TargetSliderDashlet,
   SwitchDashlet,
   TextDashlet,
 } from './ready-made.js'
@@ -149,6 +161,7 @@ export type {
   SegmentedDashletProps,
   SliderDashletMark,
   SliderDashletProps,
+  TargetSliderDashletProps,
   SwitchDashletProps,
   TextDashletProps,
 } from './ready-made.js'
@@ -256,8 +269,9 @@ type RegisteredNodeNativeProps = Omit<
 >
 
 export type DashGroupProps = RegisteredNodeNativeProps & {
+  readonly glow?: boolean | CSSProperties['color']
   readonly id: string
-  readonly label: ReactNode
+  readonly label?: ReactNode
   readonly labelColor?: CSSProperties['color']
   readonly 'aria-label'?: string
   readonly children?: ReactNode
@@ -281,7 +295,6 @@ type DashletBaseProps = RegisteredNodeNativeProps & {
   readonly layout?: 'inline' | 'block'
   readonly disabled?: boolean
   readonly readOnly?: boolean
-  readonly pin?: 'start' | 'end'
   readonly primaryFocusRef?: RefObject<HTMLElement | null>
 }
 export type DashletProps<
@@ -357,8 +370,6 @@ function flattenDeclarations(children: ReactNode, owner: 'list' | 'group'): Reac
       throw new TypeError(
         `Dash${owner === 'list' ? 'Stack' : 'Group'} children cannot be DOM elements or text wrappers.`,
       )
-    if (owner === 'group' && kind === 'group')
-      throw new TypeError('DashGroup cannot contain another DashGroup.')
     result.push(child)
   }
   visit(children)
@@ -375,7 +386,13 @@ function wrapDeclaration(
   const id = (declaration.props as { readonly id?: unknown }).id
   return createElement(
     DashStackNodeDeclarationBoundary,
-    { key: declarationIdentity(declaration, key), id, kind, owner },
+    {
+      key: declarationIdentity(declaration, key),
+      id,
+      kind,
+      owner,
+      pin: (declaration.props as { pin?: unknown }).pin,
+    },
     declaration,
   )
 }
@@ -1153,6 +1170,8 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       className,
       ...nativeProps
     } = props
+    if (pin !== undefined) throw new TypeError('Only root DashGroups accept pin.')
+    const ancestry = useContext(DashGroupAncestryContext)
     requireAccessibleLabel(label, ariaLabel, 'Dashlet')
     const emphasisStyle: CSSProperties &
       Record<`--_picodash-dashlet-${'band' | 'glow' | 'tint'}`, string | undefined> = {
@@ -1193,6 +1212,15 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       controlId,
       bindingIssuesId,
     )
+    useStructureNode({
+      id,
+      kind: 'dashlet',
+      parentId: ancestry.id,
+      children: [],
+      fieldKeys: descriptors.map((descriptor) => descriptor.field.key),
+      collapsible: false,
+      collapsed: false,
+    })
     const renderContext: any = {
       id,
       disabled,
@@ -1234,6 +1262,13 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       (binding): binding is DashletInputBindingContext<PicodashJsonValue> =>
         'mode' in binding && binding.mode === 'input',
     )
+    useItemAttention(
+      bindingNexus?.kind === 'scoped' ? bindingNexus : null,
+      id,
+      shellRef,
+      ancestry.visible,
+    )
+    useStructureFocus(id, primaryFocus.focusControl)
     const actionRegistry = useContext(DashStackActionRegistryContext)
     const resetBindings = useMemo(
       () =>
@@ -1369,11 +1404,12 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     id,
     label,
     labelColor,
+    glow,
     style,
     'aria-label': ariaLabel,
     children,
     className,
-    collapsible = true,
+    collapsible: declaredCollapsible,
     defaultCollapsed = false,
     reorderable,
     pin,
@@ -1383,9 +1419,21 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   },
   ref,
 ) {
-  const groupStyle: CSSProperties & { '--picodash-group-label-color'?: CSSProperties['color'] } = {
+  const ancestry = useContext(DashGroupAncestryContext)
+  if (ancestry.depth > 1) throw new TypeError('DashStack supports one subgroup level.')
+  const subgroup = ancestry.depth === 1
+  if (subgroup && (declaredCollapsible === true || defaultCollapsed || pin !== undefined))
+    throw new TypeError('Subgroups cannot collapse or pin.')
+  if (label === undefined && (declaredCollapsible === true || defaultCollapsed))
+    throw new TypeError('A headerless group cannot collapse.')
+  const collapsible = declaredCollapsible ?? (!subgroup && label !== undefined)
+  const groupStyle: CSSProperties & {
+    '--picodash-group-label-color'?: CSSProperties['color']
+    '--_picodash-group-glow'?: CSSProperties['color']
+  } = {
     ...style,
     '--picodash-group-label-color': labelColor,
+    '--_picodash-group-glow': emphasisColor(glow, 'glow'),
   }
   requireAccessibleLabel(label, ariaLabel, 'DashGroup')
   const inheritedPolicy = useContext(DashStackContentPolicyContext)
@@ -1462,9 +1510,9 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
         id: String((declaration.props as { readonly id?: unknown }).id),
         name: declarationAccessibleName(declaration),
         pin: (declaration.props as { readonly pin?: 'start' | 'end' }).pin,
-        visible: !renderedCollapsed,
+        visible: ancestry.visible && !renderedCollapsed,
       })),
-    [declarations, renderedCollapsed],
+    [declarations, renderedCollapsed, ancestry.visible],
   )
   const groupOrder = usePicodashNexusSelector(scopedNexus, (state) =>
     state.scope?.dashStack?.groupOrders.get(id),
@@ -1475,7 +1523,21 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     durableOrder: groupOrder,
     reorderable: reorderable ?? parentOrdering?.ordering.reorderable ?? true,
     groupId: id,
+    visible: ancestry.visible && !renderedCollapsed,
   })
+  useStructureNode({
+    id,
+    kind: 'group',
+    parentId: ancestry.id,
+    children: childOrdering.ordering.order,
+    fieldKeys: [],
+    collapsible,
+    collapsed,
+  })
+  const childAncestry = useMemo(
+    () => ({ id, depth: ancestry.depth + 1, visible: ancestry.visible && !renderedCollapsed }),
+    [id, ancestry.depth, ancestry.visible, renderedCollapsed],
+  )
   const groupReorderHandle = useOrderingHandle(id, labelText)
   void pin
   const declarationById = useMemo(
@@ -1529,6 +1591,10 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
         role="listitem"
         className={classNames('picodash-dashstack-item picodash-dashstack-group-item', className)}
         data-picodash-dashgroup={id}
+        data-glow={emphasisColor(glow, 'glow') !== undefined || undefined}
+        data-subgroup={subgroup || undefined}
+        data-collapsible={collapsible || undefined}
+        data-headerless={label === undefined || undefined}
         data-collapsed={renderedCollapsed ? 'true' : 'false'}
       >
         <div
@@ -1537,33 +1603,37 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
           aria-labelledby={isTextLabel(label) ? labelId : undefined}
           data-picodash-dashgroup
         >
-          <DashHeader
-            slots={{
-              leading: collapsible ? (
-                <>
-                  {groupReorderHandle}
-                  <button
-                    ref={disclosureRef}
-                    data-picodash-group-disclosure
-                    aria-label={disclosureLabel}
-                    aria-expanded={!renderedCollapsed}
-                    aria-controls={contentId}
-                    type="button"
-                    onClick={toggleCollapsed}
-                  >
-                    {renderedCollapsed ? '+' : '−'}
-                  </button>
-                </>
-              ) : (
-                groupReorderHandle
-              ),
-              title: (
-                <div id={labelId} data-picodash-dashgroup-label>
-                  {label}
-                </div>
-              ),
-            }}
-          />
+          {label !== undefined ? (
+            <DashHeader
+              slots={{
+                leading: collapsible ? (
+                  <>
+                    {groupReorderHandle}
+                    <button
+                      ref={disclosureRef}
+                      data-picodash-group-disclosure
+                      aria-label={disclosureLabel}
+                      aria-expanded={!renderedCollapsed}
+                      aria-controls={contentId}
+                      type="button"
+                      onClick={toggleCollapsed}
+                    >
+                      {renderedCollapsed ? '+' : '−'}
+                    </button>
+                  </>
+                ) : (
+                  groupReorderHandle
+                ),
+                title: (
+                  <div id={labelId} data-picodash-dashgroup-label>
+                    {label}
+                  </div>
+                ),
+              }}
+            />
+          ) : (
+            groupReorderHandle
+          )}
           <div
             ref={contentRef}
             id={contentId}
@@ -1577,19 +1647,21 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
             hidden={renderedCollapsed || undefined}
             inert={renderedCollapsed || undefined}
           >
-            <DashStackContentPolicyContext.Provider value={contentPolicy}>
-              <DashStackOrderingContext.Provider value={childOrdering}>
-                {orderedDeclarations.map((declaration, index) =>
-                  createElement(
-                    Fragment,
-                    {
-                      key: declaration.key ?? declarationIdentity(declaration, `${id}-${index}`),
-                    },
-                    wrapDeclaration(declaration, 'group', `${id}-${index}`),
-                  ),
-                )}
-              </DashStackOrderingContext.Provider>
-            </DashStackContentPolicyContext.Provider>
+            <DashGroupAncestryContext.Provider value={childAncestry}>
+              <DashStackContentPolicyContext.Provider value={contentPolicy}>
+                <DashStackOrderingContext.Provider value={childOrdering}>
+                  {orderedDeclarations.map((declaration, index) =>
+                    createElement(
+                      Fragment,
+                      {
+                        key: declaration.key ?? declarationIdentity(declaration, `${id}-${index}`),
+                      },
+                      wrapDeclaration(declaration, 'group', `${id}-${index}`),
+                    ),
+                  )}
+                </DashStackOrderingContext.Provider>
+              </DashStackContentPolicyContext.Provider>
+            </DashGroupAncestryContext.Provider>
           </div>
         </div>
       </div>
@@ -1729,6 +1801,11 @@ const DashStackImpl = forwardRef<HTMLDivElement, DashStackProps>(function DashSt
     const pin = (declaration.props as { readonly pin?: 'start' | 'end' }).pin
     declarationsByBand[pin ?? 'automatic'].push(declaration)
   }
+  const structureRegistry = useMemo(() => structureFor(resolved.nexus), [resolved.nexus])
+  useLayoutEffect(() => {
+    structureRegistry.root(rootOrdering.ordering.order)
+  }, [structureRegistry, rootOrdering.ordering.order])
+  useLayoutEffect(() => () => structureRegistry.root([]), [structureRegistry])
   const headingIdToken = useId()
   const headingId = title === undefined ? undefined : `picodash-dashstack-heading-${headingIdToken}`
   const statusId = `picodash-dashstack-status-${useId()}`
@@ -1816,69 +1893,75 @@ const DashStackImpl = forwardRef<HTMLDivElement, DashStackProps>(function DashSt
                 <DashStackOrderingContext.Provider value={rootOrdering}>
                   <DashStackActionRegistryContext.Provider value={actionRegistry}>
                     <DashStackCompactContext.Provider value={compact}>
-                      <DashStackNodeRegistryProvider registry={registry}>
-                        <DashStackNodeValidation>
-                          <div
-                            {...props}
-                            ref={setRootRef}
-                            className={classNames('picodash-dashstack', className)}
-                            data-picodash-dashstack
-                            data-picodash-dashstack-compact={compact || undefined}
-                          >
-                            {title !== undefined ? (
-                              <DashHeader
-                                slots={{
-                                  title: createElement(
-                                    `h${headingLevel}`,
-                                    { id: headingId },
-                                    title,
-                                  ),
-                                }}
-                              />
-                            ) : null}
-                            <div
-                              role="list"
-                              aria-label={ariaLabel}
-                              aria-labelledby={listName}
-                              data-picodash-dashstack-list
-                              data-picodash-dashstack-compact={compact || undefined}
-                            >
-                              {(['start', 'automatic', 'end'] as const).map((band) => (
+                      <DashStackStructureContext.Provider value={structureRegistry}>
+                        <DashGroupAncestryContext.Provider
+                          value={{ id: null, depth: 0, visible: true }}
+                        >
+                          <DashStackNodeRegistryProvider registry={registry}>
+                            <DashStackNodeValidation>
+                              <div
+                                {...props}
+                                ref={setRootRef}
+                                className={classNames('picodash-dashstack', className)}
+                                data-picodash-dashstack
+                                data-picodash-dashstack-compact={compact || undefined}
+                              >
+                                {title !== undefined ? (
+                                  <DashHeader
+                                    slots={{
+                                      title: createElement(
+                                        `h${headingLevel}`,
+                                        { id: headingId },
+                                        title,
+                                      ),
+                                    }}
+                                  />
+                                ) : null}
                                 <div
-                                  key={band}
-                                  role="presentation"
-                                  data-picodash-dashstack-band={band}
-                                  data-picodash-scroll-fade={band === 'automatic' || undefined}
+                                  role="list"
+                                  aria-label={ariaLabel}
+                                  aria-labelledby={listName}
+                                  data-picodash-dashstack-list
+                                  data-picodash-dashstack-compact={compact || undefined}
                                 >
-                                  {declarationsByBand[band].map((declaration, index) =>
-                                    createElement(
-                                      Fragment,
-                                      {
-                                        key:
-                                          declaration.key ??
-                                          declarationIdentity(
+                                  {(['start', 'automatic', 'end'] as const).map((band) => (
+                                    <div
+                                      key={band}
+                                      role="presentation"
+                                      data-picodash-dashstack-band={band}
+                                      data-picodash-scroll-fade={band === 'automatic' || undefined}
+                                    >
+                                      {declarationsByBand[band].map((declaration, index) =>
+                                        createElement(
+                                          Fragment,
+                                          {
+                                            key:
+                                              declaration.key ??
+                                              declarationIdentity(
+                                                declaration,
+                                                `${resolved.scopeId}-${band}-${index}`,
+                                              ),
+                                          },
+                                          wrapDeclaration(
                                             declaration,
+                                            'list',
                                             `${resolved.scopeId}-${band}-${index}`,
                                           ),
-                                      },
-                                      wrapDeclaration(
-                                        declaration,
-                                        'list',
-                                        `${resolved.scopeId}-${band}-${index}`,
-                                      ),
-                                    ),
-                                  )}
+                                        ),
+                                      )}
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
-                            <DashStackAnnouncement registry={actionRegistry} id={statusId} />
-                            <span id={reorderInstructionsId} data-picodash-reorder-instructions>
-                              Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
-                              Press Space or Enter to commit, or Escape to cancel.
-                            </span>
-                          </div>
-                        </DashStackNodeValidation>
-                      </DashStackNodeRegistryProvider>
+                                <DashStackAnnouncement registry={actionRegistry} id={statusId} />
+                                <span id={reorderInstructionsId} data-picodash-reorder-instructions>
+                                  Press Space or Enter to pick up. Use Arrow keys, Home, or End to
+                                  move. Press Space or Enter to commit, or Escape to cancel.
+                                </span>
+                              </div>
+                            </DashStackNodeValidation>
+                          </DashStackNodeRegistryProvider>
+                        </DashGroupAncestryContext.Provider>
+                      </DashStackStructureContext.Provider>
                     </DashStackCompactContext.Provider>
                   </DashStackActionRegistryContext.Provider>
                 </DashStackOrderingContext.Provider>
@@ -1914,6 +1997,7 @@ for (const component of [
   TextDashlet,
   NumberDashlet,
   SliderDashlet,
+  TargetSliderDashlet,
   SwitchDashlet,
   SelectDashlet,
   SegmentedDashlet,
@@ -1962,6 +2046,12 @@ export {
   SelectDashlet,
   SegmentedDashlet,
   SliderDashlet,
+  TargetSliderDashlet,
   SwitchDashlet,
   TextDashlet,
 }
+
+export { getDashStackStructure, subscribeDashStackStructure, revealDashlet } from './structure.js'
+export type { DashletRevealResult } from './structure.js'
+
+export type { TargetSliderResult } from './target-slider.js'

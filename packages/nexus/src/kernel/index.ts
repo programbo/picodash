@@ -1,3 +1,8 @@
+import {
+  createNumericGestureController,
+  type NumericGesture,
+  type NumericGestureOptions,
+} from '../numeric-gesture.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { clonePicodashValue, picodashJsonEqual } from '../json.js'
 import {
@@ -727,6 +732,16 @@ export interface BindingInteractionCommands<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
 > {
+  createNumericGesture<Key extends keyof Fields & string>(
+    field: PicodashField<ValuesOf<Fields>, Key> &
+      (ValuesOf<Fields>[Key] extends number ? unknown : never),
+    options?: NumericGestureOptions,
+  ): NumericGesture<Result>
+  createNumericInputGesture<Key extends keyof Fields & string>(
+    binding: import('../integration-leases.js').BindingHandle<Fields, Key> &
+      (ValuesOf<Fields>[Key] extends number ? unknown : never),
+    options?: NumericGestureOptions,
+  ): NumericGesture<Result>
   setInput<Key extends keyof Fields & string>(
     binding: import('../integration-leases.js').BindingHandle<Fields, Key>,
     input: PicodashJsonValue,
@@ -745,6 +760,11 @@ export type ItemInteractionState = {
   readonly focused: boolean
   readonly hovered: boolean
   readonly active: boolean
+}
+
+export interface ItemInteractionSource {
+  set(patch: Partial<ItemInteractionState>): void
+  release(): void
 }
 
 export type ScopeInteractionState = {
@@ -927,6 +947,7 @@ interface ScopedNexusBase<
 >
   extends ScopedMetadataCommands<Result>, BindingInteractionCommands<Fields, Result> {
   readonly kind: 'scoped'
+  createItemInteractionSource(itemId: string): ItemInteractionSource
   readonly root: RootNexus<Fields, Result, Identified, ExportEnabled>
   readonly scopeId: string
   readonly fields: PicodashFields<Fields>
@@ -2443,6 +2464,18 @@ export function createPicodashNexus<
   >()
   let suppressInteractionDispatch = false
   const fieldRevisions = new Map<string, number>(fieldEntries.map((key) => [key, 0]))
+  const itemSources = new Set<{
+    scopeId: string
+    itemId: string
+    active: boolean
+    state: ItemInteractionState
+  }>()
+  const numericGestures = new Set<{
+    scopeId: string | undefined
+    binding: object | undefined
+    controller: ReturnType<typeof createNumericGestureController<CoreTransactionResult>>
+  }>()
+
   type RepairRecord = {
     readonly binding: object
     readonly interaction: BindingInteractionState
@@ -3143,6 +3176,8 @@ export function createPicodashNexus<
     withWriteLock(() => executeDocumentImportPlanLocked(plan, expectedReceiverScopeId))
   const storeImplementation: RootNexus<Fields, NexusResult, boolean, boolean> = {
     kind: 'root',
+    createNumericGesture: (field, options) => numericGesture(field, options),
+    createNumericInputGesture: (binding, options) => numericInputGesture(binding, options),
     fields,
     diagnostics: diagnosticsRuntime.facade,
     scope: (scopeId) => getScoped(scopeId),
@@ -3440,6 +3475,8 @@ export function createPicodashNexus<
     phase: 'kernel',
     teardown: () => {
       listeners.clear()
+      for (const source of itemSources) source.active = false
+      itemSources.clear()
       interactionByScope.clear()
       channelsById.clear()
       activeChannels.clear()
@@ -3447,6 +3484,167 @@ export function createPicodashNexus<
       scopedInternals = new WeakMap<object, ScopedChannel>()
     },
   })
+
+  function publishItemSources(scopeId: string, itemId: string) {
+    const states = [...itemSources].filter(
+      (source) => source.active && source.scopeId === scopeId && source.itemId === itemId,
+    )
+    const state = Object.freeze({
+      hovered: states.some((source) => source.state.hovered),
+      focused: states.some((source) => source.state.focused),
+      active: states.some((source) => source.state.active),
+    })
+    const before = interactionByScope.get(scopeId) ?? EmptyInteraction
+    const previous = before.items.get(itemId)
+    if (
+      (previous?.hovered ?? false) === state.hovered &&
+      (previous?.focused ?? false) === state.focused &&
+      (previous?.active ?? false) === state.active
+    )
+      return
+    const items = new Map(before.items)
+    if (state.hovered || state.focused || state.active) items.set(itemId, state)
+    else items.delete(itemId)
+    const next =
+      before.bindings.size || items.size
+        ? Object.freeze({ bindings: before.bindings, items: immutableMap([...items]) })
+        : EmptyInteraction
+    if (next === EmptyInteraction) interactionByScope.delete(scopeId)
+    else interactionByScope.set(scopeId, next)
+    const affected = collectScopedChannels(scopeId)
+    refreshScopedChannels(affected)
+    dispatchNexusSubscribers(affected, false)
+  }
+  function createItemSource(scopeId: string, itemId: string): ItemInteractionSource {
+    if (
+      typeof itemId !== 'string' ||
+      !itemId ||
+      itemId.trim() !== itemId ||
+      Array.from(itemId).some((character) => {
+        const code = character.codePointAt(0)!
+        return code < 32 || (code >= 127 && code <= 159)
+      })
+    )
+      throw new PicodashContractError('invalid-configuration')
+    const record = {
+      scopeId,
+      itemId,
+      active: true,
+      state: { hovered: false, focused: false, active: false },
+    }
+    itemSources.add(record)
+    return Object.freeze({
+      set(patch: Partial<ItemInteractionState>) {
+        if (runtimeController.lifecycle !== 'active')
+          throw new PicodashContractError('use-after-destroy')
+        if (!record.active) throw new PicodashContractError('invalid-configuration')
+        withWriteLock(() => {
+          if (!patch || typeof patch !== 'object' || Array.isArray(patch))
+            throw new PicodashContractError('invalid-configuration')
+          for (const key of Reflect.ownKeys(patch)) {
+            const descriptor = Object.getOwnPropertyDescriptor(patch, key)!
+            if (
+              (key !== 'hovered' && key !== 'focused' && key !== 'active') ||
+              !('value' in descriptor) ||
+              typeof descriptor.value !== 'boolean'
+            )
+              throw new PicodashContractError('invalid-configuration')
+          }
+          record.state = { ...record.state, ...patch }
+          publishItemSources(scopeId, itemId)
+        })
+      },
+      release() {
+        if (!record.active) return
+        withWriteLock(() => {
+          record.active = false
+          itemSources.delete(record)
+          publishItemSources(scopeId, itemId)
+        })
+      },
+    })
+  }
+
+  function numericInputGesture(handle: object, options?: NumericGestureOptions, scopeId?: string) {
+    const record = bindingRecordFor(handle)
+    if (record.mode !== 'input' || (scopeId !== undefined && record.scopeId !== scopeId))
+      throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
+    return numericGesture(record.field, options, record.scopeId, handle)
+  }
+
+  function numericGesture(
+    field: unknown,
+    options: NumericGestureOptions = {},
+    scopeId?: string,
+    binding?: object,
+  ) {
+    assertOwned(field)
+    const key = field.key
+    if (
+      typeof values[key] !== 'number' ||
+      !Number.isFinite(values[key]) ||
+      !options ||
+      typeof options !== 'object' ||
+      (options.onEnd !== undefined && typeof options.onEnd !== 'function')
+    )
+      throw new PicodashContractError('invalid-configuration')
+    function assertAvailable() {
+      if (runtimeController.lifecycle !== 'active')
+        throw new PicodashContractError('use-after-destroy')
+      if (writing) throw new PicodashContractError('reentrant-write')
+      if (binding) bindingRecordFor(binding)
+    }
+    const record = {
+      scopeId,
+      binding,
+      controller: createNumericGestureController(
+        {
+          read() {
+            const value = values[key]
+            const record = binding && runtimeController.bindingHandles.get(binding)
+            const input = record
+              ? interactionByScope
+                  .get(record.scopeId)
+                  ?.bindings.get(record.itemId)
+                  ?.get(record.alias)
+              : undefined
+            return {
+              value: typeof value === 'number' && Number.isFinite(value) ? value : null,
+              revision: fieldRevisions.get(key)!,
+              input,
+            }
+          },
+          assertAvailable,
+          fail() {
+            throw new PicodashContractError('invalid-configuration')
+          },
+          write: (value) =>
+            binding
+              ? setInputInternal(binding, value)
+              : transactAttributed({ [key]: value }, scopeId),
+          restore: (value, locked) =>
+            transactAttributed({ [key]: value }, scopeId, 'programmatic', {
+              canonicalSupplied: true,
+              lockHeld: locked,
+            }),
+          clearDraft() {
+            if (!binding) return
+            const bindingRecord = runtimeController.bindingHandles.get(binding)
+            if (bindingRecord) {
+              if (writing) setInteraction(bindingRecord, undefined)
+              else withWriteLock(() => setInteraction(bindingRecord, undefined))
+            }
+          },
+          detach() {
+            numericGestures.delete(record)
+          },
+        },
+        options,
+      ),
+    }
+    numericGestures.add(record)
+    return record.controller.gesture
+  }
 
   function assertOwned(
     field: unknown,
@@ -4027,7 +4225,6 @@ export function createPicodashNexus<
     if (itemBindings.size) bindings.set(record.itemId, immutableMap([...itemBindings]))
     else {
       bindings.delete(record.itemId)
-      items.delete(record.itemId)
     }
     const next =
       bindings.size || items.size
@@ -4653,6 +4850,10 @@ export function createPicodashNexus<
       if (controller.hasActiveLeases()) throw new PicodashContractError('root-has-active-leases')
       if (!discardUnpersisted && controller.hasUnpersistedState())
         throw new PicodashContractError('root-has-unpersisted-state')
+      for (const record of numericGestures) record.controller.teardown('destroyed')
+      // A validated rollback can itself encounter a storage failure. Keep that state recoverable.
+      if (!discardUnpersisted && controller.hasUnpersistedState())
+        throw new PicodashContractError('root-has-unpersisted-state')
       controller.destroyResources({ discardUnpersisted })
     })
   }
@@ -4668,6 +4869,14 @@ export function createPicodashNexus<
       const controller = runtimeControllerFor(nexus as object)
       for (const descendant of controller?.descendants(scopeId) ?? []) targets.add(descendant)
     }
+    for (const record of numericGestures)
+      if (record.scopeId !== undefined && targets.has(record.scopeId))
+        record.controller.teardown('destroyed')
+    for (const source of itemSources)
+      if (targets.has(source.scopeId)) {
+        source.active = false
+        itemSources.delete(source)
+      }
     const changedScopeIds = [...targets]
       .filter((id) => scopes.has(id) || quarantinedScopes.has(id))
       .sort()
@@ -4720,6 +4929,16 @@ export function createPicodashNexus<
   }
 
   function clearBindingInteractionLocked(scopeId: string, itemId: string, alias: string): void {
+    for (const record of numericGestures) {
+      const binding = record.binding && runtimeController.bindingHandles.get(record.binding)
+      if (
+        binding &&
+        binding.scopeId === scopeId &&
+        binding.itemId === itemId &&
+        binding.alias === alias
+      )
+        record.controller.teardown('released')
+    }
     const interaction = interactionByScope.get(scopeId)
     const itemBindings = interaction?.bindings.get(itemId)
     if (!interaction || !itemBindings || !itemBindings.has(alias)) return
@@ -4731,7 +4950,6 @@ export function createPicodashNexus<
       nextBindings.set(itemId, immutableMap([...remainingItemBindings]))
     else {
       nextBindings.delete(itemId)
-      nextItems.delete(itemId)
     }
     const nextInteraction =
       nextBindings.size || nextItems.size
@@ -4779,6 +4997,7 @@ export function createPicodashNexus<
   }
 
   function dispatchNexusSubscribers(affected: Set<ScopedChannel>, includeRoot = true) {
+    for (const record of numericGestures) record.controller.changed()
     diagnosticsRuntime.dispatch([
       ...(includeRoot ? [{ surface: 'root' as const, listeners }] : []),
       ...[...affected]
@@ -4831,6 +5050,10 @@ export function createPicodashNexus<
       } satisfies ScopedChannel)
     const scoped: ScopedNexus<Fields, NexusResult, boolean, boolean> = {
       kind: 'scoped',
+      createItemInteractionSource: (itemId) => createItemSource(scopeId, itemId),
+      createNumericGesture: (field, options) => numericGesture(field, options, scopeId),
+      createNumericInputGesture: (binding, options) =>
+        numericInputGesture(binding, options, scopeId),
       root: nexus,
       scopeId,
       fields,

@@ -9,6 +9,7 @@ import {
   type ReactNode,
   type RefAttributes,
 } from 'react'
+import type { SingleFieldDashletRenderContext } from './bindings.js'
 import type { PicodashJsonValue } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
 import { isNumberCompatible } from './number-compatibility.js'
@@ -32,6 +33,8 @@ import {
   Select,
   SegmentedControl,
   Slider,
+  TargetSlider,
+  type TargetSliderProps,
   Switch,
   TextField,
   type NumberFieldProps,
@@ -269,6 +272,7 @@ function SliderDashletInner<F extends ScalarField<number>>(
                 id={binding.controlId}
                 value={value}
                 onChange={binding.setInput}
+                createGesture={binding.createNumericGesture}
                 min={min}
                 max={max}
                 step={step}
@@ -533,3 +537,64 @@ export {
   type RadioGroupDashletProps,
   type SearchDashletProps,
 } from './ready-made-choices.js'
+
+export type TargetSliderDashletProps<F extends ScalarField<number> = ExactField<number>> = Shell &
+  WritableScalarFieldProps<F, number> &
+  Pick<
+    TargetSliderProps,
+    'min' | 'max' | 'step' | 'marks' | 'allowedRange' | 'formatOptions' | 'formatValue' | 'result'
+  >
+function TargetSliderDashletInner<F extends ScalarField<number>>(
+  {
+    field,
+    min,
+    max,
+    step,
+    marks,
+    allowedRange,
+    formatOptions,
+    formatValue,
+    result,
+    ...props
+  }: TargetSliderDashletProps<F>,
+  ref: ForwardedRef<HTMLDivElement>,
+) {
+  return (
+    <Dashlet {...props} ref={ref} field={asDashletBindingField(field)}>
+      {(context: SingleFieldDashletRenderContext<number>) => (
+        <TargetSlider
+          id={context.binding.controlId}
+          value={context.binding.value}
+          inputValue={
+            context.binding.dirty
+              ? typeof context.binding.draftValue === 'number'
+                ? context.binding.draftValue
+                : null
+              : context.binding.value
+          }
+          onChange={(value) => context.binding.setInput(value)}
+          createGesture={(options) => context.binding.createNumericGesture(options)}
+          min={min}
+          max={max}
+          step={step}
+          marks={marks}
+          allowedRange={allowedRange}
+          result={result}
+          formatOptions={formatOptions}
+          formatValue={formatValue}
+          disabled={context.disabled}
+          readOnly={context.readOnly}
+          aria-labelledby={context.labelId}
+          aria-describedby={describedBy(context, false, context.binding)}
+          {...bindingAria(context.binding)}
+        />
+      )}
+    </Dashlet>
+  )
+}
+export const TargetSliderDashlet = forwardRef(TargetSliderDashletInner) as {
+  <F extends ScalarField<number>>(
+    props: TargetSliderDashletProps<F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: TargetSliderDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}

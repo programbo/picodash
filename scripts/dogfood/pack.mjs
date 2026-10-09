@@ -90,6 +90,13 @@ async function main() {
       join(output, 'consumer-recipes.md'),
     )
     await cp(join(root, 'docs/development/numeric-targets.md'), join(output, 'numeric-targets.md'))
+    await writeFile(
+      join(output, 'linked-controls.md'),
+      (await readFile(join(root, 'docs/development/linked-controls.md'), 'utf8')).replace(
+        '(dogfooding.md)',
+        '(GUIDE.md)',
+      ),
+    )
     await cp(
       join(root, 'docs/development/open-ended-ranges.md'),
       join(output, 'open-ended-ranges.md'),
@@ -102,6 +109,7 @@ async function main() {
       'NumericTarget.tsx',
       'OpenCountRange.tsx',
       'Emphasis.tsx',
+      'LinkedControls.tsx',
     ]) {
       await cp(join(root, 'packages/picodash/tests/dogfood', file), join(output, 'example', file))
     }

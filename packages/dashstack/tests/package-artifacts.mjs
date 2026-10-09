@@ -94,12 +94,18 @@ assert.deepEqual(
     'SegmentedDashlet',
     'SelectDashlet',
     'SliderDashlet',
+    'TargetSliderDashlet',
     'StatusDashlet',
     'SwitchDashlet',
     'TextDashlet',
     'TimeDashlet',
     'useDashStackActions',
     'useDashStackOrder',
+    'useDashStackStructure',
+    'useDashStackGroupOrder',
+    'getDashStackStructure',
+    'subscribeDashStackStructure',
+    'revealDashlet',
   ].sort(),
 )
 const ui = await import(
@@ -118,6 +124,7 @@ const stableDashletNames = [
   'TextDashlet',
   'NumberDashlet',
   'SliderDashlet',
+  'TargetSliderDashlet',
   'SwitchDashlet',
   'SelectDashlet',
   'SegmentedDashlet',
@@ -131,7 +138,7 @@ const actionNames = [
   'DashStackResetValuesItem',
   'DashStackResetStackItem',
 ]
-assert.equal(catalogEntries.length, 16)
+assert.equal(catalogEntries.length, 17)
 assert.deepEqual(
   catalogEntries.map((entry) => entry.id),
   [
@@ -249,6 +256,7 @@ assert.deepEqual(
     'SegmentedControl',
     'Select',
     'Slider',
+    'TargetSlider',
     'Status',
     'Switch',
     'TextField',

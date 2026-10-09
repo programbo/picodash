@@ -35,7 +35,7 @@ peer and is excluded from the stable root inventory and component catalog.
 
 - Own Stack, group, Dashlet anatomy, binding composition, ready-made Dashlets, ordering, collapse,
   rail presentation, Stack actions, document UX, unbound controls, and package catalog metadata.
-- Keep declarations explicit: DashStack contains Dashlets or one-level DashGroups; arbitrary wrappers
+- Keep declarations explicit: DashStack contains Dashlets or root DashGroups with one organizational subgroup level; arbitrary wrappers
   do not become hidden declarations.
 - Keep reorderability container-owned and pin bands declarative. Commit one changed order at the
   end of an interaction; write nothing for cancellation or no-op sessions.

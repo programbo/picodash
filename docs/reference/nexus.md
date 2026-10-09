@@ -2143,3 +2143,22 @@ requires them.
 - [ADR 0002](../adr/0002-provider-level-nexus-and-scoped-views.md)
 - [Documentation status](document-status.md)
 - [Roadmap](../ROADMAP.md)
+
+## Numeric gestures and source-owned attention
+
+The accepted `NUMERIC-GESTURE-1` and `ITEM-INTERACTION-SOURCE-1` contracts are recorded in the
+[decision ledger](nexus-contract-decisions.md#numeric-gesture-1-and-item-interaction-source-1-accepted-2026-10-09).
+Root/scoped Nexus exposes `createNumericGesture(field, options?)` and
+`createNumericInputGesture(binding, options?)`. `NumericGesture` has `active`, `begin`, `update`,
+`commit`, `cancel`, and idempotent `release`. `NumericGestureEnd` reports `outcome`, `reason`,
+`initialValue`, `finalValue`, `changed`, and `rollback`; no-op ends are explicit. End callbacks are
+microtasks; direct commit/cancel return the event immediately. Ordinary numeric field setters and
+input validation remain authoritative. These controllers do not create undo history.
+
+Scoped Nexus exposes `createItemInteractionSource(itemId): ItemInteractionSource`. Its
+`set(Partial<ItemInteractionState>)` accepts boolean hovered/focused/active flags and merges only its
+own contribution. `release()` removes only that source. The existing scoped item snapshot aggregates
+sources; separate app-owned IDs preserve origin. Source IDs do not require mounted shell nodes.
+
+[Linked-control recipes](../development/linked-controls.md) document cancellation boundaries,
+rollback rejection, source cleanup, and the distinction between intent and computed outcomes.

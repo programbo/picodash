@@ -31,7 +31,7 @@ export function SelectedProfile({
   const snapshot = usePicodashNexusSelector(nexus, (state) => state)
   const { solution } = selectDesign(snapshot, solve)
   return (
-    <Dashlet id={id} label="Selected gear profile" layout="block" pin="start">
+    <Dashlet id={id} label="Selected gear profile" layout="block">
       {solution ? (
         <>
           <svg
@@ -101,7 +101,9 @@ function EffectivePriority() {
 export function DesignerRecipe({ nexus, solve }: { nexus: Designer; solve: Solver }) {
   return (
     <DashStack id={scopeId} nexus={nexus}>
-      <SelectedProfile id="profile" nexus={nexus} solve={solve} />
+      <DashGroup id="profile-pinned" aria-label="Selected gear profile" pin="start">
+        <SelectedProfile id="profile" nexus={nexus} solve={solve} />
+      </DashGroup>
       <DashGroup id={targetsId} label="Priority targets">
         <Dashlet id="reduction" label="Reduction" field={nexus.fields.design} mode="display">
           {({ binding }: SingleFieldDashletRenderContext<Design, 'display'>) => (

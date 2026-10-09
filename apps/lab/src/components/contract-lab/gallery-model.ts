@@ -201,6 +201,13 @@ export function createGalleryNexus() {
       color: styleLabFields.color,
       choice: styleLabFields.select,
       selections: styleLabFields.multiSelect,
+      target: {
+        defaultValue: 2.37,
+        validate: (value: number) =>
+          Number.isFinite(value) && value >= 0 && value <= 10
+            ? []
+            : [{ message: 'Enter a target from 0 to 10.' }],
+      },
       bipolar: {
         defaultValue: 0,
         validate: (value: number) =>

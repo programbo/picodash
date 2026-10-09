@@ -2,6 +2,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { usePicodashNexusSelector } from '@picodash/nexus/react'
 import type {
   BindingInteractionState,
+  NumericGesture,
+  NumericGestureOptions,
   PicodashField,
   PicodashFieldDefinitions,
   PicodashJsonValue,
@@ -54,6 +56,10 @@ export interface DashletInputBindingContext<
   readonly draftValue?: PicodashJsonValue
   readonly touched: boolean
   readonly stale: boolean
+  createNumericGesture(
+    this: DashletInputBindingContext<number>,
+    options?: NumericGestureOptions,
+  ): NumericGesture
   setInput(candidate: PicodashJsonValue): void
   discardInput(): void
   resetValue(): void
@@ -402,6 +408,11 @@ export function useDashletBindings(
         const input: DashletInputBindingContext<PicodashJsonValue> = {
           ...base,
           mode: 'input',
+          createNumericGesture(options) {
+            const runtime = runtimes.current.find((entry) => entry.descriptor.alias === key)
+            if (!runtime?.handle) throw new TypeError('Binding is not mounted.')
+            return nexus.createNumericInputGesture(runtime.handle as never, options)
+          },
           dirty: bindingState?.draft !== undefined,
           ...(bindingState?.draft === undefined ? {} : { draftValue: bindingState.draft }),
           touched: bindingState?.touched ?? false,

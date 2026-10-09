@@ -78,11 +78,12 @@ describe('@picodash/dashstack public types', () => {
     void createElement(Dashlet, {
       id: 'item',
       label: 'Item',
-      pin: 'end',
       help: 'Help text',
       primaryFocusRef,
       children: 'Value',
     })
+    // @ts-expect-error only root groups accept pin.
+    void createElement(Dashlet, { id: 'pinned', label: 'Pinned', pin: 'start' })
     void DashHeader
     void ActionMenu
     void DashStackActionItems

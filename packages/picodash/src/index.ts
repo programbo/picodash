@@ -17,6 +17,9 @@ export {
   ComboboxDashlet,
   DashGroup,
   DashStack,
+  useDashStackOrder,
+  useDashStackStructure,
+  useDashStackGroupOrder,
   Dashlet,
   DateDashlet,
   DateRangeDashlet,
@@ -54,7 +57,13 @@ export type {
   DashPanelPlacementOptions,
   DashPanelPresentation,
 } from '@picodash/dashpanel'
-export type { DashStackProps, DashGroupProps, DashletProps } from '@picodash/dashstack'
+export type {
+  DashStackProps,
+  DashGroupProps,
+  DashletProps,
+  DashStackStructure,
+  DashStackNode,
+} from '@picodash/dashstack'
 export type {
   CheckboxDashletProps,
   CheckboxGroupDashletProps,
@@ -92,3 +101,21 @@ export type {
   ActionMenuSeparatorProps,
   ActionSubmenuProps,
 } from '@picodash/dashpanel'
+
+export {
+  getDashStackStructure,
+  subscribeDashStackStructure,
+  revealDashlet,
+} from '@picodash/dashstack'
+export type { DashletRevealResult } from '@picodash/dashstack'
+export type {
+  NumericGesture,
+  NumericGestureOptions,
+  NumericGestureEnd,
+  NumericGestureCancelReason,
+} from '@picodash/nexus'
+
+export { TargetSliderDashlet } from '@picodash/dashstack'
+export type { TargetSliderDashletProps, TargetSliderResult } from '@picodash/dashstack'
+
+export type { ItemInteractionSource } from '@picodash/nexus'

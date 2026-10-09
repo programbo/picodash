@@ -22,11 +22,13 @@ readouts, visualizations, previews, and actions. This page describes the aspirat
 DashStack owns Stack, group, Dashlet, binding, and reorder composition inside an application-owned
 layout. It does not require DashPanel or `PicodashProvider`.
 
-## Proposed additions
+## Linked controls and organizational subgroups
 
-[TargetSliderDashlet](../proposals/target-slider-dashlet.md) is a Draft proposal for an editable
-requested target with a separate application-supplied achieved marker. It is Planned, has no public
-export, and does not change the accepted Slider contract or current package inventory.
+[ADR 0008](../adr/0008-organizational-subgroups-and-linked-controls.md) accepts one organizational
+subgroup level, root-group pinning, effective structure readers, numeric gesture ownership,
+source-owned attention, explicit reveal, and `TargetSliderDashlet`. See the
+[implementation guide](../development/linked-controls.md) for public recipes. These additions are
+implemented; the broader consumer layout matrix remains under verification.
 
 ## Standalone composition
 
@@ -288,21 +290,23 @@ type RegisteredNodeNativeProps = Omit<
 
 type DashGroupProps = RegisteredNodeNativeProps & {
   id: string
-  label: ReactNode
+  label?: ReactNode
   labelColor?: CSSProperties['color']
+  glow?: boolean | CSSProperties['color']
   'aria-label'?: string
   children?: ReactNode
   collapsible?: boolean
   defaultCollapsed?: boolean
   reorderable?: boolean
-  pin?: DashletPin
+  pin?: 'start' | 'end'
   disabled?: boolean
   readOnly?: boolean
 }
 ```
 
-`DashGroup.label` is required. A non-text label additionally requires `aria-label`. `collapsible`
-defaults to `true`; `defaultCollapsed` defaults to `false`; and an omitted `reorderable` inherits
+`DashGroup.label` is optional for a headerless root group with `aria-label`. A non-text label also
+requires `aria-label`. Only labelled root groups default `collapsible` to `true`; subgroups and
+headerless groups cannot collapse. `defaultCollapsed` defaults to `false`; omitted `reorderable` inherits
 the containing DashStack policy. The Group exposes no controlled `collapsed`, `visible`, generic
 `states`, generic `status`, actions, or Nexus prop. Conditional JSX owns presence, while the accepted
 collapse override owns user visibility of mounted children.
@@ -313,7 +317,9 @@ focus repair; non-collapsible groups do not gain a toggle target. Titles retain 
 use semibold weight, and default to the theme's strongest text color. Optional `labelColor` accepts
 a CSS color (including a theme variable) and colors the title and chevron. CSS derives the header
 and child first-column hover tint from that same color at 10% opacity. Grips and child control
-colors stay independent. This is presentation configuration, not persisted Nexus state.
+colors stay independent. This is presentation configuration, not persisted Nexus state. `glow` applies an inner glow only
+to the group heading, using the same theme default or custom CSS colour as Dashlet glow. A
+headerless group has no heading to glow. Subgroup bodies do not inherit an ancestor glow.
 
 ```tsx
 <DashGroup id="timing" label="Timing" labelColor="var(--brand-accent)">
@@ -324,7 +330,6 @@ colors stay independent. This is presentation configuration, not persisted Nexus
 The Dashlet base surface is:
 
 ```ts
-type DashletPin = 'start' | 'end'
 type DashletLayout = 'inline' | 'block'
 type DashletBindingMode = 'input' | 'display'
 
@@ -344,7 +349,6 @@ type DashletBaseProps = RegisteredNodeNativeProps & {
   glow?: boolean | CSSProperties['color']
   tint?: boolean | CSSProperties['color']
   layout?: DashletLayout
-  pin?: DashletPin
   disabled?: boolean
   readOnly?: boolean
   rail?: Readonly<DashletRailOptions>
@@ -1427,20 +1431,20 @@ Prototype presentation and verification notes: [Dashlet feedback experiments](..
 </DashGroup>
 ```
 
-| Group behavior             | Contract | Implementation | Notes                                        |
-| -------------------------- | -------- | -------------- | -------------------------------------------- |
-| Declarative containment    | Accepted | Prototype      | Persistence never owns parent membership.    |
-| One group level            | Accepted | Planned        | DashGroups contain Dashlets only at launch.  |
-| Nested groups              | Draft    | Prototype      | Unsupported until dedicated UX work is done. |
-| Collapsible group          | Accepted | Prototype      | User state is a durable override.            |
-| Group-level actions/status | Draft    | Prototype      | Neither is inferred or aggregated initially. |
-| Conditional children       | Accepted | Prototype      | Absence never proves obsolescence.           |
+| Group behavior             | Contract | Implementation | Notes                                         |
+| -------------------------- | -------- | -------------- | --------------------------------------------- |
+| Declarative containment    | Accepted | Prototype      | Persistence never owns parent membership.     |
+| One subgroup level         | Accepted | Implemented    | Organizational subgroups are non-collapsible. |
+| Deeper groups              | Rejected | Enforced       | A third group level is a contract error.      |
+| Collapsible group          | Accepted | Prototype      | User state is a durable override.             |
+| Group-level actions/status | Draft    | Prototype      | Neither is inferred or aggregated initially.  |
+| Conditional children       | Accepted | Prototype      | Absence never proves obsolescence.            |
 
 Items and groups share a node namespace within the Stack scope. Reparenting releases the previous
 registration before mounting under a new container.
 
 `label` is the canonical visible group identity; native `title` is not used as its substitute. A
-group requires a label, and a non-text label additionally requires `aria-label` for reorder and
+labelled group requires an accessible label, and a non-text label additionally requires `aria-label` for reorder and
 diagnostic text. Its outer registered wrapper is a `role="listitem"`; the generated inner shell is
 a named `role="group"` rather than a page landmark.
 
@@ -1449,7 +1453,7 @@ and its immediate-child ordering container is a nested `role="list"` labelled by
 The group label does not implicitly create a document heading. Applications use an explicitly
 levelled heading where their document structure requires one.
 
-Groups are collapsible by default and begin expanded: `collapsible` defaults to `true`, while
+Labelled root groups are collapsible by default and begin expanded: `collapsible` defaults to `true`, while
 `defaultCollapsed` defaults to `false`. A collapsible label is a button with `aria-expanded`,
 `aria-controls`, and a stable mounted content-region ID. A non-collapsible label is non-interactive;
 it is not rendered as a disabled or pointer-blocked button.
@@ -1485,8 +1489,8 @@ or aggregated behavior in the initial contract.
 > Contract: Accepted
 > Implementation: Partial
 
-Every ordering container has `start`, automatic, and `end` bands. Dashlet and DashGroup nodes accept
-`pin?: "start" | "end"`; omitting the prop selects the automatic band. Pinning is declarative
+The root ordering container has `start`, automatic, and `end` bands. Only root DashGroups accept
+`pin?: "start" | "end"`; Dashlets and subgroups reject pinning. Omitting the prop selects the automatic band. Pinning is declarative
 application configuration, not user-owned Nexus state. There is no built-in pin or unpin interaction
 in the initial contract.
 
@@ -1495,12 +1499,12 @@ visible siblings in the same band and never cross a band boundary. An interactiv
 only when the effective container policy permits reordering and at least two visible nodes occupy
 that band.
 
-At the DashStack root, start and end bands remain outside the automatic band's scrollport. Inside a
-DashGroup, bands determine order but do not create nested fixed scroll regions.
+At the DashStack root, start and end groups remain outside the automatic band's scrollport.
+Group children use one ordinary sibling ordering container without nested fixed scroll regions.
 
-The root's minimum block size includes the rendered start and end bands, but not the automatic
-band's full contents. When a containing DashPanel is height-constrained, the automatic band alone
-scrolls while both pinned bands remain visible.
+The automatic band has a zero minimum block size. Pinned groups keep natural heights. The middle
+scrolls while the pinned groups fit; if their combined height exceeds the available height, the
+outer Stack scrolls so they never overlap. This applies both standalone and inside DashPanel.
 
 The root automatic scrollport uses UI's vertical
 [`scroll-fade` recipe](ui.md#scroll-overflow-feedback) to indicate offscreen content. Start and end
@@ -2144,3 +2148,40 @@ Default Block labels span columns two through four. Experimental ChartDashlet us
 height and SparklineDashlet 48px; explicit `chartProps.height` or `chartProps.aspectRatio` remains
 application-owned. The pinned chart dependency is still 0.12.0; the upstream 1.0 release does not
 itself upgrade or qualify Picodash's experimental integration.
+
+## Linked controls and organizational subgroups
+
+[ADR 0008](../adr/0008-organizational-subgroups-and-linked-controls.md) accepts one non-collapsible,
+non-pinned subgroup level, root-group-only pinning, derived structure inspection, and explicit
+reveal/focus. Subgroups inherit label colour and the shared input grid. Their headings have no
+button hover treatment; their reorder grip remains a separate interaction.
+
+`useDashStackStructure(scope?)`, `getDashStackStructure(scope)`, and
+`subscribeDashStackStructure(scope, listener)` expose the same frozen mounted structure:
+`{rootIds, nodes}`. Each node includes `id`, `kind`, `parentId`, `depth`, `children`, `fieldKeys`,
+`visible`, `collapsible`, and `collapsed`. Node IDs and field keys remain distinct.
+`useDashStackGroupOrder(scope, groupId)` selects one group's committed immediate children. Unknown
+or unmounted groups return an empty order. No drag-preview or durable membership state is added.
+
+`revealDashlet(scope, id)` returns a Promise of `{ok:true}` or
+`{ok:false,reason:'not-found'|'rejected'|'unavailable'}`. It expands ancestors through public Nexus
+metadata commands and focuses a registered control after rendering. It does not guess DOM selectors
+or fall back to claiming success after focusing an empty shell.
+
+`TargetSliderDashlet` and unbound `TargetSlider` are accepted implemented exports. The target is a
+numeric field with independent finite `min < max`, positive `step` (default `0.01`), optional
+`allowedRange`, sparse `marks`, `formatOptions`, and `formatValue`. The editable NumberField shares
+the combined control root; the achieved marker and readout have a separate readonly role. `result`
+is `{status:'ready',value:number}`, `{status:'pending',lastValue?:number}`, `{status:'no-fit',message?:string}`,
+or `{status:'error',message:string}`. No-fit/error have no numeric marker. Pending lastValue is
+labelled Previous. Achieved values are independent of marks/target steps. Animation changes only
+paint; readouts update immediately and reduced motion snaps. Unrepresentable canonical values are
+shown honestly without a fabricated endpoint thumb.
+
+Slider and TargetSlider accept an optional `createGesture` factory; ready-made bound controls use
+the numeric binding factory automatically. The public binding context adds
+`createNumericGesture(options?)` for numeric input fields. Cancellation respects Nexus ownership,
+validation, and external changes. Numeric text entry keeps its existing binding draft policy.
+
+See [the complete adoption recipes](../development/linked-controls.md) for lifecycle events,
+headless/React parity, result freshness, source-attributed attention and deliberate navigation.

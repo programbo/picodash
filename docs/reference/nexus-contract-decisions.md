@@ -2552,3 +2552,24 @@ stale-draft conflict permutations, persistence conflict/recovery combinations, a
 and advanced recovery keep their existing roadmap ownership. Continuing evidence does not permit a
 partial mutation, silent conflict overwrite, private cross-package bypass, or implementation-status
 advance without linked conformance evidence.
+
+## NUMERIC-GESTURE-1 and ITEM-INTERACTION-SOURCE-1 (accepted 2026-10-09)
+
+Nexus exposes root/scoped `createNumericGesture(field, options?)` and
+`createNumericInputGesture(binding, options?)`. Controllers group live validated writes into one
+logical edit and retain private field revisions plus binding identity for rollback ownership.
+External writes revoke ownership, including A-B-A. Rejected updates preserve the last accepted
+value; rejected rollback reports its actual final value. End callbacks run after write dispatch in
+a microtask; direct commit/cancel return the same frozen event. Existing reentrant-write rejection
+is unchanged. Controllers release independently of durable state and are cancelled by owning
+binding/scope/root destruction. A failed root destruction leaves controllers active.
+
+Scoped `createItemInteractionSource(itemId)` returns independent `set(patch)` and `release()` writers.
+The three boolean flags aggregate by OR into existing `interaction.items`. Source IDs need no shell
+registration, enabling distinct row/profile meanings. Sources, like hover and focus, are ephemeral;
+binding draft cleanup must never erase independently owned item attention. Scope/root teardown
+invalidates the relevant sources. No domain relationship graph is introduced.
+
+See [ADR 0008](../adr/0008-organizational-subgroups-and-linked-controls.md),
+[usage recipes](../development/linked-controls.md), `tests/numeric-gesture.test.ts`, and
+`tests/item-interaction.test.ts` in the Nexus package.

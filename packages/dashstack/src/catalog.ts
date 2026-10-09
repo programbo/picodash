@@ -83,6 +83,12 @@ const stableReadyMade = [
   ['TextDashlet', 'Binds a string field to a text editor.', ['edit'], ['string']],
   ['NumberDashlet', 'Binds a number field to a numeric editor.', ['edit'], ['number']],
   ['SliderDashlet', 'Binds a number field to a slider editor.', ['edit'], ['number']],
+  [
+    'TargetSliderDashlet',
+    'Edits a numeric target alongside an application-supplied achieved result.',
+    ['edit', 'read'],
+    ['number'],
+  ],
   ['SwitchDashlet', 'Binds a boolean field to a switch control.', ['edit'], ['boolean']],
   ['SelectDashlet', 'Binds one choice field to a select control.', ['edit'], ['string-or-number']],
   [
@@ -110,11 +116,11 @@ const entries: PicodashCatalogEntry[] = [
     groupParent,
     'DashGroup',
     'group',
-    'Groups Dashlets into a collapsible ordered section.',
+    'Groups ordered controls; root groups may collapse or pin, and subgroups organize.',
     ['compose', 'reorder', 'collapse'],
     { cardinality: 'none', valueKinds: [] },
-    'visible-label',
-    [stackParent],
+    'required',
+    [stackParent, groupParent],
     'docs/reference/dashstack.md#stack-node-declarations',
   ),
   makeEntry(
