@@ -869,9 +869,10 @@ Source-owned item attention stays ephemeral. TargetSlider separates editable tar
 achieved-result states and independent marks; the achieved marker does not mutate values.
 
 Owning evidence: `subgroups.test.tsx`, `target-slider.test.tsx`, `numeric-gesture.test.ts`,
-`item-interaction.test.ts`, and the installed-consumer `LinkedControls.tsx` fixture. The .7 isolated
+`item-interaction.test.ts`, and the installed-consumer `LinkedControls.tsx` fixture. The .8 isolated
 consumer passed repeat install, update/rollback, frozen reinstall, type checking, DOM interaction,
-and Vite/Next CSS checks.
+and Vite/Next CSS checks, including update/rollback against .7. Its clean source is
+`c1f7fcd3a6d01d370922ee4cc7a78dbb798f69aa`.
 
 The follow-up has 288 passing DashStack tests and 195 passing DashPanel tests. The existing phone,
 standalone value-binding, and two-Panel Style Lab journeys pass. They cover editable TargetSlider
