@@ -1747,7 +1747,7 @@
     :has([data-picodash-dashstack-slider-value], [data-picodash-dashstack-range-value])
   )
   > [data-picodash-dashlet-content-cell]
-  > :is(.picodash-dashstack-slider, .picodash-dashstack-range-slider) {
+  > :is(.picodash-dashstack-slider, .picodash-dashstack-range-slider):not([data-detents]) {
   grid-template-columns: subgrid;
 }
 
@@ -2501,6 +2501,32 @@
   );
   --_picodash-target-thumb-rise: calc(max(44px, var(--picodash-control-height-md)) / 2);
   --_picodash-target-label-lift: 0px;
+  /* Compare resting and enlarged clamps in container coordinates. The origin is the
+     displacement needed to preserve both centring and the thumb's enlarged edge. */
+  --_picodash-target-anchor: calc(
+    var(--_picodash-target-edge) +
+      (var(--_picodash-target-container-size) - 2 * var(--_picodash-target-edge)) *
+      var(--_picodash-target-ratio)
+  );
+  --_picodash-target-rest-start: clamp(
+    calc(var(--_picodash-target-edge) - var(--_picodash-target-thumb-half)),
+    calc(var(--_picodash-target-anchor) - var(--_picodash-target-label-size) / 2),
+    calc(
+      var(--_picodash-target-container-size) - var(--_picodash-target-edge) +
+        var(--_picodash-target-thumb-half) - var(--_picodash-target-label-size)
+    )
+  );
+  --_picodash-target-grown-start: clamp(
+    calc(var(--_picodash-target-edge) - var(--_picodash-target-thumb-half) * 1.25),
+    calc(var(--_picodash-target-anchor) - var(--_picodash-target-label-size) * 1.15 / 2),
+    calc(
+      var(--_picodash-target-container-size) - var(--_picodash-target-edge) +
+        var(--_picodash-target-thumb-half) * 1.25 - var(--_picodash-target-label-size) * 1.15
+    )
+  );
+  --_picodash-target-label-origin: calc(
+    (var(--_picodash-target-rest-start) - var(--_picodash-target-grown-start)) / 0.15
+  );
   padding-block-start: var(--picodash-space-2);
 }
 .picodash-dashstack-target-slider .picodash-dashstack-slider-track {
@@ -2547,11 +2573,11 @@
   border-block-end: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-accent);
   border-end-start-radius: 0;
   border-end-end-radius: 0;
-  transform-origin: calc(var(--_picodash-target-ratio) * 100%) bottom;
+  transform-origin: var(--_picodash-target-label-origin, 50%) bottom;
   transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
 }
 [dir='rtl'] [data-picodash-target-label-slot] > .picodash-dashstack-field {
-  transform-origin: calc((1 - var(--_picodash-target-ratio)) * 100%) bottom;
+  transform-origin: calc(100% - var(--_picodash-target-label-origin, 50%)) bottom;
 }
 [data-picodash-target-label-slot] input {
   text-align: end;
@@ -2646,9 +2672,15 @@
 
 /* Detent gaps are physical interaction space, never additional numeric scale. */
 .picodash-dashstack-slider[data-detents] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-column: 1 / -1;
   padding-block-end: calc(var(--picodash-font-size-sm) + var(--picodash-space-1));
 }
+.picodash-dashstack-slider[data-detents][data-reference-labels] {
+  padding-block-end: calc(2 * var(--picodash-font-size-sm) + var(--picodash-space-4));
+}
 [data-picodash-detent-track] {
+  --_picodash-detent-thumb-half: calc(max(44px, var(--picodash-control-height-md)) / 2);
   --_picodash-detent-start: 0px;
   --_picodash-detent-end: 0px;
   margin-inline: calc(max(44px, var(--picodash-control-height-md)) / 2);
@@ -2661,42 +2693,75 @@
 [data-picodash-detent-track][data-end-detent] {
   --_picodash-detent-end: min(24px, 30%);
 }
+/* The detent bridge is visible, while the brighter interval still identifies valid sizes. */
+[data-picodash-detent-track]::before,
 [data-picodash-detent-interval] {
   position: absolute;
   inset-block: 0;
-  inset-inline: var(--_picodash-detent-start) var(--_picodash-detent-end);
   border-radius: inherit;
-  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
   pointer-events: none;
 }
-[data-picodash-detent-interval]::before,
-[data-picodash-detent-interval]::after {
+[data-picodash-detent-track]::before {
+  content: '';
+  inset-inline: calc(-1 * var(--picodash-space-0-5));
+  background: color-mix(in oklab, var(--picodash-color-text) 12%, transparent);
+}
+[data-picodash-detent-interval] {
+  inset-inline: var(--_picodash-detent-start) var(--_picodash-detent-end);
+  background: color-mix(in oklab, var(--picodash-color-text) 12%, transparent);
+}
+[data-picodash-detent-dot],
+[data-picodash-detent-value-stem] {
+  position: absolute;
+  inset-block-start: 100%;
+  inline-size: 0;
+  pointer-events: none;
+}
+[data-picodash-detent-dot]::before,
+[data-picodash-detent-dot]::after,
+[data-picodash-detent-value-stem]::before {
   content: '';
   position: absolute;
-  inset-block: calc(-1 * var(--picodash-space-0-5));
-  inline-size: var(--picodash-border-width-thin);
+  inset-inline-start: calc(-1 * var(--picodash-border-width-thin));
+  inline-size: calc(2 * var(--picodash-border-width-thin));
+  block-size: calc(2 * var(--picodash-border-width-thin));
+  border-radius: var(--picodash-radius-control);
   background: var(--picodash-color-text-muted);
 }
-[data-picodash-detent-interval]::before {
-  inset-inline-start: 0;
+[data-picodash-detent-dot]::after,
+[data-picodash-detent-value-stem]::before {
+  block-size: var(--picodash-space-2);
+  background: var(--picodash-color-text);
+  transform-origin: center top;
 }
-[data-picodash-detent-interval]::after {
-  inset-inline-end: 0;
+[data-picodash-detent-dot]::after {
+  transform: scaleY(0);
+  transition: transform calc(var(--picodash-duration-fast) * 1.6) var(--picodash-easing-out);
 }
-[data-picodash-detent-stop],
+[data-picodash-detent-dot][data-selected]::after {
+  transform: scaleY(1);
+}
+[data-picodash-detent-dot][data-motion='false']::after {
+  transition: none;
+}
+[data-picodash-detent-readout],
 [data-picodash-detent-mark] {
   position: absolute;
-  inset-block-start: calc(100% + var(--picodash-space-1));
+  inset-block-start: calc(100% + var(--picodash-space-2));
   font-size: var(--picodash-font-size-sm);
-  color: var(--picodash-color-text-muted);
+  line-height: var(--picodash-line-height-normal);
+  color: var(--picodash-color-text);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   pointer-events: none;
 }
-[data-picodash-detent-stop='start'] {
-  inset-inline-start: 0;
+[data-picodash-detent-mark] {
+  inset-block-start: calc(100% + var(--picodash-space-4) + var(--picodash-font-size-sm));
+  color: var(--picodash-color-text-muted);
 }
-[data-picodash-detent-stop='end'] {
-  inset-inline-end: 0;
+[data-picodash-detent-readout],
+[data-picodash-detent-value-stem] {
+  translate: var(--_picodash-detent-snap, 0px) 0;
 }
 [data-picodash-detent-track] [data-picodash-dashstack-slider-thumb] {
   position: absolute;
@@ -2714,6 +2779,7 @@
 }
 @media (pointer: fine) {
   [data-picodash-detent-track] {
+    --_picodash-detent-thumb-half: calc(var(--picodash-space-3) / 2);
     margin-inline: calc(var(--picodash-space-3) * 1.25 / 2);
   }
   [data-picodash-detent-track] [data-picodash-dashstack-slider-thumb]::before {
@@ -2734,6 +2800,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  [data-picodash-detent-dot]::after,
   [data-picodash-detent-track] [data-picodash-dashstack-slider-thumb]::before {
     transition: none;
   }

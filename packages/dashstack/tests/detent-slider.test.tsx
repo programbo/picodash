@@ -170,6 +170,63 @@ it('supports singleton intervals, disabled/read-only policies and native accessi
   }
 })
 
+it('renders Off/min/last-step dots and a formatted value below the thumb without a target field', () => {
+  const onChange = vi.fn()
+  const props = {
+    min: 2,
+    max: 10.05,
+    step: 0.1,
+    startDetent,
+    onChange,
+    formatValue: (value: number) => `${value} mm`,
+    'aria-label': 'Bore',
+  }
+  const view = render(<Slider {...props} value={0} />)
+  const dots = () =>
+    Array.from(view.container.querySelectorAll('[data-picodash-detent-dot]')).map((dot) =>
+      dot.getAttribute('data-picodash-detent-dot'),
+    )
+  const readout = () => view.container.querySelector('[data-picodash-detent-readout]')?.textContent
+  expect(dots()).toEqual(['0', '2', '10'])
+  expect(readout()).toBe('Off')
+  expect(screen.queryByRole('textbox')).toBeNull()
+  view.rerender(<Slider {...props} value={3.2} />)
+  expect(readout()).toBe('3.2 mm')
+  expect(view.container.querySelector('[data-picodash-detent-value-stem]')).toBeTruthy()
+  view.rerender(<Slider {...props} value={2} max={2} />)
+  expect(dots()).toEqual(['0', '2'])
+  expect(
+    view.container.querySelector('[data-picodash-detent-dot="2"]')?.hasAttribute('data-selected'),
+  ).toBe(true)
+  expect(onChange).not.toHaveBeenCalled()
+})
+
+it('moves the bound detent formatter into the readout without a duplicate trailing badge', () => {
+  const nexus = make()
+  const view = render(
+    <DashStack nexus={nexus} id="bores">
+      <SliderDashlet
+        id="bore"
+        label="Bore"
+        field={nexus.fields.bore}
+        min={2}
+        max={10}
+        startDetent={startDetent}
+        formatValue={(value) => `${value} mm`}
+      />
+    </DashStack>,
+  )
+  expect(view.container.querySelector('[data-picodash-detent-readout]')?.textContent).toBe('2 mm')
+  expect(view.container.querySelector('[data-picodash-dashstack-slider-value]')).toBeNull()
+  act(() => {
+    nexus.setValue(nexus.fields.bore, 0)
+  })
+  expect(view.container.querySelector('[data-picodash-detent-readout]')?.textContent).toBe('Off')
+  expect(nexus.getState().values.bore).toBe(0)
+  view.unmount()
+  nexus.destroy()
+})
+
 it('rejects malformed detents and ambiguous constraint combinations', () => {
   for (const detent of [
     { value: 2, label: 'Off' },

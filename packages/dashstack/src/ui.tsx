@@ -258,6 +258,7 @@ export type SliderProps = DashStackControlProps & {
     readonly step?: number
     readonly marks?: readonly SliderMark[]
     readonly formatOptions?: Intl.NumberFormatOptions
+    readonly formatValue?: (value: number) => ReactNode
   }
 
 function sliderMarkPosition(value: number, min: number, max: number) {
@@ -298,6 +299,7 @@ function ContinuousSlider({
   step = 1,
   marks,
   formatOptions,
+  formatValue,
   allowedRange,
   fillOrigin,
   createGesture,
@@ -348,7 +350,9 @@ function ContinuousSlider({
         <Label className="picodash-visually-hidden">
           {props['aria-labelledby'] ? null : props['aria-label']}
         </Label>
-        <SliderOutput aria-hidden="true">{({ state }) => state.getThumbValueLabel(0)}</SliderOutput>
+        <SliderOutput aria-hidden="true">
+          {({ state }) => (formatValue ? formatValue(value) : state.getThumbValueLabel(0))}
+        </SliderOutput>
         <SliderTrack
           className="picodash-dashstack-slider-track"
           data-constrained={allowedRange ? true : undefined}

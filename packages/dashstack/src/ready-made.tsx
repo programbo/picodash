@@ -299,6 +299,7 @@ function SliderDashletInner<F extends ScalarField<number>>(
                 fillOrigin={fillOrigin}
                 startDetent={startDetent}
                 endDetent={endDetent}
+                formatValue={formatValue}
                 formatOptions={formatOptions}
                 disabled={context.disabled}
                 readOnly={context.readOnly}
@@ -307,7 +308,7 @@ function SliderDashletInner<F extends ScalarField<number>>(
                 {...bindingAria(binding)}
               />
             )}
-            {formatValue && !mismatch ? (
+            {formatValue && !mismatch && !startDetent && !endDetent ? (
               <output data-picodash-dashstack-slider-value>{formatValue(canonical)}</output>
             ) : null}
             <PresentationWarning

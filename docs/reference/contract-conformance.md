@@ -1166,3 +1166,18 @@ Snapshot .21 (`98ee03bf362ddc4aaaa5c6d10827046fc336e32d`) passes all package rel
 types, component interactions and Vite/Next CSS builds. The Lab production build passes; the live
 light compact gallery at 390px shows solid blue chips and no segmented underline without overflow
 or browser errors. Source changes in this snapshot are CSS and documentation only.
+
+### Bore track and target-label join (2026-10-09)
+
+Detent Slider and SliderDashlet now show a connected, dimmed detent gap, endpoint dots and a
+formatted readout beneath the thumb. The default start-detent bore has three dots; singleton
+minimum/maximum deduplicate. Tests cover readout placement, bound formatting, sentinel labels,
+no duplicate badge and no presentation writes. Existing keyboard, cancellation and ownership
+tests pass. TargetSlider computes its scaling origin from the two clamped label positions.
+
+Built-package browser checks verify Off/min/intermediate/max, regular and compact RTL, singleton
+dots, reduced motion, and 390px width without horizontal overflow. Target input and painted thumb
+edges meet at minimum/maximum through hover scaling (within 0.02px rounding); centre focus stays
+centred. Label bottom and thumb top remain joined. Browser errors are empty. The firmer detent
+spring settles a 24px transition in about 110ms in the recorded browser run, within 0.5px at 76ms.
+Keyboard entry into Off still works. Owned browser sessions were closed and their processes exited.

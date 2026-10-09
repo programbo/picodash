@@ -2266,6 +2266,12 @@ are never emitted. The min-anchored step interval may be singleton; a nonaligned
 the preceding step. Detents are mutually exclusive with `allowedRange` and `fillOrigin` for now.
 They do not extend TargetSlider or RangeSlider.
 
+Detent sliders use a connected track with dots for each detent, the numeric minimum and the
+last reachable step. Coincident stops share a dot; authored marks add reference dots. The current
+value sits below the thumb, with a stem connecting it to the track. `formatValue` formats ordinary
+values; the authored detent label takes precedence at its stop. SliderDashlet uses this readout
+instead of a duplicate trailing badge. No target input is added.
+
 Pointer movement has separate endpoint parking space and hysteresis, with a short resisted pull
 before switching stops. A track click selects a regular value. Held arrows stop at the regular
 boundary; a new press crosses into the detent. Home/End select the outermost stop. Leaving a detent
@@ -2287,3 +2293,12 @@ focus-visible selection and reduced motion remain immediate. MultiSelect chips s
 accent treatment. Remove actions inherit the chip foreground and use a subtle hover highlight;
 read-only chips retain balanced padding, disabled chips dim, and keyboard focus remains outlined.
 Forced-colors mode uses system Highlight/HighlightText and GrayText for disabled chips.
+
+### Target label alignment and detent feedback (2026-10-09)
+
+TargetSlider calculates the label's transform origin from its resting and enlarged clamped
+positions. It accounts for the label and thumb scaling by different amounts, so the joined edge
+stays aligned at the ends and the label stays centred where space permits. ResizeObserver measures
+container and label sizes; CSS derives the origin from the live value without per-drag layout reads.
+The detent spring is firmer (stiffness 1800, damping 36, mass 0.2), affects paint only, and is
+disabled by reduced motion. Pointer resistance and keyboard boundary rules are unchanged.

@@ -392,6 +392,12 @@ including for assistive technology; Picodash assigns no solver meaning to them.
 />
 ```
 
+The detent presentation connects Off to the numeric track and shows Off/min/max dots, with the
+current value beneath the thumb. There is no editable target field or duplicate trailing badge.
+At a singleton minimum/maximum the coincident dots merge. Authored `marks` add reference dots.
+`formatValue` formats numeric sizes; the detent's `label` supplies the stop text (so the Off
+conditional above is optional). Unbound `Slider` accepts the same formatter.
+
 The numeric interval remains anchored at `min`. `max` need not align with `step`; the last reachable
 number is the highest aligned step at or below it. `min === max` allows that one number plus the
 configured detents. If no valid size fits, supply a valid singleton scale and disable editing, as

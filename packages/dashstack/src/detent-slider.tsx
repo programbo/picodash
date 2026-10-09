@@ -35,11 +35,13 @@ export function DetentSlider({
   createGesture,
   marks,
   formatOptions,
+  formatValue,
   ...props
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const thumbRef = useRef<HTMLDivElement>(null)
+  const readoutRef = useRef<HTMLSpanElement>(null)
   const inputRef = usePrimaryControlRef<HTMLInputElement>()
   const { visible } = useContext(DashGroupAncestryContext)
   const disabled = !!(props.disabled || props.readOnly)
@@ -70,6 +72,39 @@ export function DetentSlider({
         ? '100%'
         : `calc(var(--_picodash-detent-start) + (100% - var(--_picodash-detent-start) - var(--_picodash-detent-end)) * ${max === min ? 0 : (number - min) / (max - min)})`
 
+  const stops = [
+    ...new Set([
+      ...(startDetent ? [startDetent.value] : []),
+      min,
+      ...(marks?.map((mark) => mark.value) ?? []),
+      detentLastValue(scale),
+      ...(endDetent ? [endDetent.value] : []),
+    ]),
+  ].sort((a, b) => a - b)
+  const readout =
+    value === startDetent?.value || value === endDetent?.value
+      ? formatted
+      : formatValue
+        ? formatValue(value)
+        : formatted
+
+  // Measure only the readout, so arbitrary authored units stay inside the thumb edges.
+  useLayoutEffect(() => {
+    const label = readoutRef.current,
+      track = trackRef.current
+    if (!label || !track) return
+    const paint = () =>
+      track.style.setProperty(
+        '--_picodash-detent-readout-width',
+        `${label.getBoundingClientRect().width}px`,
+      )
+    paint()
+    const Observer = track.ownerDocument.defaultView?.ResizeObserver
+    const observer = Observer ? new Observer(paint) : undefined
+    observer?.observe(label)
+    return () => observer?.disconnect()
+  }, [readout])
+
   const previousPaint = useRef<{ value: number; phase: DetentPhase; configuration: string } | null>(
     null,
   )
@@ -99,14 +134,14 @@ export function DetentSlider({
       direction
     const motion = animate(offset, 0, {
       type: 'spring',
-      stiffness: 900,
-      damping: 45,
-      mass: 0.35,
-      onUpdate: (next) => thumb.style.setProperty('--_picodash-detent-snap', `${next}px`),
+      stiffness: 1800,
+      damping: 36,
+      mass: 0.2,
+      onUpdate: (next) => track.style.setProperty('--_picodash-detent-snap', `${next}px`),
     })
     const stop = () => {
       motion.stop()
-      thumb.style.removeProperty('--_picodash-detent-snap')
+      track.style.removeProperty('--_picodash-detent-snap')
     }
     const changed = () => {
       if (media?.matches) stop()
@@ -228,10 +263,10 @@ export function DetentSlider({
         id={props.id}
         className={composeControlClassName('picodash-dashstack-slider', props.className)}
         data-detents
+        data-reference-labels={marks?.some((mark) => mark.label !== '') || undefined}
         data-disabled={props.disabled || undefined}
         data-readonly={props.readOnly || undefined}
       >
-        <output aria-hidden="true">{formatted}</output>
         <div
           ref={trackRef}
           className="picodash-dashstack-slider-track"
@@ -239,17 +274,34 @@ export function DetentSlider({
           data-start-detent={!!startDetent || undefined}
           data-end-detent={!!endDetent || undefined}
         >
-          {startDetent && (
-            <span aria-hidden="true" data-picodash-detent-stop="start">
-              {startDetent.label}
-            </span>
-          )}
-          {endDetent && (
-            <span aria-hidden="true" data-picodash-detent-stop="end">
-              {endDetent.label}
-            </span>
-          )}
           <span aria-hidden="true" data-picodash-detent-interval />
+          {stops.map((stop, index) => (
+            <span
+              key={index}
+              aria-hidden="true"
+              data-picodash-detent-dot={stop}
+              data-selected={value === stop || undefined}
+              data-motion={visible ? undefined : 'false'}
+              style={{ insetInlineStart: position(stop) }}
+            />
+          ))}
+          {!stops.includes(value) && (
+            <span
+              aria-hidden="true"
+              data-picodash-detent-value-stem
+              style={{ insetInlineStart: position(value) }}
+            />
+          )}
+          <span
+            ref={readoutRef}
+            aria-hidden="true"
+            data-picodash-detent-readout
+            style={{
+              insetInlineStart: `clamp(calc(-1 * var(--_picodash-detent-thumb-half)), calc(${position(value)} - var(--_picodash-detent-readout-width, 0px) / 2), calc(100% + var(--_picodash-detent-thumb-half) - var(--_picodash-detent-readout-width, 0px)))`,
+            }}
+          >
+            {readout}
+          </span>
           <div
             ref={thumbRef}
             data-picodash-dashstack-slider-thumb

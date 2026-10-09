@@ -275,6 +275,26 @@ export function TargetSlider({
       .join(' ') || undefined
   const label = props['aria-labelledby'] ? `${prefix} ${props['aria-labelledby']}` : undefined
   const trackSlot = useRef<HTMLDivElement>(null)
+  const presentationRef = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => {
+    const container = presentationRef.current
+    const label = container?.querySelector<HTMLElement>('[data-picodash-target-label-slot]')
+    if (!container || !label) return
+    // Only observe sizes. CSS derives the origin from the live value ratio during dragging.
+    const measure = () => {
+      const width = container.getBoundingClientRect().width
+      const labelWidth = label.getBoundingClientRect().width
+      if (width <= 0 || labelWidth <= 0) return
+      container.style.setProperty('--_picodash-target-container-size', `${width}px`)
+      container.style.setProperty('--_picodash-target-label-size', `${labelWidth}px`)
+    }
+    measure()
+    const Observer = container.ownerDocument.defaultView?.ResizeObserver
+    const observer = Observer ? new Observer(measure) : undefined
+    observer?.observe(container)
+    observer?.observe(label)
+    return () => observer?.disconnect()
+  }, [])
   const trackHadFocus = useRef(false)
   useLayoutEffect(() => {
     const slot = trackSlot.current
@@ -299,6 +319,7 @@ export function TargetSlider({
         Target
       </span>
       <div
+        ref={presentationRef}
         data-picodash-target-track
         style={
           {
