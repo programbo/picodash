@@ -891,3 +891,9 @@ but was absent from the installer copy list. The installer now discovers all bun
 guides. The isolated check compares installed guides and examples byte-for-byte and compiles the
 vendored examples. It reproduces the missing-file failure against immutable .8; the correction
 ships as .9 without rewriting .8.
+
+Clean snapshot .9 (`d70648b39e3b53185b2f97a62580a905ffc72893`) passes the strengthened isolated
+check, including installed guide/example byte equality, compiled installed recipes, repeat and
+frozen reinstall, .8 update/rollback, component interactions and Vite/Next CSS builds. The runtime
+UI is unchanged from .8; the production Lab was restored and its target/achieved rendering and
+linked editing were inspected without browser errors.
