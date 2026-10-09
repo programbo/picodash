@@ -111,6 +111,7 @@ async function main() {
       'GUIDE.md',
       'consumer-recipes.md',
       'numeric-targets.md',
+      'open-ended-ranges.md',
       'example',
     ])
       await cp(join(bundle, file), join(vendor, file), { recursive: true })

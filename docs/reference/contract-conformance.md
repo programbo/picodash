@@ -823,3 +823,18 @@ text on blur in both Picodash and isolated React Aria. This is recorded as an au
 not a proven NumberField defect. All owned probe browser sessions were closed. The corrected
 examples also passed the isolated `.2` consumer check, including types and Vite/Next CSS builds.
 Snapshot `.4` bundles these corrections without changing public runtime code.
+
+### Open-ended range consumer recipe, 2026-10-09
+
+The [open-ended range recipe](../development/open-ended-ranges.md) composes public `RangeSlider`
+and `Checkbox` controls over one atomic `{ min, max: number | null }` request. It preserves Any and
+explicit finite intent as the feasible ceiling changes. The guide separates requested bounds,
+finite presentation, and achieved solver output; it documents numeric thumb semantics and the
+continuous nature of Slider `allowedRange`. Marks do not enforce a sparse feasible set.
+
+[The DOM fixture](../../packages/picodash/tests/dogfood/open-count-range.test.tsx) verifies no-write
+projection updates, endpoint edits, explicit Any selection, unavailable intent, and Infinity
+rejection. It passed with public typechecking in the isolated `.2` tarball consumer, alongside
+repeat/frozen installation and Vite/Next CSS builds. This is DOM and package-consumption evidence,
+not screen-reader or engineering-solver validation. Snapshot `.5` adds the guide and copyable
+example without changing runtime packages or the existing consumer application.

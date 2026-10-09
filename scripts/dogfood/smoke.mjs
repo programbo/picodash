@@ -90,6 +90,7 @@ try {
         'Designer.tsx',
         'designer-model.ts',
         'NumericTarget.tsx',
+        'OpenCountRange.tsx',
       ],
     }),
   )

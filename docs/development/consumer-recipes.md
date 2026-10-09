@@ -12,7 +12,8 @@ The three-number design and two target IDs deliberately keep the example bounded
 
 For a styled numeric control with units and achieved-value subtext, use the
 [NumberField target recipe](numeric-targets.md). It also explains the per-field versus record-wide
-draft choice and the limits of incomplete-text handling.
+draft choice and the limits of incomplete-text handling. For an unrestricted upper bound, see
+[open-ended ranges and slider constraints](open-ended-ranges.md).
 
 ## 1. Render a derived SVG inside a Dashlet
 
