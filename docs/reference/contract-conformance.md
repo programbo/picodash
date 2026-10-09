@@ -1043,3 +1043,11 @@ it to 5). The full-message hover title remains available. This final correction 
 Snapshot .16 (`88a982797e9730621320e250a656c9b6138f9dec`) passes the package release gate and
 isolated consumer install/repeat/frozen, .15 update/rollback, recipe type checks, interactions and
 Vite/Next CSS builds. The Lab is rebuilt and restarted from that source.
+
+### Flat target field/thumb join, 2026-10-09
+
+TargetSlider removes the editable value field's lower corner radii (including the inner numeric
+input/unit shell) and the thumb paint's upper radii. Other slider thumbs retain their existing
+shape. Built-control browser inspection confirms 0px lower field/input and upper thumb radii during
+hover, preserving the connected blue underline and existing focus/scale behavior. This refinement
+is committed separately from the following reference-marker experiment so it can be retained.
