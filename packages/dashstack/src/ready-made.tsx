@@ -225,7 +225,15 @@ export type SliderDashletProps<F extends ScalarField<number> = ExactField<number
   WritableScalarFieldProps<F, number> &
   Pick<
     SliderProps,
-    'min' | 'max' | 'step' | 'marks' | 'formatOptions' | 'allowedRange' | 'fillOrigin'
+    | 'min'
+    | 'max'
+    | 'step'
+    | 'marks'
+    | 'formatOptions'
+    | 'allowedRange'
+    | 'fillOrigin'
+    | 'startDetent'
+    | 'endDetent'
   > & {
     readonly formatValue?: (canonical: number) => ReactNode
   }
@@ -238,6 +246,8 @@ function SliderDashletInner<F extends ScalarField<number>>(
     marks,
     allowedRange,
     fillOrigin,
+    startDetent,
+    endDetent,
     formatValue,
     formatOptions,
     ...props
@@ -246,7 +256,7 @@ function SliderDashletInner<F extends ScalarField<number>>(
 ) {
   validateBounds(min, max)
   validateStep(step)
-  validateSliderOptions(min, max, step, { allowedRange, fillOrigin })
+  validateSliderOptions(min, max, step, { allowedRange, fillOrigin, startDetent, endDetent })
   if (marks?.some((mark) => !Number.isFinite(mark.value) || mark.value < min || mark.value > max))
     throw new TypeError('marks values must be finite and within the slider bounds.')
   return (
@@ -255,9 +265,14 @@ function SliderDashletInner<F extends ScalarField<number>>(
         const binding = context.binding
         const canonical = binding.value as number
         const value = (binding.draftValue ?? canonical) as number
+        const isDetent =
+          (startDetent !== undefined && canonical === startDetent.value) ||
+          (endDetent !== undefined && canonical === endDetent.value)
         const rangeMismatch =
-          canonical < (allowedRange?.min ?? min) || canonical > (allowedRange?.max ?? max)
-        const stepMismatch = !rangeMismatch && !isNumberCompatible(canonical, min, max, step)
+          !isDetent &&
+          (canonical < (allowedRange?.min ?? min) || canonical > (allowedRange?.max ?? max))
+        const stepMismatch =
+          !isDetent && !rangeMismatch && !isNumberCompatible(canonical, min, max, step)
         const mismatch = rangeMismatch || stepMismatch
         return (
           <>
@@ -282,6 +297,8 @@ function SliderDashletInner<F extends ScalarField<number>>(
                 marks={marks}
                 allowedRange={allowedRange}
                 fillOrigin={fillOrigin}
+                startDetent={startDetent}
+                endDetent={endDetent}
                 formatOptions={formatOptions}
                 disabled={context.disabled}
                 readOnly={context.readOnly}

@@ -201,6 +201,18 @@ export function createGalleryNexus() {
       color: styleLabFields.color,
       choice: styleLabFields.select,
       selections: styleLabFields.multiSelect,
+      detents: {
+        defaultValue: 2,
+        validate: (value: number) =>
+          value === 0 ||
+          value === 12 ||
+          (Number.isFinite(value) &&
+            value >= 2 &&
+            value <= 10 &&
+            Math.abs(value * 10 - Math.round(value * 10)) < 1e-8)
+            ? []
+            : [{ message: 'Choose Off, Any, or a size from 2 to 10.' }],
+      },
       target: {
         defaultValue: 2.37,
         validate: (value: number) =>

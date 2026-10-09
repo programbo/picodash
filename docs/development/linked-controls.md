@@ -323,3 +323,51 @@ read-only numeric comparison instead of inventing a nonzero scale. If the applic
 steps, supply a representable thumb value through its own constraint policy. `createGesture`
 preserves Escape rollback and external-write ownership; ordinary text entry uses the binding draft.
 The installed `LinkedControls.tsx` recipe includes this composition as `CapacityTarget`.
+
+## Endpoint detents: Off, Any, or application-defined stops
+
+Dogfood.13 adds `startDetent` and `endDetent` to `SliderDashlet` and unbound `Slider`.
+Each is `{ value: number, label: string }`. The start value must be strictly below `min`; the end
+value must be strictly above `max`. Values are finite JSON numbers. Labels describe the stops,
+including for assistive technology; Picodash assigns no solver meaning to them.
+
+```tsx
+<SliderDashlet
+  id="sun-bore"
+  label="Sun bore"
+  field={nexus.fields.bore}
+  min={2}
+  max={Math.max(2, capacity)}
+  step={0.1}
+  startDetent={{ value: 0, label: 'Off' }}
+  disabled={capacity < 2}
+  formatValue={(value: number) => (value === 0 ? 'Off' : `${value} mm`)}
+/>
+```
+
+The numeric interval remains anchored at `min`. `max` need not align with `step`; the last reachable
+number is the highest aligned step at or below it. `min === max` allows that one number plus the
+configured detents. If no valid size fits, supply a valid singleton scale and disable editing, as
+above. Changing capacity never repairs the canonical value. The application must either update
+values atomically with its constraints or retain the value and accept the presentation warning.
+Nexus validation must admit the sentinel as well as the regular sizes. A consumer storing `null`
+for Any must project through an application-owned custom Dashlet; the ready-made Slider binds a
+numeric field.
+
+The pointer crosses a separate physical gap at the endpoint. A short pull visibly resists; a
+longer pull enters the detent with a brief spring. Moving back through the gap returns to the
+nearest valid size. Ordinary track clicks select regular sizes. Within the numeric interval,
+movement stays direct and emits only stepped values. Reduced motion removes the spring.
+
+Arrow keys follow direction and skip numeric gaps. From Off, holding the higher arrow enters the
+minimum and continues increasing. Held movement stops at the last regular value before a detent;
+release and press again to enter it. Home selects the start detent (or minimum); End selects the
+end detent (or last valid step). Escape cancels an owned gesture. External writes retain ownership;
+changed bounds, disabled state, ancestor hiding and removal use the existing numeric-gesture
+cancellation rules. Read-only controls remain inspectable without accepting edits.
+
+Use `formatValue` for output text such as `3–Any`; formatting does not alter stored values or
+interaction. Detents currently belong to Slider, not RangeSlider or TargetSlider. `allowedRange`
+and `fillOrigin` cannot be combined with detents in this version. The installed
+`example/LinkedControls.tsx` includes `createDetentSizes` and `DetentSizeControls` using the public
+contract, including a step validator.

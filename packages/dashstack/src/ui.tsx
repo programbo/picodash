@@ -22,6 +22,7 @@ import {
   TextField as AriaTextField,
 } from 'react-aria-components'
 import { useContext, useId, useRef, type CSSProperties, type ReactNode } from 'react'
+import { DetentSlider } from './detent-slider.js'
 import { SliderTrackAccessoryContext } from './slider-accessory.js'
 import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
 import { ChoiceOptionContent } from './choice-option-content.js'
@@ -278,7 +279,18 @@ function validateSliderConfiguration(
     throw new TypeError('marks values must be finite and within the slider bounds.')
 }
 
-export function Slider({
+export function Slider(props: SliderProps) {
+  const { min = 0, max = 100, step = 1, marks } = props
+  validateSliderConfiguration(min, max, step, marks)
+  validateSliderOptions(min, max, step, props)
+  return props.startDetent || props.endDetent ? (
+    <DetentSlider {...props} min={min} max={max} step={step} />
+  ) : (
+    <ContinuousSlider {...props} />
+  )
+}
+
+function ContinuousSlider({
   value,
   onChange,
   min = 0,
@@ -291,8 +303,6 @@ export function Slider({
   createGesture,
   ...props
 }: SliderProps) {
-  validateSliderConfiguration(min, max, step, marks)
-  validateSliderOptions(min, max, step, { allowedRange, fillOrigin })
   const accessory = useContext(SliderTrackAccessoryContext)
   const rootRef = useRef<HTMLDivElement>(null)
   const change = useNumericControlGesture({
@@ -700,3 +710,5 @@ export { TargetNumber } from './target-number.js'
 export type { TargetNumberProps, TargetNumberResult } from './target-number.js'
 export { TargetSlider } from './target-slider.js'
 export type { TargetSliderProps, TargetSliderResult } from './target-slider.js'
+
+export type { SliderDetent } from './slider-options.js'

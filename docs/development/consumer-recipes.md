@@ -15,6 +15,10 @@ For a styled numeric control with units and achieved-value subtext, use the
 draft choice and the limits of incomplete-text handling. For an unrestricted upper bound, see
 [open-ended ranges and slider constraints](open-ended-ranges.md).
 
+For Slider endpoint stops such as Off or Any, see
+[endpoint detents](linked-controls.md#endpoint-detents-off-any-or-application-defined-stops),
+available from dogfood.13. Output formatting remains application-owned.
+
 ## 1. Render a derived SVG inside a Dashlet
 
 Supply your own pure, synchronous solver with this example interface:

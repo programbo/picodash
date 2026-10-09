@@ -2372,12 +2372,13 @@
 .picodash-dashstack-target-slider [data-picodash-target-track] {
   position: relative;
   margin-inline: var(--picodash-space-1);
+  --_picodash-target-edge: calc(max(44px, var(--picodash-control-height-md)) / 2);
   --_picodash-target-thumb-rise: calc(max(44px, var(--picodash-control-height-md)) / 2);
   --_picodash-target-label-lift: 0px;
   padding-block-start: var(--picodash-space-2);
 }
 .picodash-dashstack-target-slider .picodash-dashstack-slider-track {
-  margin-inline: 0;
+  margin-inline: var(--_picodash-target-edge);
   margin-block-start: var(--_picodash-target-thumb-rise);
 }
 [data-picodash-target-label-slot] {
@@ -2385,7 +2386,10 @@
   inline-size: min(100%, var(--_picodash-target-label-width));
   inset-inline-start: clamp(
     0px,
-    calc(var(--_picodash-target-position) - var(--_picodash-target-label-width) / 2),
+    calc(
+      var(--_picodash-target-edge) + (100% - 2 * var(--_picodash-target-edge)) *
+        var(--_picodash-target-ratio) - var(--_picodash-target-label-width) / 2
+    ),
     max(0px, calc(100% - var(--_picodash-target-label-width)))
   );
   display: flex;
@@ -2413,6 +2417,7 @@
 }
 @media (pointer: fine) {
   .picodash-dashstack-target-slider [data-picodash-target-track] {
+    --_picodash-target-edge: calc(var(--picodash-space-3) * 1.25 / 2);
     --_picodash-target-thumb-rise: calc(var(--picodash-control-height-xs) / 2);
     /* The thumb scales from its bottom edge; lift the attached field by the same amount. */
     --_picodash-target-label-lift: calc(
@@ -2472,6 +2477,101 @@
 @media (prefers-reduced-motion: reduce) {
   [data-picodash-target-label-slot] > .picodash-dashstack-field,
   .picodash-dashstack-target-slider [data-picodash-dashstack-slider-thumb]::before {
+    transition: none;
+  }
+}
+
+/* Detent gaps are physical interaction space, never additional numeric scale. */
+.picodash-dashstack-slider[data-detents] {
+  padding-block-end: calc(var(--picodash-font-size-sm) + var(--picodash-space-1));
+}
+[data-picodash-detent-track] {
+  --_picodash-detent-start: 0px;
+  --_picodash-detent-end: 0px;
+  margin-inline: calc(max(44px, var(--picodash-control-height-md)) / 2);
+  touch-action: none;
+  background: transparent;
+}
+[data-picodash-detent-track][data-start-detent] {
+  --_picodash-detent-start: min(24px, 30%);
+}
+[data-picodash-detent-track][data-end-detent] {
+  --_picodash-detent-end: min(24px, 30%);
+}
+[data-picodash-detent-interval] {
+  position: absolute;
+  inset-block: 0;
+  inset-inline: var(--_picodash-detent-start) var(--_picodash-detent-end);
+  border-radius: inherit;
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
+  pointer-events: none;
+}
+[data-picodash-detent-interval]::before,
+[data-picodash-detent-interval]::after {
+  content: '';
+  position: absolute;
+  inset-block: calc(-1 * var(--picodash-space-0-5));
+  inline-size: var(--picodash-border-width-thin);
+  background: var(--picodash-color-text-muted);
+}
+[data-picodash-detent-interval]::before {
+  inset-inline-start: 0;
+}
+[data-picodash-detent-interval]::after {
+  inset-inline-end: 0;
+}
+[data-picodash-detent-stop],
+[data-picodash-detent-mark] {
+  position: absolute;
+  inset-block-start: calc(100% + var(--picodash-space-1));
+  font-size: var(--picodash-font-size-sm);
+  color: var(--picodash-color-text-muted);
+  white-space: nowrap;
+  pointer-events: none;
+}
+[data-picodash-detent-stop='start'] {
+  inset-inline-start: 0;
+}
+[data-picodash-detent-stop='end'] {
+  inset-inline-end: 0;
+}
+[data-picodash-detent-track] [data-picodash-dashstack-slider-thumb] {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  translate: calc(var(--_picodash-detent-pull, 0px) + var(--_picodash-detent-snap, 0px)) 0;
+  touch-action: none;
+}
+[data-picodash-detent-track]:dir(rtl) [data-picodash-dashstack-slider-thumb] {
+  transform: translate(50%, -50%);
+}
+[data-picodash-detent-track] [data-picodash-dashstack-slider-thumb]:has(:focus-visible) {
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+  outline-offset: 2px;
+}
+@media (pointer: fine) {
+  [data-picodash-detent-track] {
+    margin-inline: calc(var(--picodash-space-3) * 1.25 / 2);
+  }
+  [data-picodash-detent-track] [data-picodash-dashstack-slider-thumb]::before {
+    transform-origin: center bottom;
+    transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
+  }
+  .picodash-dashstack-slider:not([data-disabled], [data-readonly])
+    [data-picodash-detent-track]
+    [data-picodash-dashstack-slider-thumb]:is([data-dragging], :has(:focus-visible))::before {
+    transform: scale(1.25);
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .picodash-dashstack-slider:not([data-disabled], [data-readonly])
+    [data-picodash-detent-track]
+    [data-picodash-dashstack-slider-thumb]:hover::before {
+    transform: scale(1.25);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-detent-track] [data-picodash-dashstack-slider-thumb]::before {
     transition: none;
   }
 }

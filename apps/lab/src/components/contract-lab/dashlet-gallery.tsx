@@ -38,12 +38,12 @@ import type {
   PicodashDevBridgePermissions,
 } from '@picodash/dev-bridge'
 const galleryBridgeDisclosure: PicodashDevBridgeDisclosure = {
-  valueFields: ['switchValue', 'number', 'target'],
+  valueFields: ['switchValue', 'number', 'target', 'detents'],
   scopeIds: ['gallery-controls'],
   diagnostics: false,
 }
 const galleryBridgePermissions: PicodashDevBridgePermissions = {
-  writableFields: ['number', 'target'],
+  writableFields: ['number', 'target', 'detents'],
 }
 
 import { createGalleryNexus, type GalleryNexus } from './gallery-model'
@@ -499,6 +499,16 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
                 disabled={disabled}
               >
                 <DashGroup id="target-values" label="Requested and achieved">
+                  <SliderDashlet
+                    id="endpoint-detents"
+                    label="Detents"
+                    field={nexus.fields.detents}
+                    min={2}
+                    max={10}
+                    step={0.1}
+                    startDetent={{ value: 0, label: 'Off' }}
+                    endDetent={{ value: 12, label: 'Any' }}
+                  />
                   <GalleryTarget id="target-bore" label="Bore" nexus={nexus} />
                   <TargetNumberDashlet
                     id="target-reduction"

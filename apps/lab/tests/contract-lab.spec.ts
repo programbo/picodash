@@ -224,15 +224,43 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
       '--_picodash-achieved-position',
       '0%',
     )
-    // The editable label follows the thumb but stays within the physical track at both ends.
+    const detent = phone.getByRole('slider', { name: 'Detents', exact: true })
+    await detent.scrollIntoViewIfNeeded()
+    const detentTrack = detent.locator('xpath=ancestor::*[@data-picodash-detent-track]')
+    const trackBox = (await detentTrack.boundingBox())!
+    const gap = Math.min(24, trackBox.width * 0.3)
+    const thumbBox = (await detent.locator('..').boundingBox())!
+    await phone.mouse.move(thumbBox.x + thumbBox.width / 2, thumbBox.y + thumbBox.height / 2)
+    await phone.mouse.down()
+    await phone.mouse.move(trackBox.x + gap * 0.6, thumbBox.y + thumbBox.height / 2)
+    await expect(detent).toHaveAttribute('aria-valuenow', '2')
+    await phone.mouse.move(trackBox.x, thumbBox.y + thumbBox.height / 2)
+    await expect(detent).toHaveAttribute('aria-valuetext', 'Off')
+    await phone.mouse.up()
+    await detent.press('ArrowRight')
+    await expect(detent).toHaveAttribute('aria-valuenow', '2')
+    await detent.press('End')
+    await expect(detent).toHaveAttribute('aria-valuetext', 'Any')
+    await detent.press('ArrowLeft')
+    await expect(detent).toHaveAttribute('aria-valuenow', '10')
+    const upperThumb = (await detent.locator('..').boundingBox())!
+    await phone.mouse.move(
+      upperThumb.x + upperThumb.width / 2,
+      upperThumb.y + upperThumb.height / 2,
+    )
+    await phone.mouse.down()
+    await phone.mouse.move(trackBox.x + trackBox.width, upperThumb.y + upperThumb.height / 2)
+    await expect(detent).toHaveAttribute('aria-valuetext', 'Any')
+    await phone.keyboard.press('Escape')
+    await expect(detent).toHaveAttribute('aria-valuenow', '10')
+    await phone.mouse.up()
+    // Inset track keeps the enlarged thumb inside the label container at both ends.
     const targetControl = target.locator('xpath=ancestor::*[@data-picodash-target-track]')
     for (const value of [0, 5, 10]) {
       await target.fill(String(value))
       await target.press('Tab')
       const geometry = await targetControl.evaluate((root) => {
-        const track = root
-          .querySelector('.picodash-dashstack-slider-track')!
-          .getBoundingClientRect()
+        const track = root.getBoundingClientRect()
         const label = root
           .querySelector('[data-picodash-target-label-slot] > div')!
           .getBoundingClientRect()

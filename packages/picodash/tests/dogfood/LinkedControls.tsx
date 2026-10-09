@@ -4,6 +4,7 @@ import {
   DashStack,
   DashGroup,
   TargetSliderDashlet,
+  SliderDashlet,
   TargetNumberDashlet,
   Dashlet,
   NumberDashlet,
@@ -201,5 +202,48 @@ export function CapacityTarget({
         />
       )}
     </Dashlet>
+  )
+}
+
+// One numeric field stores either Off or a regular, stepped size.
+export function createDetentSizes() {
+  return createPicodashNexus({
+    valueOwner: 'nexus',
+    fields: {
+      bore: {
+        defaultValue: 0,
+        validate: (value: number) =>
+          value === 0 ||
+          (Number.isFinite(value) &&
+            value >= 2 &&
+            value <= 10 &&
+            Math.abs(value * 10 - Math.round(value * 10)) < 1e-8)
+            ? []
+            : [{ message: 'Choose Off or a size from 2 to 10 in 0.1 steps.' }],
+      },
+    },
+  })
+}
+export function DetentSizeControls({
+  nexus,
+  capacity,
+}: {
+  nexus: ReturnType<typeof createDetentSizes>
+  capacity: number
+}) {
+  return (
+    <DashStack id="sizes" nexus={nexus}>
+      <SliderDashlet
+        id="bore"
+        label="Bore"
+        field={nexus.fields.bore}
+        min={2}
+        max={Math.max(2, capacity)}
+        step={0.1}
+        startDetent={{ value: 0, label: 'Off' }}
+        disabled={capacity < 2}
+        formatValue={(value: number) => (value === 0 ? 'Off' : `${value} mm`)}
+      />
+    </DashStack>
   )
 }

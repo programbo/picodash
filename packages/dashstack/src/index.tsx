@@ -2089,3 +2089,5 @@ export type { DashletRevealResult } from './structure.js'
 
 export type { TargetNumberResult } from './target-number.js'
 export type { TargetSliderResult } from './target-slider.js'
+
+export type { SliderDetent } from './slider-options.js'

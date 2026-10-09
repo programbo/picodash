@@ -2200,3 +2200,30 @@ input remains mounted and supports the existing independent `inputValue` composi
 results retain `lastValue` without visible word changes; no-fit/error do not add layout height.
 Result freshness remains application-owned. See the linked-controls guide for the two formatting
 roles and the dynamic-capacity recipe.
+
+### Slider endpoint detents (2026-10-09)
+
+> Contract: Accepted by John; generalized from Off to authored start/end stops.
+> Implementation: Implemented
+> Evidence: `packages/dashstack/tests/detent-slider.test.tsx` and the Contract Lab gallery journey.
+
+`Slider` and `SliderDashlet` accept `startDetent?: SliderDetent` and
+`endDetent?: SliderDetent`, where `SliderDetent` is `{ readonly value: number; readonly label: string }`.
+The sentinel is finite and strictly outside its corresponding min/max endpoint; the label is
+nonempty. Authors own its meaning and formatting. Values between a sentinel and its numeric endpoint
+are never emitted. The min-anchored step interval may be singleton; a nonaligned maximum ends at
+the preceding step. Detents are mutually exclusive with `allowedRange` and `fillOrigin` for now.
+They do not extend TargetSlider or RangeSlider.
+
+Pointer movement has separate endpoint parking space and hysteresis, with a short resisted pull
+before switching stops. A track click selects a regular value. Held arrows stop at the regular
+boundary; a new press crosses into the detent. Home/End select the outermost stop. Leaving a detent
+and continuing through regular values works in one held keypress. Native range input accessibility
+exposes canonical value text; keyboard direction follows RTL. Animation affects paint only.
+Nexus remains the canonical authority and the existing numeric gesture factory owns commit,
+rollback, external-write fencing, visibility and configuration cancellation. No capacity-change
+repair is implicit. See the [installed recipe guide](../development/linked-controls.md#endpoint-detents-off-any-or-application-defined-stops).
+
+TargetSlider now insets the track by half the enlarged thumb width within the value-label container.
+The label is clamped to that outer container, so it overlaps the thumb at both extreme values while
+both remain inside the input column.

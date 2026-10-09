@@ -11,7 +11,10 @@ import { isNumberCompatible } from './number-compatibility.js'
 import { targetResultValue, targetResultMessage, type TargetResult } from './target-result.js'
 
 export type TargetSliderResult = TargetResult
-export type TargetSliderProps = Omit<SliderProps, 'fillOrigin' | 'onChange'> & {
+export type TargetSliderProps = Omit<
+  SliderProps,
+  'fillOrigin' | 'startDetent' | 'endDetent' | 'onChange'
+> & {
   readonly result: TargetSliderResult
   readonly onChange: (value: number | null) => void
   readonly inputValue?: number | null
@@ -121,7 +124,7 @@ export function TargetSlider({
         data-picodash-target-track
         style={
           {
-            '--_picodash-target-position': `${position}%`,
+            '--_picodash-target-ratio': position / 100,
             '--_picodash-target-label-width': `${labelChars}ch`,
           } as React.CSSProperties
         }

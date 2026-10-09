@@ -960,3 +960,21 @@ layout. Motion checks, package checks and all 292 DashStack tests pass. The isol
 passes installed guides/compiled recipes, repeat/frozen installation, .11 update/rollback, component
 interactions and Vite/Next CSS builds. The production Lab is restored; consumer adoption remains
 Maz-owned.
+
+### Authored slider endpoint detents and target edge alignment, 2026-10-09
+
+Slider and SliderDashlet add optional startDetent/endDetent numeric stops. Their labels and meanings
+remain author-owned. Pure/component evidence in `packages/dashstack/tests/detent-slider.test.tsx`
+covers both endpoints, their combinations, RTL arrows, held-key boundary resistance, singleton and
+nonaligned capacities, skipped numeric gaps, native accessibility edits, disabled/read-only policy,
+Nexus Escape rollback, external-write ownership, changed capacity, hidden ancestors and reveal.
+The DashStack suite passes 298 tests. Configuration errors fail explicitly; canonical mismatches
+remain honest outputs without implicit repair.
+
+The existing gallery browser journey exercises real pointer resistance, entry/exit at both stops,
+keyboard parity and captured-pointer Escape rollback. Detent crossings alone use a stiff Motion
+spring; ordinary numeric dragging remains direct and reduced motion removes the spring. The same
+journey checks TargetSlider labels within their container after insetting the track by half the
+enlarged thumb width, plus numeric entry and phone overflow. The installed linked-controls recipe
+uses public startDetent props and a Nexus numeric validator. Snapshot verification is recorded after
+packaging below.
