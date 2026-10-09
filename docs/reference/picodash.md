@@ -219,7 +219,7 @@ workflow, but a declarative relationship alone never grants that broader target 
 
 DashList owns generic Nexus-bound ready-made Dashlets and their catalog metadata. Picodash may
 reexport stable DashList components and aggregate package-owned catalogs, but it does not maintain
-facade copies of their implementations or entries. DashPanel owns no Dashlets. The 22 stable
+facade copies of their implementations or entries. DashPanel owns no Dashlets. The 22 implemented
 DashList-owned root reexports are implemented with identity-preserving facade exports; catalog
 aggregation remains planned.
 
@@ -229,7 +229,7 @@ DashList. Field binding and List presentation remain DashList concerns; product-
 remains UI-owned. A qualifying Picodash component is documented as an integrated composition rather
 than a foundational Dashlet.
 
-Picodash reexports the exact stable DashList-owned inventory from its root: `TextDashlet`,
+Picodash currently reexports the full implemented DashList-owned inventory from its root: `TextDashlet`,
 `NumberDashlet`, `SliderDashlet`, `SwitchDashlet`, `SelectDashlet`, `SegmentedDashlet`,
 `DisplayDashlet`, `CheckboxDashlet`, `RadioGroupDashlet`, `ComboboxDashlet`,
 `CheckboxGroupDashlet`, `MultiSelectDashlet`, `SearchDashlet`, `RangeDashlet`, `MeterDashlet`,
@@ -238,6 +238,11 @@ Picodash reexports the exact stable DashList-owned inventory from its root: `Tex
 `@picodash/picodash/catalog`. Experimental chart subpath exports are not root reexports or catalog
 entries. DashList anatomy remains available only from its owning subpath; the facade does not add a
 `/dashlet` convenience surface.
+
+M7 narrows stable promotion to Text, Number, Slider, Switch, Select, Segmented, and Display.
+The other fifteen reexports remain evaluation prototypes, following the owning
+[DashList disposition](dashlist.md#stable-ready-made-inventory); their existence is not a stable
+release claim. The owner approved the retained set on 2026-09-17; integrated UI polish continues in M8.
 
 The facade preserves the exact DashList component and prop identities for all 22 reexports,
 including specialized aliases and safe unspecialized React `ComponentProps`. It does not wrap the

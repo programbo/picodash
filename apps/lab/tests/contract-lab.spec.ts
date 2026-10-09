@@ -286,7 +286,28 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     if (!session) throw new Error('Standalone binding session unavailable.')
     return session
   }
-  const values = async () => (await client.inspect(await currentSession())).snapshot.values
+  const allValues = async () => {
+    try {
+      return (await client.inspect(await currentSession())).snapshot.values
+    } catch (error) {
+      // Registration can precede the first synchronized snapshot after reopening.
+      if (
+        error &&
+        typeof error === 'object' &&
+        'error' in error &&
+        error.error &&
+        typeof error.error === 'object' &&
+        'code' in error.error &&
+        error.error.code === 'session_unsynchronized'
+      )
+        return undefined
+      throw error
+    }
+  }
+  const values = async () => {
+    const snapshot = await allValues()
+    return { name: snapshot?.name, interval: snapshot?.interval, enabled: snapshot?.enabled }
+  }
 
   for (const [index, list] of lists.entries()) {
     const name = `Workspace ${index + 1}`
@@ -357,6 +378,39 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     await expect(list.getByRole('status', { name: 'Current interval' })).toHaveText('25 seconds')
   }
 
+  const candidates = region.getByRole('region', { name: 'Dashlet candidates' })
+  const quick = candidates
+    .getByRole('group', { name: 'Quick adjustment', exact: true })
+    .getByRole('slider')
+  await expect(quick).toHaveAccessibleName(/Quick adjustment/)
+  await quick.focus()
+  await quick.press('ArrowRight')
+  await expect.poll(values).toEqual({ name: 'Bridge update', interval: 26, enabled: true })
+  await expect(
+    candidates.getByRole('textbox', { name: 'Exact interval', exact: true }),
+  ).toHaveValue('26')
+  await quick.press('ArrowLeft')
+  await expect.poll(values).toEqual({ name: 'Bridge update', interval: 25, enabled: true })
+
+  const sourceChoice = candidates.locator('[data-picodash-dashlet="source"]').getByRole('button')
+  const details = candidates.getByRole('radio', { name: 'Details', exact: true })
+  const preview = candidates.getByRole('region', { name: 'Activity preview' })
+  await sourceChoice.click()
+  await page.getByRole('option', { name: 'Deployments', exact: true }).click()
+  await candidates.getByText('Details', { exact: true }).click()
+  await expect.poll(allValues).toMatchObject({ activitySource: 'Deployments', detail: 'Details' })
+  await expect(preview.getByRole('listitem')).toHaveCount(3)
+  await expect(preview).toContainText('Production deployment approved')
+  const rejectedChoice = await client.setValues(await currentSession(), {
+    type: 'set_values',
+    requestId: 'm7-invalid-choice',
+    values: { activitySource: 'Unknown' },
+  })
+  expect(rejectedChoice).toMatchObject({
+    outcome: { type: 'transaction_result', result: { ok: false } },
+  })
+  await expect.poll(allValues).toMatchObject({ activitySource: 'Deployments', detail: 'Details' })
+
   // A small visual matrix belongs here: actual focus rings, invalid feedback, and disabled
   // controls must remain legible in each retained recipe, including system resolution.
   for (const recipe of [
@@ -386,6 +440,37 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     ).toBeFocused()
     const prefix = `m4-${recipe.label.toLowerCase()}-${recipe.scheme}`
     await capture(`${prefix}-focus`)
+    await sourceChoice.focus()
+    await sourceChoice.press('Enter')
+    await page.getByRole('option', { name: 'Checks', exact: true }).click()
+    await details.focus()
+    await details.press('ArrowLeft')
+    await expect(preview.getByRole('listitem')).toHaveCount(1)
+    await expect(candidates.getByRole('radio', { name: 'Summary', exact: true })).toBeFocused()
+    await page.keyboard.press('ArrowRight')
+    await expect(preview.getByRole('listitem')).toHaveCount(3)
+    await expect.poll(allValues).toMatchObject({ activitySource: 'Checks', detail: 'Details' })
+
+    await candidates.getByRole('button', { name: 'Read-only controls' }).click()
+    await expect(
+      candidates.getByRole('textbox', { name: 'Exact interval', exact: true }),
+    ).not.toBeEditable()
+    await quick.focus()
+    await quick.press('ArrowRight')
+    await sourceChoice.press('Enter')
+    await page.getByRole('option', { name: 'Builds', exact: true }).click()
+    await expect(sourceChoice).toContainText('Checks')
+    await details.press('ArrowLeft')
+    await expect.poll(allValues).toMatchObject({ activitySource: 'Checks', detail: 'Details' })
+    await expect.poll(values).toEqual({ name: 'Bridge update', interval: 25, enabled: true })
+    const candidatePath = resolve(
+      artifactDirectory,
+      `m7-${recipe.label.toLowerCase()}-${recipe.scheme}-readonly.png`,
+    )
+    await candidates.screenshot({ path: candidatePath })
+    await testInfo.attach('m7-readonly', { path: candidatePath, contentType: 'image/png' })
+    await candidates.getByRole('button', { name: 'Read-only controls' }).click()
+
     for (const list of lists) {
       await list.getByRole('textbox', { name: 'Workspace name', exact: true }).fill('')
       await expect(
@@ -401,6 +486,15 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     await expect.poll(values).toEqual({ name: 'Bridge update', interval: 25, enabled: true })
     await capture(`${prefix}-invalid`)
     await region.getByRole('button', { name: 'Disable controls' }).click()
+    await expect(quick).toBeDisabled()
+    await expect(sourceChoice).toBeDisabled()
+    await expect(details).toBeDisabled()
+
+    await expect(
+      candidates.getByRole('textbox', { name: 'Workspace name', exact: true }),
+    ).toBeDisabled()
+    await expect(candidates.getByRole('switch', { name: 'Live updates' })).toBeDisabled()
+
     for (const list of lists) {
       await expect(
         list.getByRole('textbox', { name: 'Workspace name', exact: true }),
@@ -449,6 +543,16 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
       list.getByRole('textbox', { name: 'Workspace name', exact: true }),
     ).toBeInViewport()
   }
+  await expect
+    .poll(() => candidates.evaluate((node) => node.scrollWidth <= node.clientWidth))
+    .toBe(true)
+  const cadence = candidates.locator('[data-picodash-dashlet="cadence"]')
+  const thumbBounds = await cadence.locator('[data-picodash-dashlist-slider-thumb]').boundingBox()
+  const descriptionBounds = await cadence.getByText('One-second steps').boundingBox()
+  expect(thumbBounds).not.toBeNull()
+  expect(descriptionBounds).not.toBeNull()
+  expect(thumbBounds!.y + thumbBounds!.height).toBeLessThanOrEqual(descriptionBounds!.y)
+  await candidates.screenshot({ path: resolve(artifactDirectory, 'm7-phone.png') })
   await capture('m4-phone', true)
   await page.setViewportSize({ width: 1440, height: 1000 })
   await page.getByRole('button', { name: 'Take specimen offline' }).click()
@@ -456,6 +560,12 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
   await page.getByRole('button', { name: 'Reopen primary specimen' }).click()
   await expect(region).toBeVisible()
   await expect.poll(findSession).toBeTruthy()
+  await expect.poll(allValues).toMatchObject({ activitySource: 'Checks', detail: 'Details' })
+  await expect(preview.getByRole('listitem')).toHaveCount(3)
+  await candidates.getByRole('button', { name: 'Workspace actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Reset values…', exact: true }).click()
+  await page.getByRole('alertdialog').getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect.poll(allValues).toMatchObject({ activitySource: 'Checks', detail: 'Details' })
   const savedValues = { name: 'Bridge update', interval: 25, enabled: true }
   await expect.poll(values).toEqual(savedValues)
   const savedPayload = () =>
@@ -585,8 +695,8 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
   const stored = await page.evaluate(
     () => JSON.parse(localStorage.getItem('picodash-contract-lab-value-binding-v1')!).scopes,
   )
-  for (const scope of (snapshot.snapshot.scopes ?? []).filter(
-    (scope) => scope.id !== 'binding-reordering',
+  for (const scope of (snapshot.snapshot.scopes ?? []).filter((scope) =>
+    ['binding-ready-made', 'binding-composed'].includes(scope.id),
   )) {
     expect(scope.metadata).toMatchObject({
       dashList: {
@@ -610,6 +720,7 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
   }
   expect(snapshot.snapshot.scopes?.map((scope) => scope.id).sort()).toEqual([
     'binding-composed',
+    'binding-curated',
     'binding-ready-made',
     'binding-reordering',
   ])
@@ -633,6 +744,20 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
   await capture('m6-organization')
 
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  await sourceChoice.click()
+  await page.getByRole('option', { name: 'Deployments', exact: true }).click()
+  await candidates.getByText('Details', { exact: true }).click()
+  await expect.poll(allValues).toMatchObject({ activitySource: 'Deployments', detail: 'Details' })
+  await candidates.getByRole('button', { name: 'Workspace actions', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Reset values…', exact: true }).click()
+  await page
+    .getByRole('alertdialog')
+    .getByRole('button', { name: 'Reset values', exact: true })
+    .click()
+  await expect.poll(allValues).toMatchObject({ activitySource: 'Builds', detail: 'Summary' })
+  await page.reload()
+  await expect(preview.getByRole('listitem')).toHaveCount(1)
+  await expect(preview).toContainText('Build #184 passed')
 })
 
 test('renders the two-panel Dashlet style lab with the accepted groups and lanes', async ({

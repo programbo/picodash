@@ -52,7 +52,7 @@
     "@standard-schema/spec": "^1.1.0"
   },
   "devDependencies": {
-    "@fast-check/vitest": "^0.4.1",
+    "@fast-check/vitest": "^0.5.0",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
@@ -61,7 +61,9 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "typescript": "catalog:",
+    "vite": "catalog:",
     "vite-plus": "catalog:",
+    "vitest": "catalog:",
     "zod": "catalog:"
   },
   "peerDependencies": {

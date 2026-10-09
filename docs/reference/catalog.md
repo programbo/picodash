@@ -166,3 +166,11 @@ Catalog checks do not repeat component behavior or prop-type tests.
 - [DashList target reference](dashlist.md)
 - [Picodash target reference](picodash.md)
 - [Contract conformance](contract-conformance.md)
+
+## M7 recovery admission
+
+The DashList catalog advertises the seven retained ready-made candidates selected in the
+[M7 ledger](../internal/m7-dashlet-curation.md). The fifteen deferred prototype controls remain
+available for evaluation in the package but are omitted from the stable catalog. The schema does
+not change: removing premature stable entries changes admission, not metadata structure.
+The owner approved the retained recovery set on 2026-09-17.

@@ -60,6 +60,7 @@ function run(command, args, cwd) {
     env: {
       ...process.env,
       CI: '1',
+      BUN_INSTALL_GLOBAL_STORE: '0',
       NEXT_TELEMETRY_DISABLED: '1',
     },
     stdio: 'inherit',
