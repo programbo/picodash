@@ -289,6 +289,34 @@ describe('TargetNumber', () => {
     }
     expect(props.onChange).not.toHaveBeenCalled()
   })
+  it('accepts literal 2.9 at a 0.1 step independently of the actual result and optional min', () => {
+    const nexus = make()
+    nexus.setValue(nexus.fields.value, 2.9)
+    for (const min of [undefined, 0, 1.5]) {
+      const view = render(
+        <DashStack nexus={nexus} id="decimal">
+          <TargetNumberDashlet
+            id="wall"
+            label="Wall"
+            field={nexus.fields.value}
+            min={min}
+            step={0.1}
+            result={{ status: 'ready', value: 3.425 }}
+            unit="mm"
+            formatOptions={{ maximumFractionDigits: 3 }}
+          />
+        </DashStack>,
+      )
+      expect(screen.queryByRole('note')).toBeNull()
+      const target = screen.getByRole('textbox', { name: 'Target Wall' })
+      expect(target.getAttribute('value')).toBe('2.9')
+      expect(target.hasAttribute('readonly')).toBe(false)
+      expect(screen.getByLabelText('Actual Wall').textContent).toBe('3.425mm')
+      view.unmount()
+    }
+    expect(nexus.getState().values.value).toBe(2.9)
+    nexus.destroy()
+  })
   it('preserves canonical values outside the configured interval without silent clamping', () => {
     const nexus = make()
     render(

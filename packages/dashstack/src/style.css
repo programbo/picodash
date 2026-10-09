@@ -1085,7 +1085,7 @@
 }
 
 [data-picodash-dashlet-shell][data-layout='inline']
-  > [data-picodash-dashlet-content]
+  > [data-picodash-dashlet-content]:not(:has([data-picodash-dashlet-presentation-warning]))
   > [data-picodash-dashlet-content-cell]:nth-last-child(
     1 of [data-picodash-dashlet-content-cell]:not(:empty):not([data-picodash-dashlet-content-empty])
   ):not(
@@ -1098,6 +1098,15 @@
   min-inline-size: 0;
   max-inline-size: var(--_picodash-dashstack-trailing-max-inline-size);
   overflow-wrap: anywhere;
+}
+
+/* A presentation warning explains the whole control, not its trailing value. */
+[data-picodash-dashlet-shell][data-layout='inline']
+  > [data-picodash-dashlet-content]:has(
+    > [data-picodash-dashlet-content-cell] > [data-picodash-dashlet-presentation-warning]
+  )
+  > [data-picodash-dashlet-content-cell] {
+  grid-column: 1 / -1;
 }
 
 [data-picodash-dashlet-description],

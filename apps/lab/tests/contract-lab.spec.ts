@@ -288,6 +288,34 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
     const labels = phone.locator('[data-picodash-target-field-label]')
     expect((await labels.first().boundingBox())!.y).toBeGreaterThan(left.y + left.height)
     await expect(actualNumber).toHaveText('5:1')
+    // A genuine step mismatch keeps its warning below the complete paired control.
+    await client.setValues(session, {
+      type: 'set_values',
+      requestId: 'target-step-mismatch',
+      values: { target: 2.375 },
+    })
+    const comparison = phone.locator('[data-picodash-dashlet="target-reduction"]')
+    const warning = comparison.getByRole('note')
+    await expect(warning).toContainText('outside the configured interval or step')
+    const warningGeometry = await comparison.evaluate((row) => {
+      const content = row.querySelector('[data-picodash-dashlet-content]')!.getBoundingClientRect()
+      const pair = row.querySelector('.picodash-dashstack-target-number')!.getBoundingClientRect()
+      const note = row.querySelector('[role="note"]')!.getBoundingClientRect()
+      return {
+        content: content.width,
+        pair: { width: pair.width, bottom: pair.bottom },
+        note: { width: note.width, top: note.top },
+      }
+    })
+    expect(warningGeometry.note.width).toBeGreaterThan(warningGeometry.content * 0.9)
+    expect(warningGeometry.pair.width).toBeGreaterThan(warningGeometry.content * 0.9)
+    expect(warningGeometry.note.top).toBeGreaterThanOrEqual(warningGeometry.pair.bottom)
+    await client.setValues(session, {
+      type: 'set_values',
+      requestId: 'restore-target-step',
+      values: { target: 2.9 },
+    })
+    await expect(comparison.getByRole('note')).toHaveCount(0)
     await phone.emulateMedia({ reducedMotion: 'no-preference' })
     await phone.getByRole('button', { name: 'Read-only', exact: true }).click()
     await expect(target).toHaveAttribute('readonly', '')

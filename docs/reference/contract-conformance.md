@@ -984,3 +984,16 @@ consumer check: installed guide/recipe equality, recipe compilation, repeat/froz
 .12 update/rollback, component interactions, and Vite/Next CSS builds. Desktop visual inspection
 confirms the minimum target label overlaps its enlarged thumb while both remain inside the input
 column. The production Lab is rebuilt from the committed source. Consumer adoption remains Maz-owned.
+
+### Presentation warning row geometry, 2026-10-09
+
+Consumer feedback exposed a shared inline-layout defect: an active presentation warning was treated
+as a trailing value, shrinking both the warning and the preceding paired control. Warnings now
+occupy their own full control-width row; the trailing-value cap applies only without a warning.
+The gallery browser regression failed before the correction (44px warning in a 153px control area)
+and passes afterward, checking full-width TargetNumber fields and a warning below them. Ordinary
+valid layout returns when the canonical value becomes representable again.
+
+The focused TargetNumber component test independently accepts literal 2.9 at step 0.1 with no min,
+min 0, or min 1.5, while actual 3.425 remains independent. No floating-point tolerance was added;
+the consumer's original numeric warning is not reproduced without its exact canonical value.
