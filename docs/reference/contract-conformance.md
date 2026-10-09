@@ -1236,3 +1236,9 @@ Lab inspection covers the relocated grid and both themes. Motion policy, Lab typ
 build pass. Desktop fine-pointer support is intentional; mobile sheet detachment, cross-Stack
 transfer and nested detachable groups are outside this contract. See the public
 [usage and lifecycle](picodash.md#detachable-groups), including the post-hydration content mount.
+
+Snapshot `0.1.0-dogfood.24` is built from clean source `e9dd7b623f518a88de855bd60d1bcec9cab045c3`.
+The full six-package release gate passes 1,124 tests. Its isolated consumer verifies repeat install,
+`.23` rollback and `.24` reinstall, frozen installation, declarations, the shipped detachable
+example's retained bound control, and Vite/Next production CSS builds. The recommendation is
+updated only after those checks; the external app is not modified.
