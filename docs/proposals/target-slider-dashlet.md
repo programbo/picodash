@@ -3,7 +3,7 @@
 > Contract: Draft
 > Implementation: Planned
 > Evidence: None for this component. Existing public layout and binding contracts are linked below.
-> Source: John's design handoff through Mara, 2026-10-09; bore-domain clarification relayed by Maz the same day.
+> Source: John's design handoff through Mara, 2026-10-09; bore-domain and marker-motion decisions relayed by Maz the same day.
 > Name: `TargetSliderDashlet` is approved. “MaraSlider 🦊” is a workshop nickname, not an export.
 
 `TargetSliderDashlet` lets a user edit a requested numeric target while seeing the outcome selected
@@ -42,11 +42,15 @@ of the authored marks and retains normal keyboard and accessible numeric-edit se
 “Freely sliding” means no snapping to marks or feasible outcomes. A finite positive `step` controls
 target-edit precision; its default still needs a decision.
 
-A distinct read-only marker sits **below** the track at the achieved value. It carries the achieved
-readout and displays the supplied finite number, whether or not it coincides with a mark. It is not
-a second thumb or an input. Its movement
-never writes the target. There is no transition through intermediate values that could imply an
-achievable result unless a later motion decision explicitly permits a purely visual treatment.
+A distinct read-only marker sits **below** the track and animates to each new achieved position.
+It carries the achieved readout, which immediately displays the supplied destination number,
+whether or not it coincides with a mark. It is not a second thumb or an input. Its animated position
+is transient presentation state: it never emits intermediate domain values or writes the target.
+
+John confirmed two design directions on 2026-10-09: achieved values and authored marks are
+independent systems that can be used together, and the achieved marker should animate as enjoyable
+feedback. This supersedes the earlier direct-placement/no-transition recommendation. The component
+as a whole remains Draft / Planned; motion details below are proposed implementation constraints.
 
 Optional marks show authored numeric reference points without crowding the track. Their values and
 any supplied labels must also be available accessibly. Marks are not individual tab stops and do not
@@ -123,7 +127,9 @@ For `minimumBore = 2`, `maximumBore = 8`, and target `step = 0.01`, the applicat
 These are supplied solver results, not a nearest-value rule. Picodash does not choose zero for small
 bore requests, skip the gap itself, or enumerate every hundredth of a millimetre. A separate numeric
 editor can bind the same target field. The application can explain “No bore, or at least 2 mm”
-through the existing description; optional marks are not a complete feasibility legend.
+through the existing description; optional marks are not a complete feasibility legend. Animating
+from zero across the gap to the minimum bore is a visual transition between supplied results, not
+a claim that intervening bore diameters are feasible.
 
 ## Decisions to resolve
 
@@ -185,7 +191,8 @@ marker does nothing or focuses the target. Marker/tick clicks must never become 
 “use achieved” or “pick this outcome” writes. Touch scrolling must remain usable outside a captured
 gesture. Read-only and disabled states retain their different shell semantics.
 
-The control must not ease the thumb behind the pointer. If an implementation introduces coordinated
+The target thumb must respond immediately to pointer, touch, and keyboard input; it must not ease
+behind the input or wait for the achieved-marker animation. If an implementation introduces coordinated
 gesture, external-update, and cancellation behavior, model that protocol explicitly; do not scatter
 it across unrelated effects and booleans. The worst state machine is the one you don't know you're
 writing. Select XState or the existing trusted control's protocol only after the required states
@@ -223,34 +230,59 @@ authored marks are dense enough to overlap, any visual thinning must be determin
 complete accessible mark list, and never change target editing or the achieved value. Decide whether
 thinning is allowed or whether ticks simply merge visually in the first version.
 
-Keep the achieved readout associated with its marker when values jump, and avoid overlap with the
-upper thumb, focus ring, or adjacent rows. Initial behavior should place the marker directly at its
-supplied value. Any later motion must respect reduced motion and must not suggest an intermediate
-solution or delay target feedback. Exact shape, contrast, and motion remain visual-design decisions.
+The achieved marker animates between supplied numeric results. Its visible and accessible readouts
+show the latest supplied destination immediately; they do not count through interpolated numbers.
+Animation must not delay result availability, emit change callbacks, trigger solver work, or create
+Nexus writes. The target thumb and target readout remain immediate under input.
+
+Retarget an interrupted animation from its current rendered position toward the newest result,
+without jumping back to the previous result or queuing obsolete destinations. Keep motion within
+the track and avoid overshoot. Respect `prefers-reduced-motion` by placing the marker at the latest
+result immediately; enabling reduced motion mid-transition should finish it immediately. These
+rules apply whether results follow pointer, keyboard, or external application changes.
+
+**Recommended lifecycle:** place the first available result directly, since there is no preceding
+result to animate from. If `achieved` becomes `null`, cancel motion and remove the numeric marker;
+show the unavailable presentation from D1. A later numeric result starts directly at its supplied
+position. Coordinate-changing scale updates should cancel the old animation and remap the latest
+result; out-of-scale values follow the mismatch presentation rather than an animation to a false
+edge value. Confirm these lifecycle choices with the gesture policy in D2 before implementation.
+
+Keep the achieved readout associated with its moving marker, with no overlap of the upper thumb,
+focus ring, or adjacent rows. Duration and easing remain visual tuning choices, not user-fixed
+numbers or new public props. Tune for short, interruptible feedback without bounce or a backlog
+under frequent solver updates. Exact shape and contrast remain visual-design decisions.
 
 ## Acceptance examples for a future implementation
 
-| Scenario                                                  | Required invariant or decision to prove                                                   |
-| --------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Target 1.5; marks 1.0, 1.4, 1.6; achieved 1.4             | Upper target stays at 1.5; lower marker shows supplied 1.4; no nearest-match calculation. |
-| Target equals achieved                                    | Both roles and values remain identifiable; equality rule follows D1.                      |
-| Marks change but target does not                          | Ticks may move; target and achieved values remain unchanged; zero target writes.          |
-| Target lies between sparse marks                          | Pointer and keyboard can retain it at the configured precision.                           |
-| Marks omitted or empty; achieved 2.37                     | Show achieved 2.37 with no ticks; do not infer unavailable outcomes.                      |
-| Target 0.15; achieved 0; bore minimum 2                   | Preserve target in the solver's gap; display zero as a real achieved result.              |
-| Target and achieved 2.37; marks only 0, 2, 8              | Display both roles at 2.37; no membership check or snapping.                              |
-| Target step 0.1; achieved 2.37                            | Preserve achieved precision independently of the target grid and marks.                   |
-| Achieved is null, pending, or stale                       | Null has no marker; follow D1's explicit pending/stale policy; never infer it from marks. |
-| Scale shrinks past the target or collapses to one outcome | Preserve the exact target; follow D2's warning/fallback policy.                           |
-| Bounds or external target change during drag              | Follow D2's interruption/conflict rule; no stale-coordinate write.                        |
-| Read-only, disabled, rejected draft, or stale draft       | Preserve existing binding and shell policies with target/achieved attribution.            |
-| Narrow, compact, zoomed, coarse-pointer, or reordered row | Keep readable labels, usable targets, unclipped focus, and the combined inline span.      |
+| Scenario                                                  | Required invariant or decision to prove                                                             |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Target 1.5; marks 1.0, 1.4, 1.6; achieved 1.4             | Upper target stays at 1.5; lower marker shows supplied 1.4; no nearest-match calculation.           |
+| Target equals achieved                                    | Both roles and values remain identifiable; equality rule follows D1.                                |
+| Marks change but target does not                          | Ticks may move; target and achieved values remain unchanged; zero target writes.                    |
+| Target lies between sparse marks                          | Pointer and keyboard can retain it at the configured precision.                                     |
+| Marks omitted or empty; achieved 2.37                     | Show achieved 2.37 with no ticks; do not infer unavailable outcomes.                                |
+| Target 0.15; achieved 0; bore minimum 2                   | Preserve target in the solver's gap; display zero as a real achieved result.                        |
+| Target and achieved 2.37; marks only 0, 2, 8              | Display both roles at 2.37; no membership check or snapping.                                        |
+| Target step 0.1; achieved 2.37                            | Preserve achieved precision independently of the target grid and marks.                             |
+| Achieved changes from 0 to 2 across the bore gap          | Animate position only; readout immediately shows 2; no intermediate domain values or target writes. |
+| A newer achieved result arrives during motion             | Retarget from the rendered position; no jump back, queued results, or track overshoot.              |
+| Reduced motion is active or enabled during motion         | Place the marker at the latest result immediately; preserve the same numeric and input behavior.    |
+| First result, null result, or scale change during motion  | Apply D5's explicit lifecycle policy; do not animate from a fabricated result.                      |
+| Target is edited while achieved marker moves              | Target feedback remains immediate for pointer, touch, and keyboard.                                 |
+| Achieved is null, pending, or stale                       | Null has no marker; follow D1's explicit pending/stale policy; never infer it from marks.           |
+| Scale shrinks past the target or collapses to one outcome | Preserve the exact target; follow D2's warning/fallback policy.                                     |
+| Bounds or external target change during drag              | Follow D2's interruption/conflict rule; no stale-coordinate write.                                  |
+| Read-only, disabled, rejected draft, or stale draft       | Preserve existing binding and shell policies with target/achieved attribution.                      |
+| Narrow, compact, zoomed, coarse-pointer, or reordered row | Keep readable labels, usable targets, unclipped focus, and the combined inline span.                |
 
 Type tests should prove the binding and controlled APIs cannot introduce competing target
 owners. Pure/component tests should prove no writes on result/marks updates, event parity,
-mismatch and draft handling, and accessible relationships. Contract Lab browser checks should prove
-real pointer/touch geometry, keyboard focus, exact-match legibility, dense ticks, and responsive
-layout. Screen-reader behavior needs direct evaluation before claiming accessibility verification.
+mismatch and draft handling, and accessible relationships. Motion tests must distinguish supplied
+numeric values from interpolated geometry and prove interruption, null, scale-change, and reduced-motion
+behavior without domain writes. Contract Lab browser checks should prove real pointer/touch geometry,
+keyboard focus, exact-match legibility, dense ticks, responsive layout, destination readout stability,
+and smooth retargeting without overshoot or delayed target feedback. Screen-reader behavior needs direct evaluation before claiming accessibility verification.
 
 ## Excluded from this proposal
 
