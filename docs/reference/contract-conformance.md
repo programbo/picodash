@@ -1093,3 +1093,7 @@ join is 0px apart after correcting the stationary thumb's top alignment. A fresh
 confirms focused thumb transfer in both directions, unchanged singleton keys, and no browser errors.
 Dark and light compact screenshots were inspected; all owned sessions were closed. Consumer
 application adoption remains Maz-owned; no solver or consumer-private styling was changed.
+
+Snapshot .18 (`d0b4cffc25087e39e80040ed53410335eb7a6800`) passes all package release checks and
+the isolated consumer's repeat/frozen installs, .17 update/rollback, installed recipe types,
+component interaction and Vite/Next CSS builds. The production Lab build also passes.
