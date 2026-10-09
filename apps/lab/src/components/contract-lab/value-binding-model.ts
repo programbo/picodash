@@ -18,18 +18,6 @@ export function createValueBindingNexus() {
       values: { defaultFieldPolicy: 'include' },
     },
     fields: {
-      activitySource: {
-        defaultValue: 'Builds',
-        validate: (value: string) =>
-          ['Builds', 'Deployments', 'Checks'].includes(value)
-            ? []
-            : [{ message: 'Choose Builds, Deployments, or Checks.' }],
-      },
-      detail: {
-        defaultValue: 'Summary',
-        validate: (value: string) =>
-          ['Summary', 'Details'].includes(value) ? [] : [{ message: 'Choose Summary or Details.' }],
-      },
       name: {
         defaultValue: 'Studio',
         validate: (value: string) =>

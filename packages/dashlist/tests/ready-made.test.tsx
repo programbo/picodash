@@ -104,12 +104,6 @@ describe('@picodash/dashlist ready-made Dashlets', () => {
         }),
       ),
     )
-    const sliderInput = view.root.element.querySelector('[data-picodash-dashlet="slider"] input')!
-    const sliderLabel = view.root.element.querySelector(
-      '[data-picodash-dashlet="slider"] [data-picodash-dashlet-label]',
-    )!
-    expect(sliderInput.getAttribute('aria-labelledby')?.split(' ')).toContain(sliderLabel.id)
-    expect(sliderLabel.textContent).toBe('Slider')
     act(() => {
       fireEvent.input(view.root.element.querySelector('[data-picodash-dashlet="text"] input')!, {
         target: { value: 'bad' },

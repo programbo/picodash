@@ -41,10 +41,3 @@ bun run --filter @picodash/dashlist check
 bun run --filter @picodash/dashlist test
 bun run --filter @picodash/dashlist release:check
 ```
-
-## Recovery inventory
-
-The retained ready-made candidates are Text, Number, Slider, Switch, Select, Segmented, and Display.
-Other existing root Dashlet exports remain evaluation prototypes and are excluded from the stable
-catalog. See the [M7 disposition ledger](../../docs/internal/m7-dashlet-curation.md); owner approval was
-recorded on 2026-09-17.
