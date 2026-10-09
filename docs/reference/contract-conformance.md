@@ -1138,3 +1138,10 @@ updates, empty-set exit/reentry, and live reduced-motion toggles. Regular dark a
 RTL captures were inspected. Endpoint label edges match resting thumbs within subpixel rounding;
 390px viewport has no horizontal overflow. Browser errors are empty and the owned session closed.
 Consumer application adoption remains separately verified by its owner.
+
+Snapshot .20 (`67cb549e1ca82e5028b833188027ea2a141fe786`) passes the package release gate,
+including all 304 DashStack tests, and isolated consumer repeat/frozen installs, .19 update/rollback,
+installed recipe types, component interaction, and Vite/Next CSS builds. The production Lab was
+built and restarted; its Target Bore input was edited to zero and the rendered joined field/thumb,
+actual value, reference dots and caps were inspected without browser errors. The stylesheet contract
+check now accepts shared selector lists while retaining its logical-offset and pointer-inert checks.
