@@ -19,6 +19,33 @@ For Slider endpoint stops such as Off or Any, see
 [endpoint detents](linked-controls.md#endpoint-detents-off-any-or-application-defined-stops),
 available from dogfood.13. Output formatting remains application-owned.
 
+## Custom wrappers must expose their Stack node ID
+
+A component used directly inside `DashStack` or `DashGroup` must accept an explicit `id` at the
+call site and forward that same ID to its single returned Dashlet or DashGroup. The parent reads
+the child's declaration before rendering the wrapper. Hardcoding the ID only inside the wrapper
+leaves the parent without an identity and throws `invalid-node-id` at runtime. React `key` does
+not substitute for `id`; TypeScript may not catch a wrapper that omits this prop.
+
+```tsx
+import { Dashlet } from '@picodash/dashstack'
+
+function Summary({ id }: { id: string }) {
+  return (
+    <Dashlet id={id} label="Summary">
+      Application-owned result
+    </Dashlet>
+  )
+}
+
+// Inside a DashStack or DashGroup:
+;<Summary id="summary" />
+```
+
+The installed `SelectedProfile`, `ModuleTarget`, and `CapacityTarget` examples follow this rule.
+Keep the ID stable and independent of the label or current value. Verify custom wrappers in a
+rendered Stack; a standalone component render does not exercise parent declaration validation.
+
 ## 1. Render a derived SVG inside a Dashlet
 
 Supply your own pure, synchronous solver with this example interface:

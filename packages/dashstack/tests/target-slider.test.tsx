@@ -92,11 +92,32 @@ describe('target versus achieved', () => {
   })
   it('distinguishes previous, no-fit, error, and real values outside the scale', () => {
     const props = { value: 4, min: 0, max: 10, onChange: vi.fn(), 'aria-label': 'Bore' }
-    const view = render(<TargetSlider {...props} result={{ status: 'pending', lastValue: 0 }} />)
+    const view = render(<TargetSlider {...props} result={{ status: 'ready', value: 0 }} />)
+    const input = screen.getByRole('textbox')
+    const marker = view.container.querySelector('[data-picodash-achieved-marker]')
+    const root = view.container.querySelector('.picodash-dashstack-target-slider')
+    view.rerender(<TargetSlider {...props} result={{ status: 'pending', lastValue: 0 }} />)
+    expect(root?.getAttribute('data-result')).toBe('pending')
+    expect(root?.getAttribute('aria-busy')).toBe('true')
+    expect(screen.getByRole('textbox')).toBe(input)
+    expect(view.container.querySelector('[data-picodash-achieved-marker]')).toBe(marker)
     expect(screen.getByLabelText('Achieved').textContent).toBe('0')
+    expect(view.container.querySelector('[data-picodash-target-result-message]')).toBeNull()
+    view.rerender(<TargetSlider {...props} result={{ status: 'pending' }} />)
+    expect(view.container.querySelector('[data-picodash-target-result-message]')?.textContent).toBe(
+      '—',
+    )
     view.rerender(<TargetSlider {...props} result={{ status: 'no-fit' }} />)
     expect(screen.queryByLabelText('Achieved')).toBeNull()
     expect(screen.getByText('No feasible result')).toBeTruthy()
+    expect(root?.getAttribute('aria-busy')).toBe('false')
+    expect(root?.getAttribute('data-result')).toBe('no-fit')
+    expect(
+      view.container.querySelector(
+        '.picodash-dashstack-slider-track [data-picodash-target-result-message]',
+      )?.textContent,
+    ).toBe('No match')
+    expect(input.getAttribute('aria-describedby')).toContain(screen.getByRole('status').id)
     view.rerender(<TargetSlider {...props} value={20} result={{ status: 'ready', value: 12 }} />)
     expect(screen.queryByRole('slider')).toBeNull()
     expect(screen.getByRole('textbox').getAttribute('value')).toBe('20')
@@ -105,6 +126,12 @@ describe('target versus achieved', () => {
       <TargetSlider {...props} result={{ status: 'error', message: 'Solver unavailable' }} />,
     )
     expect(screen.getByText('Solver unavailable')).toBeTruthy()
+    expect(
+      view.container.querySelector('[data-picodash-target-result-message]')?.getAttribute('title'),
+    ).toBe('Solver unavailable')
+    expect(input.getAttribute('aria-describedby')).toContain(screen.getByRole('status').id)
+    expect(screen.getByRole('textbox')).toBe(input)
+    expect(props.onChange).not.toHaveBeenCalled()
   })
   it('preserves numeric intent and an in-progress text draft as result and capacity change', () => {
     const change = vi.fn()
@@ -286,6 +313,9 @@ describe('TargetNumber', () => {
       view.rerender(<TargetNumber {...props} result={result} />)
       expect(screen.getByLabelText('Actual Bore')).toBe(output)
       expect(output.textContent).toBe('lastValue' in result ? '0mm' : '—')
+      const root = view.container.querySelector('.picodash-dashstack-target-number')
+      expect(root?.getAttribute('data-result')).toBe(result.status)
+      expect(root?.getAttribute('aria-busy')).toBe(String(result.status === 'pending'))
     }
     expect(props.onChange).not.toHaveBeenCalled()
   })

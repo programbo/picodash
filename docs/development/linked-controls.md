@@ -268,11 +268,43 @@ or omit `formatValue` to use the new suffix automatically.
 `TargetNumberResult` and `TargetSliderResult` accept the same ready, pending, no-fit, and error
 variants. Pending with `lastValue` retains the last number without changing a visible label;
 pending without one displays an em dash. Neither control stores a hidden previous solver result.
-TargetNumber keeps the actual field in place for every state. TargetSlider reserves one short
-result-message line, so pending, no-fit and error do not move the next Dashlet. Detailed result
-messages remain available through accessible status text. Applications may instead keep the last
-completed `ready` snapshot on each control and own freshness in one `aria-busy` workspace with a
-delayed updating indicator. Picodash does not add a solver timer.
+TargetNumber keeps the actual field in place for every state. From dogfood.16, TargetSlider uses the same space
+beneath the track for its achieved readout, “No match”, “Unavailable”, or an outside-scale result.
+It does not reserve a second message line. Reference marks keep their separate row. Detailed result
+messages remain in accessible status text; TargetSlider also associates that text with its input
+and thumb. Long visual feedback is truncated, with full detail available to assistive technology.
+
+### Style pending controls without moving their content
+
+Both `TargetSlider` and `TargetNumber`, including their ready-made Dashlet versions, expose these
+hooks on the **inner control root**, not the outer Dashlet shell:
+
+| Hook          | Value                                                                       |
+| ------------- | --------------------------------------------------------------------------- |
+| `data-result` | `ready`, `pending`, `no-fit`, or `error`, matching `result.status`.         |
+| `aria-busy`   | `"true"` while pending; `"false"` otherwise.                                |
+| Control root  | `.picodash-dashstack-target-slider` or `.picodash-dashstack-target-number`. |
+
+Pass `{ status: 'pending', lastValue: lastCompletedValue }` during computation. The achieved number
+and marker stay in place. There is no default spinner, pulse, tint, or visible “Calculating” label.
+The application owns result freshness and any delay before showing its own busy treatment.
+
+For whole-Dashlet styling, set `className="solver-dashlet"` on the ready-made Dashlet, or on the
+`Dashlet` wrapping an unbound target control. Use `:has()` to select that shell from the inner state:
+
+```css
+/* Optional application styling, not a Picodash default. */
+.solver-dashlet:has([data-result='pending'][aria-busy='true']) {
+  background-image: linear-gradient(
+    color-mix(in oklab, var(--picodash-color-accent) 5%, transparent),
+    color-mix(in oklab, var(--picodash-color-accent) 5%, transparent)
+  );
+}
+```
+
+Use paint-only styles to preserve geometry and leave focus outlines intact. For other async
+Dashlets, applications can supply `aria-busy` on their own updating region; this does not require
+pretending a pending target result is `ready`. Picodash does not add a solver timer.
 
 ## Keep numeric intent when slider capacity changes
 

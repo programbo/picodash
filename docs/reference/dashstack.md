@@ -2201,6 +2201,14 @@ results retain `lastValue` without visible word changes; no-fit/error do not add
 Result freshness remains application-owned. See the linked-controls guide for the two formatting
 roles and the dynamic-capacity recipe.
 
+TargetSlider shares its achieved-readout row with no-fit, error and outside-scale feedback; it does
+not reserve an additional message row. Reference marks remain below that row. Full result detail
+is retained in accessible status text and associated with the target input and thumb. Both target
+control roots expose public `data-result` (`ready`, `pending`, `no-fit`, `error`) and `aria-busy`
+(`true` only while pending) styling hooks. These live on `.picodash-dashstack-target-slider` and
+`.picodash-dashstack-target-number`, inside the Dashlet shell for bound controls. Pending lastValue
+retains the achieved number and marker. Busy state adds no default visible animation, tint or prose.
+
 ### Slider endpoint detents (2026-10-09)
 
 > Contract: Accepted by John; generalized from Off to authored start/end stops.

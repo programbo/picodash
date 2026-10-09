@@ -1016,3 +1016,26 @@ consumer application state was changed.
 Snapshot .15 (`6980d7b4ecd4ed53dac974062532736a2aa0a482`) passes the package release gate and
 isolated consumer checks: repeat/frozen installs, .14 update/rollback, installed recipe types,
 component interaction and Vite/Next CSS builds. The production Lab uses the verified band CSS.
+
+### Target result slot and author-owned pending feedback, 2026-10-09
+
+TargetSlider now places no-fit, error, empty-pending and outside-scale feedback in the existing
+achieved-readout area. It removes the separate reserved message line while retaining the marks row.
+Long detail remains in accessible status text, associated with the numeric input and thumb; short
+visual feedback remains visible. TargetNumber and TargetSlider public control-root data-result and
+aria-busy hooks are documented, including an opt-in whole-Dashlet :has selector. No default busy
+animation, tint, or visible calculating prose is added.
+
+The existing target component suite passes 11 tests, covering unchanged input/marker identity on
+pending with lastValue, exact busy/result attributes, no-fit/error detail association, and no
+unintended value callbacks. A temporary browser fixture bundled the actual built public controls:
+ready, pending with/without lastValue, no-fit, error and outside-scale values keep identical track
+and following-row positions (97.5px marked regular height; 72.5px unmarked compact height). Input
+focus remains intact throughout; feedback ends before reference marks. Dark desktop and light
+390px compact screenshots were inspected. This is isolated-control browser evidence; consumer
+application adoption remains Maz-owned. Adoption docs also explain explicit wrapper ID forwarding
+and the runtime invalid-node-id diagnostic exposed by consumer integration.
+
+Pointer verification also exercises the visible result text: its pointer-down is isolated from the
+interactive track, so clicking No match preserves target 2.37 (the initial in-track version moved
+it to 5). The full-message hover title remains available. This final correction changes no layout.

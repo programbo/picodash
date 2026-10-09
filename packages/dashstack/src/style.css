@@ -2477,8 +2477,11 @@
     transform: scale(1.25);
   }
 }
+/* Feedback shares the achieved readout's row instead of reserving another line. */
 [data-picodash-target-result-message] {
-  min-block-size: 1lh;
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: calc(100% + var(--picodash-space-1) + var(--picodash-space-2));
   font-size: var(--picodash-font-size-sm);
   overflow: hidden;
   text-overflow: ellipsis;

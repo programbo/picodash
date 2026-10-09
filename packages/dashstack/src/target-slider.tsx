@@ -104,12 +104,51 @@ export function TargetSlider({
       </>
     )
   const status = targetResultMessage(result)
+  const statusId = `${prefix}-status`
+  const feedback =
+    achieved !== undefined && !achievedOutside ? (
+      <AchievedMarker key={`${min}:${max}`} position={((achieved - min) / (max - min)) * 100}>
+        {readout}
+      </AchievedMarker>
+    ) : (
+      <span
+        data-picodash-target-result-message
+        aria-hidden="true"
+        onPointerDown={(event) => {
+          // Feedback below the track is readable text, not another target-editing surface.
+          event.preventDefault()
+          event.stopPropagation()
+        }}
+        title={
+          achievedOutside
+            ? `${achieved}${unit ? ` ${unit}` : ''} · outside scale`
+            : result.status === 'pending'
+              ? undefined
+              : status || undefined
+        }
+      >
+        {result.status === 'no-fit' ? (
+          'No match'
+        ) : result.status === 'error' ? (
+          'Unavailable'
+        ) : achievedOutside ? (
+          <>{readout} · outside scale</>
+        ) : (
+          '—'
+        )}
+      </span>
+    )
   const position = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
   const input = inputValue === null ? Number.NaN : (inputValue ?? value)
   const labelChars = Math.max(8, String(Number(input.toFixed(6))).length + (unit?.length ?? 0) + 3)
   const description =
-    [props['aria-describedby'], marks?.length ? marksId : undefined].filter(Boolean).join(' ') ||
-    undefined
+    [
+      props['aria-describedby'],
+      marks?.length ? marksId : undefined,
+      status || achievedOutside ? statusId : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ') || undefined
   const label = props['aria-labelledby'] ? `${prefix} ${props['aria-labelledby']}` : undefined
   return (
     <div
@@ -146,30 +185,10 @@ export function TargetSlider({
             aria-errormessage={props['aria-errormessage']}
           />
         </div>
-        <SliderTrackAccessoryContext.Provider
-          value={
-            achieved !== undefined && !achievedOutside ? (
-              <AchievedMarker
-                key={`${min}:${max}`}
-                position={((achieved - min) / (max - min)) * 100}
-              >
-                {readout}
-              </AchievedMarker>
-            ) : null
-          }
-        >
+        <SliderTrackAccessoryContext.Provider value={feedback}>
           {mismatch ? (
             <div className="picodash-dashstack-slider">
-              <div className="picodash-dashstack-slider-track">
-                {achieved !== undefined && !achievedOutside ? (
-                  <AchievedMarker
-                    key={`${min}:${max}`}
-                    position={((achieved - min) / (max - min)) * 100}
-                  >
-                    {readout}
-                  </AchievedMarker>
-                ) : null}
-              </div>
+              <div className="picodash-dashstack-slider-track">{feedback}</div>
             </div>
           ) : (
             <Slider
@@ -200,19 +219,14 @@ export function TargetSlider({
           {achievedOutside ? ' · outside scale' : ''}
         </output>
       ) : null}
-      <span role="status" className="picodash-visually-hidden">
+      <span id={statusId} role="status" className="picodash-visually-hidden">
         {status}
-      </span>
-      <span data-picodash-target-result-message title={status || undefined}>
-        {result.status === 'no-fit' ? (
-          'No match'
-        ) : result.status === 'error' ? (
-          'Unavailable'
-        ) : achievedOutside ? (
-          <>{readout} · outside scale</>
-        ) : (
-          ''
-        )}
+        {achievedOutside ? (
+          <>
+            {status ? ' · ' : ''}
+            {readout} · outside scale
+          </>
+        ) : null}
       </span>
       {marks?.length ? (
         <span id={marksId} className="picodash-visually-hidden">
