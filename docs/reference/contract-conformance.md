@@ -978,3 +978,9 @@ journey checks TargetSlider labels within their container after insetting the tr
 enlarged thumb width, plus numeric entry and phone overflow. The installed linked-controls recipe
 uses public startDetent props and a Nexus numeric validator. Snapshot verification is recorded after
 packaging below.
+
+Snapshot .13 (`d9aa4ddb60c518d0eab7ae9d897bcf6c5027845f`) passes the release gate and isolated
+consumer check: installed guide/recipe equality, recipe compilation, repeat/frozen installs,
+.12 update/rollback, component interactions, and Vite/Next CSS builds. Desktop visual inspection
+confirms the minimum target label overlaps its enlarged thumb while both remain inside the input
+column. The production Lab is rebuilt from the committed source. Consumer adoption remains Maz-owned.
