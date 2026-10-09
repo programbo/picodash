@@ -2312,16 +2312,51 @@
   overflow: visible;
 }
 
-/* Target reference ticks remain visible even when the author suppresses their labels. */
-.picodash-dashstack-target-slider [data-picodash-dashstack-slider-mark]::before {
+/* Each reference dot stays fixed; its stem grows only when the actual result matches it. */
+[data-picodash-target-marks] [data-picodash-dashstack-slider-mark]::before,
+[data-picodash-target-marks] [data-picodash-dashstack-slider-mark]::after {
   content: '';
   position: absolute;
+  inset-inline-start: calc(-1 * var(--picodash-border-width-thin));
   inset-block-start: calc(
-    -1 * (var(--picodash-space-4) + var(--picodash-font-size-sm) + var(--picodash-space-1))
+    -1 * (var(--picodash-space-4) + var(--picodash-font-size-sm)) + var(--picodash-space-0-5)
   );
-  inline-size: var(--picodash-border-width-thin);
-  block-size: calc(var(--picodash-space-1) + var(--picodash-space-0-5));
+  inline-size: calc(2 * var(--picodash-border-width-thin));
+  border-radius: var(--picodash-radius-control);
   background: var(--picodash-color-text-muted);
+}
+[data-picodash-target-marks] [data-picodash-dashstack-slider-mark]::before {
+  block-size: calc(2 * var(--picodash-border-width-thin));
+}
+[data-picodash-target-marks] [data-picodash-dashstack-slider-mark]::after {
+  block-size: calc(var(--picodash-space-2) + var(--picodash-space-0-5));
+  background: var(--picodash-color-text);
+  transform: scaleY(0);
+  transform-origin: center top;
+  transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+[data-picodash-target-marks] [data-picodash-dashstack-slider-mark][data-selected]::after {
+  transform: scaleY(1);
+}
+[data-picodash-target-marks][data-motion='false'] [data-picodash-dashstack-slider-mark]::after {
+  transition: none;
+}
+[data-picodash-achieved-pointer='none'] {
+  display: none;
+}
+/* An off-mark result still gets a stem at its exact position, never a fabricated selection. */
+[data-picodash-achieved-pointer='stem'] {
+  inset-inline-start: calc(-1 * var(--picodash-border-width-thin));
+  inset-block-start: calc(-1 * var(--picodash-space-0-5));
+  inline-size: calc(2 * var(--picodash-border-width-thin));
+  block-size: calc(var(--picodash-space-2) + var(--picodash-space-0-5));
+  clip-path: none;
+  border-radius: var(--picodash-radius-control);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-target-marks] [data-picodash-dashstack-slider-mark]::after {
+    transition: none;
+  }
 }
 
 /* Units share the field chrome, but never enter the editable numeric value. */

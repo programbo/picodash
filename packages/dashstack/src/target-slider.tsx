@@ -2,7 +2,7 @@
 
 import { useContext, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { animate } from 'motion'
-import { NumberField, Slider, type SliderProps } from './ui.js'
+import { NumberField, Slider, type SliderMark, type SliderProps } from './ui.js'
 import { SliderTrackAccessoryContext } from './slider-accessory.js'
 import { DashGroupAncestryContext } from './structure.js'
 import { validateSliderOptions } from './slider-options.js'
@@ -22,7 +22,15 @@ export type TargetSliderProps = Omit<
   readonly formatValue?: (value: number) => ReactNode
 }
 
-function AchievedMarker({ position, children }: { position: number; children: ReactNode }) {
+function AchievedMarker({
+  position,
+  pointer = 'arrow',
+  children,
+}: {
+  position: number
+  pointer?: 'arrow' | 'stem' | 'none'
+  children: ReactNode
+}) {
   const { visible } = useContext(DashGroupAncestryContext)
   const ref = useRef<HTMLSpanElement>(null)
   const painted = useRef<number | null>(null)
@@ -62,8 +70,45 @@ function AchievedMarker({ position, children }: { position: number; children: Re
       data-picodash-achieved-marker
       style={{ '--_picodash-achieved-label-offset': `${-position}%` } as React.CSSProperties}
     >
-      <span aria-hidden="true" data-picodash-achieved-pointer />
+      <span aria-hidden="true" data-picodash-achieved-pointer={pointer} />
       <span data-picodash-achieved-readout>{children}</span>
+    </span>
+  )
+}
+
+function TargetReferenceMarks({
+  marks,
+  min,
+  max,
+  selected,
+}: {
+  marks: readonly SliderMark[]
+  min: number
+  max: number
+  selected: number
+}) {
+  const { visible } = useContext(DashGroupAncestryContext)
+  return (
+    <span
+      aria-hidden="true"
+      data-picodash-dashstack-slider-marks
+      data-picodash-target-marks
+      data-motion={visible ? undefined : 'false'}
+    >
+      {marks.map((mark, index) => (
+        <span
+          key={`${mark.value}:${index}`}
+          data-picodash-dashstack-slider-mark={mark.value}
+          data-selected={index === selected || undefined}
+          style={
+            {
+              '--_picodash-dashstack-slider-mark-position': `${((mark.value - min) / (max - min)) * 100}%`,
+            } as React.CSSProperties
+          }
+        >
+          {mark.label ?? mark.value}
+        </span>
+      ))}
     </span>
   )
 }
@@ -103,11 +148,25 @@ export function TargetSlider({
         {!formatValue && unit ? ` ${unit}` : ''}
       </>
     )
+  // Match the actual result, not the requested target or a nearest reference mark.
+  // Only tolerate binary rounding at the scale of the two numbers.
+  const selectedMark =
+    marks?.findIndex(
+      (mark) =>
+        achieved !== undefined &&
+        !achievedOutside &&
+        Math.abs(mark.value - achieved) <=
+          Number.EPSILON * Math.max(1, Math.abs(mark.value), Math.abs(achieved)) * 8,
+    ) ?? -1
   const status = targetResultMessage(result)
   const statusId = `${prefix}-status`
   const feedback =
     achieved !== undefined && !achievedOutside ? (
-      <AchievedMarker key={`${min}:${max}`} position={((achieved - min) / (max - min)) * 100}>
+      <AchievedMarker
+        key={`${min}:${max}`}
+        position={((achieved - min) / (max - min)) * 100}
+        pointer={marks?.length ? (selectedMark >= 0 ? 'none' : 'stem') : 'arrow'}
+      >
         {readout}
       </AchievedMarker>
     ) : (
@@ -138,6 +197,14 @@ export function TargetSlider({
         )}
       </span>
     )
+  const trackAccessory = (
+    <>
+      {feedback}
+      {marks?.length ? (
+        <TargetReferenceMarks marks={marks} min={min} max={max} selected={selectedMark} />
+      ) : null}
+    </>
+  )
   const position = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
   const input = inputValue === null ? Number.NaN : (inputValue ?? value)
   const labelChars = Math.max(8, String(Number(input.toFixed(6))).length + (unit?.length ?? 0) + 3)
@@ -185,10 +252,10 @@ export function TargetSlider({
             aria-errormessage={props['aria-errormessage']}
           />
         </div>
-        <SliderTrackAccessoryContext.Provider value={feedback}>
+        <SliderTrackAccessoryContext.Provider value={trackAccessory}>
           {mismatch ? (
             <div className="picodash-dashstack-slider">
-              <div className="picodash-dashstack-slider-track">{feedback}</div>
+              <div className="picodash-dashstack-slider-track">{trackAccessory}</div>
             </div>
           ) : (
             <Slider
@@ -198,7 +265,6 @@ export function TargetSlider({
               min={min}
               max={max}
               step={step}
-              marks={marks}
               onChange={onChange}
               disabled={props.disabled}
               aria-label={label ? undefined : `Target ${props['aria-label'] ?? 'value'}`}

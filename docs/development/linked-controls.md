@@ -312,6 +312,12 @@ The TargetSlider input now follows its thumb above the track. Its position clamp
 edges, and its lift/scale has reserved space. Pointer motion remains direct; reduced motion turns
 off the feedback transitions. The editable field stays mounted through scale and result changes.
 
+From dogfood.17, reference `marks` appear as dots beneath the track. The actual result's matching
+dot grows into a stem down to its readout and retracts when deselected. This does not snap the
+editable target or alter the solver's result. Off-mark actual values keep their exact position;
+unmarked sliders retain their arrow. Pending `lastValue` retains the marker, and reduced motion
+makes the transition immediate. The editable value field and thumb also have a flat shared join.
+
 For application-owned dynamic capacity, compose a Dashlet with unbound TargetSlider. `value`
 positions the thumb; `inputValue` preserves numeric intent even when the latest capacity is smaller.
 New edits should go through the application's constraint policy. Do not overwrite the stored intent

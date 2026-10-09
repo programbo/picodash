@@ -1051,3 +1051,21 @@ input/unit shell) and the thumb paint's upper radii. Other slider thumbs retain 
 shape. Built-control browser inspection confirms 0px lower field/input and upper thumb radii during
 hover, preserving the connected blue underline and existing focus/scale behavior. This refinement
 is committed separately from the following reference-marker experiment so it can be retained.
+
+### Experimental TargetSlider reference dots and stems, 2026-10-09
+
+Marked TargetSliders replace ticks and the separate achieved arrow with fixed reference dots. An
+exact actual-result match grows a stem to the readout; the previous stem retracts. Off-mark actual
+values retain their exact position with a stem, and unmarked controls retain the arrow. This is a
+presentation experiment isolated from the flat-join commit `9ddb26e`; reverting the experiment does
+not restore the curved field/thumb join. Mark labels and accessible descriptions are preserved.
+
+The target component suite passes 12 tests, including mark-node retention, binary-rounding matches,
+pending lastValue, off-mark results, no-fit retraction, and unchanged value callbacks. The owning
+DashStack check and motion policy check pass. A built-public-control browser fixture shows paired
+grow/retract transforms across animation frames, completing in about 150ms without row-height
+change (97.5px regular). Dots begin 2px below the track; a selected 10px stem reaches the readout.
+Dark regular and light 390px compact screenshots were inspected. Reduced-motion stems switch with
+0s transition duration. An RTL DOM-direction probe confirms marker/readout horizontal alignment;
+it does not establish full React Aria locale-driven RTL interaction. These are isolated-control
+checks; application adoption and feedback remain with Maz. The owned browser sessions were closed.

@@ -2209,6 +2209,14 @@ control roots expose public `data-result` (`ready`, `pending`, `no-fit`, `error`
 `.picodash-dashstack-target-number`, inside the Dashlet shell for bound controls. Pending lastValue
 retains the achieved number and marker. Busy state adds no default visible animation, tint or prose.
 
+TargetSlider's editable field has square lower corners and its thumb has square upper corners,
+so they meet without a curved gap. With reference `marks`, each mark is a dot below the track.
+The mark matching the actual result grows a stem to the achieved readout; its stem retracts when
+the result changes. Matching tolerates only floating-point rounding, never rounds to a nearby mark.
+An off-mark actual result receives a stem at its exact position. Unmarked TargetSliders retain the
+arrow. Marks remain reference-only: they do not constrain or snap edits. Pending `lastValue`
+preserves the selected stem, and reduced motion removes the stem transition.
+
 ### Slider endpoint detents (2026-10-09)
 
 > Contract: Accepted by John; generalized from Off to authored start/end stops.

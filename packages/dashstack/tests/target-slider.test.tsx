@@ -133,6 +133,45 @@ describe('target versus achieved', () => {
     expect(screen.getByRole('textbox')).toBe(input)
     expect(props.onChange).not.toHaveBeenCalled()
   })
+  it('selects exact actual reference marks and retains dots while stems change', () => {
+    const props = {
+      value: 4,
+      min: 0,
+      max: 10,
+      onChange: vi.fn(),
+      'aria-label': 'Module',
+      marks: [
+        { value: 0.6, label: '' },
+        { value: 2, label: 'Two' },
+      ],
+    }
+    const view = render(
+      <TargetSlider {...props} result={{ status: 'ready', value: 0.6000000000000001 }} />,
+    )
+    const first = view.container.querySelector('[data-picodash-dashstack-slider-mark="0.6"]')
+    const second = view.container.querySelector('[data-picodash-dashstack-slider-mark="2"]')
+    expect(first?.hasAttribute('data-selected')).toBe(true)
+    expect(second?.hasAttribute('data-selected')).toBe(false)
+    expect(view.container.querySelector('[data-picodash-achieved-pointer="none"]')).toBeTruthy()
+    view.rerender(<TargetSlider {...props} result={{ status: 'ready', value: 2 }} />)
+    expect(view.container.querySelector('[data-picodash-dashstack-slider-mark="0.6"]')).toBe(first)
+    expect(first?.hasAttribute('data-selected')).toBe(false)
+    expect(second?.hasAttribute('data-selected')).toBe(true)
+    view.rerender(<TargetSlider {...props} result={{ status: 'pending', lastValue: 2 }} />)
+    expect(second?.hasAttribute('data-selected')).toBe(true)
+    view.rerender(<TargetSlider {...props} result={{ status: 'ready', value: 2.01 }} />)
+    expect(second?.hasAttribute('data-selected')).toBe(false)
+    expect(view.container.querySelector('[data-picodash-achieved-pointer="stem"]')).toBeTruthy()
+    expect(screen.getByLabelText('Achieved').textContent).toBe('2.01')
+    view.rerender(<TargetSlider {...props} result={{ status: 'no-fit' }} />)
+    expect(view.container.querySelector('[data-picodash-target-marks] [data-selected]')).toBeNull()
+    expect(first?.isConnected).toBe(true)
+    view.rerender(
+      <TargetSlider {...props} marks={undefined} result={{ status: 'ready', value: 2 }} />,
+    )
+    expect(view.container.querySelector('[data-picodash-achieved-pointer="arrow"]')).toBeTruthy()
+    expect(props.onChange).not.toHaveBeenCalled()
+  })
   it('preserves numeric intent and an in-progress text draft as result and capacity change', () => {
     const change = vi.fn()
     const view = render(
