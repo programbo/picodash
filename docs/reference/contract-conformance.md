@@ -1145,3 +1145,18 @@ installed recipe types, component interaction, and Vite/Next CSS builds. The pro
 built and restarted; its Target Bore input was edited to zero and the rendered joined field/thumb,
 actual value, reference dots and caps were inspected without browser errors. The stylesheet contract
 check now accepts shared selector lists while retaining its logical-offset and pointer-inert checks.
+
+### Segmented spring and solid MultiSelect chips, 2026-10-09
+
+The segmented underline is removed. React Aria still owns indicator placement; a CSS linear()
+sampled damped spring supplies a small overshoot over two fast intervals (300ms by default).
+No additional JavaScript or dependency import is needed. Existing focus-visible and reduced-motion
+rules disable the transition. MultiSelect chips now use theme accent/accent-text with transparent
+remove buttons, a light hover tint, disabled dimming, focus outlines and system-color overrides.
+
+Owning formatting/lint/types/build and motion policy pass. Built-control browser evidence covers
+read-only Ring/Sun clicks without writes, editable pointer/arrow-key selection, chip removal,
+read-only chips without removal actions and disabled chip dimming. A pointer capture samples a
+212.7px indicator movement through a small overshoot, settling to zero in 300ms. Keyboard and
+reduced-motion transition durations are 0s. Dark and light compact presentation was inspected at
+390px width; browser errors are empty. Owned sessions were closed and their process exits checked.

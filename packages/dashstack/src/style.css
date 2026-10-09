@@ -196,8 +196,6 @@
 .picodash-dashstack-segmented [data-picodash-dashstack-segment][data-selected] {
   background: transparent;
   color: var(--picodash-color-accent-text);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
 }
 
 /* React Aria carries the selection paint between options; focus stays on the radio. */
@@ -209,7 +207,31 @@
   pointer-events: none;
   background: var(--picodash-color-accent);
   translate: 0 0;
-  transition: translate var(--picodash-duration-fast) cubic-bezier(0.455, 0.03, 0.515, 0.955);
+  /* Sampled damped spring: a small overshoot, settled within two fast intervals. */
+  --_picodash-segment-spring: linear(
+    0,
+    0.0649,
+    0.2124,
+    0.3891,
+    0.5614,
+    0.7109,
+    0.8296,
+    0.917,
+    0.9762,
+    1.0125,
+    1.0316,
+    1.0386,
+    1.038,
+    1.0332,
+    1.0265,
+    1.0196,
+    1.0134,
+    1.0083,
+    1.0044,
+    1.0017,
+    1
+  );
+  transition: translate calc(var(--picodash-duration-fast) * 2) var(--_picodash-segment-spring);
 }
 
 .picodash-dashstack-segmented:has([data-focus-visible])
@@ -602,8 +624,9 @@
   border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
   border-radius: var(--picodash-radius-surface);
   padding-inline: var(--picodash-space-2);
-  background: color-mix(in oklab, var(--picodash-color-accent) 16%, var(--picodash-color-surface));
-  border-color: color-mix(in oklab, var(--picodash-color-accent) 28%, transparent);
+  background: var(--picodash-color-accent);
+  border-color: var(--picodash-color-accent);
+  color: var(--picodash-color-accent-text);
 }
 
 .picodash-dashstack-range-slider-track {
@@ -1905,6 +1928,10 @@
 }
 [data-picodash-dashstack-tag-remove] {
   display: grid;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   place-items: center;
   min-inline-size: 24px;
   min-block-size: 24px;
@@ -1912,7 +1939,30 @@
   border-radius: var(--picodash-radius-surface);
 }
 [data-picodash-dashstack-tag-remove]:hover {
-  background: var(--picodash-color-control-border);
+  background: color-mix(in oklab, var(--picodash-color-accent-text) 18%, transparent);
+}
+.picodash-dashstack-multi-select[data-disabled] .picodash-dashstack-tag,
+.picodash-dashstack-tag[data-disabled] {
+  opacity: var(--picodash-opacity-disabled);
+}
+.picodash-dashstack-tag[data-focus-visible],
+[data-picodash-dashstack-tag-remove]:focus-visible {
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+  outline-offset: 2px;
+}
+@media (forced-colors: active) {
+  .picodash-dashstack-tag {
+    forced-color-adjust: none;
+    background: Highlight;
+    border-color: Highlight;
+    color: HighlightText;
+  }
+  .picodash-dashstack-multi-select[data-disabled] .picodash-dashstack-tag,
+  .picodash-dashstack-tag[data-disabled] {
+    background: Canvas;
+    border-color: GrayText;
+    color: GrayText;
+  }
 }
 @media (pointer: coarse) {
   [data-picodash-dashstack-tag-remove] {

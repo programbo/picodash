@@ -2278,3 +2278,12 @@ repair is implicit. See the [installed recipe guide](../development/linked-contr
 TargetSlider now insets the track by half the enlarged thumb width within the value-label container.
 The label is clamped to that outer container, so it overlaps the thumb at both extreme values while
 both remain inside the input column.
+
+### Selection presentation (2026-10-09)
+
+SegmentedControl uses a solid theme-accent selection indicator with accent-text labels and no
+selected-label underline. Pointer selection uses a restrained 300ms sampled spring; keyboard
+focus-visible selection and reduced motion remain immediate. MultiSelect chips share the solid
+accent treatment. Remove actions inherit the chip foreground and use a subtle hover highlight;
+read-only chips retain balanced padding, disabled chips dim, and keyboard focus remains outlined.
+Forced-colors mode uses system Highlight/HighlightText and GrayText for disabled chips.
