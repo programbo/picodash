@@ -1002,3 +1002,13 @@ Snapshot .14 (`3261039ad52a92e2d2b75ded8f4bee2727d6015e`) passes package release
 isolated consumption, including installed recipe compilation, repeat/frozen installation,
 .13 update/rollback, component interactions and Vite/Next CSS builds. The source change is limited
 to warning layout; numeric acceptance is unchanged. The Lab is rebuilt from that source.
+
+### Dashlet band edge alignment, 2026-10-09
+
+Dashlet bands now use two thin-border units (2px in the default theme) and align with the
+shell's outer inline-start edge, outside the reorder handle background. Manual production-Lab
+browser evidence checked light/dark themes and a 390px compact viewport. A temporary band
+decoration on the gallery's reorderable Number row exercised the hovered-handle combination:
+computed band width 2px, outer-edge offset 0px, and no overlap with the handle. The existing
+non-reorderable band examples use the same shared selector. Screenshots were inspected; no
+consumer application state was changed.

@@ -939,8 +939,9 @@
   content: '';
   position: absolute;
   inset-block: 2px;
-  inset-inline-start: 2px;
-  inline-size: 3px;
+  /* Paint over the shell border, clear of the reorder handle hit area. */
+  inset-inline-start: calc(-2 * var(--picodash-border-width-thin));
+  inline-size: calc(2 * var(--picodash-border-width-thin));
   border-radius: var(--picodash-radius-control);
   background: var(--_picodash-dashlet-band);
   pointer-events: none;
