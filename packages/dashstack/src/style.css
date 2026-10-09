@@ -118,7 +118,8 @@
   padding-block-end: calc(var(--picodash-font-size-sm) + var(--picodash-space-1));
 }
 
-.picodash-dashstack-slider [data-picodash-dashstack-slider-marks] {
+.picodash-dashstack-slider [data-picodash-dashstack-slider-marks],
+.picodash-dashstack-slider [data-picodash-target-marks] {
   position: absolute;
   inset-block-start: calc(100% + var(--picodash-space-1));
   inset-inline: 0;
@@ -2267,13 +2268,18 @@
 }
 [data-picodash-achieved-readout] {
   position: absolute;
-  inset-block-start: var(--picodash-space-2);
-  transform: translateX(var(--_picodash-achieved-label-offset));
+  inset-block-start: var(--picodash-space-1);
+  transform: translateX(
+    calc(
+      var(--_picodash-achieved-label-offset) + var(--_picodash-target-thumb-half) *
+        (2 * var(--_picodash-achieved-ratio) - 1)
+    )
+  );
   white-space: nowrap;
   font-size: var(--picodash-font-size-sm);
   font-variant-numeric: tabular-nums;
 }
-.picodash-dashstack-target-slider [data-picodash-dashstack-slider-marks] {
+.picodash-dashstack-target-slider [data-picodash-target-marks] {
   inset-block-start: calc(100% + var(--picodash-space-4) + var(--picodash-font-size-sm));
 }
 .picodash-dashstack-target-slider p {
@@ -2298,7 +2304,13 @@
   box-shadow: inset 0 0 12px 2px color-mix(in oklab, var(--_picodash-group-glow) 35%, transparent);
 }
 [dir='rtl'] [data-picodash-achieved-readout] {
-  transform: translateX(calc(-1 * var(--_picodash-achieved-label-offset)));
+  transform: translateX(
+    calc(
+      -1 *
+        (var(--_picodash-achieved-label-offset) + var(--_picodash-target-thumb-half) *
+          (2 * var(--_picodash-achieved-ratio) - 1))
+    )
+  );
 }
 @media (forced-colors: active) {
   [data-picodash-dashgroup][data-glow] > [data-picodash-dashgroup] > [data-slot='dash-header'] {
@@ -2321,15 +2333,17 @@
   overflow: visible;
 }
 
-/* Each reference dot stays fixed; its stem grows only when the actual result matches it. */
+/* Physical coordinates keep entrance/exit at the right edge in both text directions. */
+.picodash-dashstack-slider [data-picodash-target-mark-slot] {
+  inset-inline-start: auto;
+}
+/* Only the dot matching the actual result extends a stem. */
 [data-picodash-target-marks] [data-picodash-dashstack-slider-mark]::before,
 [data-picodash-target-marks] [data-picodash-dashstack-slider-mark]::after {
   content: '';
   position: absolute;
   inset-inline-start: calc(-1 * var(--picodash-border-width-thin));
-  inset-block-start: calc(
-    -1 * (var(--picodash-space-4) + var(--picodash-font-size-sm)) + var(--picodash-space-0-5)
-  );
+  inset-block-start: calc(-1 * (var(--picodash-space-4) + var(--picodash-font-size-sm)));
   inline-size: calc(2 * var(--picodash-border-width-thin));
   border-radius: var(--picodash-radius-control);
   background: var(--picodash-color-text-muted);
@@ -2338,11 +2352,11 @@
   block-size: calc(2 * var(--picodash-border-width-thin));
 }
 [data-picodash-target-marks] [data-picodash-dashstack-slider-mark]::after {
-  block-size: calc(var(--picodash-space-2) + var(--picodash-space-0-5));
+  block-size: var(--picodash-space-2);
   background: var(--picodash-color-text);
   transform: scaleY(0);
   transform-origin: center top;
-  transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
+  transition: transform calc(var(--picodash-duration-fast) * 1.6) var(--picodash-easing-out);
 }
 [data-picodash-target-marks] [data-picodash-dashstack-slider-mark][data-selected]::after {
   transform: scaleY(1);
@@ -2353,12 +2367,15 @@
 [data-picodash-achieved-pointer='none'] {
   display: none;
 }
+[data-picodash-achieved-pointer='arrow'] + [data-picodash-achieved-readout] {
+  inset-block-start: var(--picodash-space-2);
+}
 /* An off-mark result still gets a stem at its exact position, never a fabricated selection. */
 [data-picodash-achieved-pointer='stem'] {
   inset-inline-start: calc(-1 * var(--picodash-border-width-thin));
-  inset-block-start: calc(-1 * var(--picodash-space-0-5));
+  inset-block-start: calc(-1 * var(--picodash-space-1));
   inline-size: calc(2 * var(--picodash-border-width-thin));
-  block-size: calc(var(--picodash-space-2) + var(--picodash-space-0-5));
+  block-size: var(--picodash-space-2);
   clip-path: none;
   border-radius: var(--picodash-radius-control);
 }
@@ -2426,7 +2443,12 @@
 .picodash-dashstack-target-slider [data-picodash-target-track] {
   position: relative;
   margin-inline: var(--picodash-space-1);
-  --_picodash-target-edge: calc(max(44px, var(--picodash-control-height-md)) / 2);
+  --_picodash-target-thumb-half: calc(max(44px, var(--picodash-control-height-md)) / 2);
+  --_picodash-target-edge: var(--_picodash-target-thumb-half);
+  --_picodash-target-label-rest-width: min(
+    calc((100% - 2 * (var(--_picodash-target-edge) - var(--_picodash-target-thumb-half))) / 1.15),
+    calc(var(--_picodash-target-label-width) / 1.15)
+  );
   --_picodash-target-thumb-rise: calc(max(44px, var(--picodash-control-height-md)) / 2);
   --_picodash-target-label-lift: 0px;
   padding-block-start: var(--picodash-space-2);
@@ -2434,32 +2456,52 @@
 .picodash-dashstack-target-slider .picodash-dashstack-slider-track {
   margin-inline: var(--_picodash-target-edge);
   margin-block-start: var(--_picodash-target-thumb-rise);
+  background: transparent;
+}
+/* Extend only the painted track; value coordinates and pointer geometry stay unchanged. */
+.picodash-dashstack-target-slider .picodash-dashstack-slider-track::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  inset-inline: calc(-1 * var(--picodash-space-0-5));
+  border-radius: inherit;
+  background: color-mix(in oklab, var(--picodash-color-text) 22%, transparent);
+  pointer-events: none;
+}
+.picodash-dashstack-target-slider .picodash-dashstack-slider-track[data-constrained]::before {
+  background: color-mix(in oklab, var(--picodash-color-text) 9%, transparent);
 }
 [data-picodash-target-label-slot] {
   position: relative;
-  inline-size: min(100%, var(--_picodash-target-label-width));
+  inline-size: var(--_picodash-target-label-rest-width);
   inset-inline-start: clamp(
-    0px,
+    calc(var(--_picodash-target-edge) - var(--_picodash-target-thumb-half)),
     calc(
       var(--_picodash-target-edge) + (100% - 2 * var(--_picodash-target-edge)) *
-        var(--_picodash-target-ratio) - var(--_picodash-target-label-width) / 2
+        var(--_picodash-target-ratio) - var(--_picodash-target-label-rest-width) / 2
     ),
-    max(0px, calc(100% - var(--_picodash-target-label-width)))
+    calc(
+      100% - var(--_picodash-target-edge) + var(--_picodash-target-thumb-half) -
+        var(--_picodash-target-label-rest-width)
+    )
   );
   display: flex;
   justify-content: center;
   z-index: 1;
 }
-/* Reserve the scaled width so even an endpoint label remains inside the track. */
+/* Clamp the resting field to the resting thumb edges; grow towards the available interior. */
 [data-picodash-target-label-slot] > .picodash-dashstack-field {
-  inline-size: calc(100% / 1.15);
+  inline-size: 100%;
   font-size: var(--picodash-font-size-sm);
   line-height: var(--picodash-line-height-normal);
   border-block-end: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-accent);
   border-end-start-radius: 0;
   border-end-end-radius: 0;
-  transform-origin: center bottom;
+  transform-origin: calc(var(--_picodash-target-ratio) * 100%) bottom;
   transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+[dir='rtl'] [data-picodash-target-label-slot] > .picodash-dashstack-field {
+  transform-origin: calc((1 - var(--_picodash-target-ratio)) * 100%) bottom;
 }
 [data-picodash-target-label-slot] input {
   text-align: end;
@@ -2480,7 +2522,8 @@
 }
 @media (pointer: fine) {
   .picodash-dashstack-target-slider [data-picodash-target-track] {
-    --_picodash-target-edge: calc(var(--picodash-space-3) * 1.25 / 2);
+    --_picodash-target-thumb-half: calc(var(--picodash-space-3) / 2);
+    --_picodash-target-edge: calc(var(--_picodash-target-thumb-half) * 1.25);
     --_picodash-target-thumb-rise: calc(var(--picodash-control-height-xs) / 2);
     /* The thumb scales from its bottom edge; lift the attached field by the same amount. */
     --_picodash-target-label-lift: calc(

@@ -173,6 +173,45 @@ describe('target versus achieved', () => {
     expect(view.container.querySelector('[data-picodash-achieved-pointer="arrow"]')).toBeTruthy()
     expect(props.onChange).not.toHaveBeenCalled()
   })
+  it('preserves ordered marker slots when the entire feasible set changes', () => {
+    const onChange = vi.fn()
+    const props = { value: 4, min: 0, max: 10, onChange, 'aria-label': 'Module' }
+    const slider = (values: number[]) => (
+      <TargetSlider
+        {...props}
+        marks={values.map((value) => ({ value, label: '' }))}
+        result={{ status: 'ready', value: 4 }}
+      />
+    )
+    const view = render(slider([1, 3, 6]))
+    const dots = () =>
+      Array.from(
+        view.container.querySelectorAll(
+          '[data-picodash-dashstack-slider-mark]:not([data-exiting])',
+        ),
+      )
+    const original = dots()
+    view.rerender(slider([2, 4, 8]))
+    expect(dots()).toEqual(original)
+    expect(dots().map((dot) => dot.getAttribute('data-picodash-dashstack-slider-mark'))).toEqual([
+      '2',
+      '4',
+      '8',
+    ])
+    expect(dots()[1]?.hasAttribute('data-selected')).toBe(true)
+    view.rerender(slider([1, 2, 4, 9]))
+    expect(dots().slice(0, 3)).toEqual(original)
+    expect(dots()).toHaveLength(4)
+    view.rerender(slider([3, 7]))
+    expect(dots()).toEqual(original.slice(0, 2))
+    expect(view.container.querySelector('[data-exiting][data-selected]')).toBeNull()
+    view.rerender(slider([]))
+    expect(dots()).toHaveLength(0)
+    expect(view.container.querySelector('[data-picodash-achieved-pointer="arrow"]')).toBeTruthy()
+    view.rerender(slider([2, 2, 8]))
+    expect(dots()).toHaveLength(3)
+    expect(onChange).not.toHaveBeenCalled()
+  })
   it('keeps singleton scales finite, stationary and distinct from pending or no-fit', () => {
     const onChange = vi.fn()
     const props = {

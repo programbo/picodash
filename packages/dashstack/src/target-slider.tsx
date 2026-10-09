@@ -1,7 +1,15 @@
 'use client'
 
-import { useContext, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
+import {
+  useContext,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react'
 import { animate } from 'motion'
+import { AnimatePresence, motion, useIsPresent } from 'motion/react'
 import { useLocale } from 'react-aria-components'
 import { NumberField, Slider, type SliderMark, type SliderProps } from './ui.js'
 import { SliderTrackAccessoryContext } from './slider-accessory.js'
@@ -47,6 +55,8 @@ function AchievedMarker({
     const paint = (value: number) => {
       painted.current = value
       node.style.setProperty('--_picodash-achieved-position', `${value}%`)
+      node.style.setProperty('--_picodash-achieved-label-offset', `${-value}%`)
+      node.style.setProperty('--_picodash-achieved-ratio', String(value / 100))
     }
     let motion: ReturnType<typeof animate> | undefined
     const snap = () => {
@@ -70,15 +80,53 @@ function AchievedMarker({
     }
   }, [position, visible])
   return (
-    <span
-      ref={ref}
-      aria-hidden="true"
-      data-picodash-achieved-marker
-      style={{ '--_picodash-achieved-label-offset': `${-position}%` } as React.CSSProperties}
-    >
+    <span ref={ref} aria-hidden="true" data-picodash-achieved-marker>
       <span aria-hidden="true" data-picodash-achieved-pointer={pointer} />
       <span data-picodash-achieved-readout>{children}</span>
     </span>
+  )
+}
+
+const reducedMotionQuery = '(prefers-reduced-motion: reduce)'
+function subscribeReducedMotion(listener: () => void) {
+  const media = window.matchMedia(reducedMotionQuery)
+  media.addEventListener('change', listener)
+  return () => media.removeEventListener('change', listener)
+}
+const getReducedMotion = () => window.matchMedia(reducedMotionQuery).matches
+const getServerReducedMotion = () => true
+
+// Slots, not values, own identity: a new feasible set moves the existing dots.
+function TargetReferenceMark({
+  mark,
+  position,
+  selected,
+}: {
+  mark: SliderMark
+  position: number
+  selected: boolean
+}) {
+  const present = useIsPresent()
+  const { visible } = useContext(DashGroupAncestryContext)
+  const reducedMotion = useSyncExternalStore(
+    subscribeReducedMotion,
+    getReducedMotion,
+    getServerReducedMotion,
+  )
+  const instant = !visible || !!reducedMotion
+  return (
+    <motion.span
+      data-picodash-target-mark-slot
+      data-picodash-dashstack-slider-mark={mark.value}
+      data-selected={(present && selected) || undefined}
+      data-exiting={!present || undefined}
+      initial={{ left: '100%', opacity: 0 }}
+      animate={{ left: `${position}%`, opacity: 1 }}
+      exit={{ left: '100%', opacity: 0 }}
+      transition={{ duration: instant ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {mark.label ?? mark.value}
+    </motion.span>
   )
 }
 
@@ -94,27 +142,28 @@ function TargetReferenceMarks({
   selected: number
 }) {
   const { visible } = useContext(DashGroupAncestryContext)
+  const { direction } = useLocale()
   return (
     <span
       aria-hidden="true"
-      data-picodash-dashstack-slider-marks
+      data-picodash-dashstack-slider-marks={marks.length ? '' : undefined}
       data-picodash-target-marks
       data-motion={visible ? undefined : 'false'}
     >
-      {marks.map((mark, index) => (
-        <span
-          key={`${mark.value}:${index}`}
-          data-picodash-dashstack-slider-mark={mark.value}
-          data-selected={index === selected || undefined}
-          style={
-            {
-              '--_picodash-dashstack-slider-mark-position': `${targetPosition(mark.value, min, max)}%`,
-            } as React.CSSProperties
-          }
-        >
-          {mark.label ?? mark.value}
-        </span>
-      ))}
+      <AnimatePresence initial={false}>
+        {marks.map((mark, index) => (
+          <TargetReferenceMark
+            key={index}
+            mark={mark}
+            position={
+              direction === 'rtl'
+                ? 100 - targetPosition(mark.value, min, max)
+                : targetPosition(mark.value, min, max)
+            }
+            selected={index === selected}
+          />
+        ))}
+      </AnimatePresence>
     </span>
   )
 }
@@ -209,9 +258,7 @@ export function TargetSlider({
   const trackAccessory = (
     <>
       {feedback}
-      {marks?.length ? (
-        <TargetReferenceMarks marks={marks} min={min} max={max} selected={selectedMark} />
-      ) : null}
+      <TargetReferenceMarks marks={marks ?? []} min={min} max={max} selected={selectedMark} />
     </>
   )
   const position = Math.max(0, Math.min(100, targetPosition(value, min, max)))

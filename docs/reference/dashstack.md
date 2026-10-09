@@ -2217,6 +2217,18 @@ An off-mark actual result receives a stem at its exact position. Unmarked Target
 arrow. Marks remain reference-only: they do not constrain or snap edits. Pending `lastValue`
 preserves the selected stem, and reduced motion removes the stem transition.
 
+Reference dots use array index as their visual slot identity. Replacing the feasible values moves
+existing slots; only added or removed slots fade in from or out to the physical right track edge.
+Repositioning and presence use 240ms ease-out, without delaying target input or canonical writes.
+Supply marks in the desired visual order (normally ascending value). Initial rendering does not
+animate entry. Hidden groups and reduced-motion preference snap, including live preference changes.
+Exiting dots relinquish their selected stem immediately. Empty sets finish their exits normally.
+
+The resting target field and actual readout align with the unscaled thumb's outside edge at either
+endpoint. The target field grows toward the available interior on hover/focus. Reference dots touch
+the track; its painted caps extend slightly past endpoint dots without moving value coordinates.
+Selected stems use a slower 240ms ease-out and the actual text sits closer to the track.
+
 ### Singleton TargetSlider scale (2026-10-09)
 
 > Contract decision: A finite `min === max` is one available value, not an invalid or empty scale.

@@ -1116,3 +1116,25 @@ Snapshot .19 (`67fddcf6f1a2f2aceb05cc9bc45209d730842c98`) passes the package rel
 including all 303 DashStack tests, and the isolated consumer checks: repeat/frozen installation,
 .18 update/rollback, installed recipe types, interactions, and Vite/Next CSS builds. The Lab
 production build passes with the same selection styling.
+
+### TargetSlider alignment and marker slot motion, 2026-10-09
+
+Resting target labels and achieved labels align with the unscaled endpoint thumb edges; the target
+field scales inward at endpoints. Achieved readout offset follows its animated position instead of
+jumping to the destination offset. Dots touch the track and its painted caps extend 2px beyond the
+endpoint centres in regular density. Selected stems extend over 240ms with ease-out; the achieved
+text is 8px below the track in regular density and 6px in compact density. Unmarked arrows retain
+their clearance. Value coordinates, direct thumb motion and canonical data are unchanged.
+
+Marker array indices deliberately identify visual slots. Changed values retain the same nodes,
+added slots fade/move in from the right edge, and removed slots fade/move back there. Removing all
+marks completes exits. Exiting dots immediately lose selection. Animation is 240ms and interruptible;
+hidden groups and reduced motion snap. A live media-query subscription handles preference changes.
+
+All 16 target tests pass, including replaced feasible sets, growth/shrink/empty/duplicate sets,
+slot identity and absence of writes. Owning formatting/lint/types/build and motion policy pass.
+A built-package browser fixture verifies partial-frame positions/opacities, settled counts, rapid
+updates, empty-set exit/reentry, and live reduced-motion toggles. Regular dark and compact light
+RTL captures were inspected. Endpoint label edges match resting thumbs within subpixel rounding;
+390px viewport has no horizontal overflow. Browser errors are empty and the owned session closed.
+Consumer application adoption remains separately verified by its owner.
