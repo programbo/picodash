@@ -216,7 +216,7 @@ describe('DashStack stylesheet contract', () => {
   it('aligns one pointer-inert Slider mark layer with logical track offsets', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
     expect(css).toMatch(
-      /\.picodash-dashstack-slider\s+\[data-picodash-dashstack-slider-marks\]\s*\{[^}]*position:\s*absolute;[^}]*inset-block-start:[^;]+;[^}]*inset-inline:\s*0;[^}]*pointer-events:\s*none;/s,
+      /\.picodash-dashstack-slider\s+\[data-picodash-dashstack-slider-marks\](?:\s*,[^{}]+)?\s*\{[^}]*position:\s*absolute;[^}]*inset-block-start:[^;]+;[^}]*inset-inline:\s*0;[^}]*pointer-events:\s*none;/s,
     )
     const markRule = css.match(
       /\.picodash-dashstack-slider\s+\[data-picodash-dashstack-slider-mark\]\s*\{[^}]+\}/s,
