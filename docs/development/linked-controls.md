@@ -6,6 +6,7 @@ which outcome is best.
 
 These APIs begin with dogfood.7. Use dogfood.8 or newer for independent unlabelled ticks,
 extreme-height overflow recovery, and numeric Panel widths. Check the snapshot manifest before using these exports.
+Dogfood.9 also vendors this guide into the consumer; .7/.8 contain it only in the original bundle.
 Install the packages and styles using [the dogfooding guide](dogfooding.md).
 
 ## Compose priorities with groups

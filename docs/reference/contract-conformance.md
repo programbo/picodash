@@ -885,3 +885,9 @@ reveal/focus after reopening a Panel, preserved scope metadata, and desktop/390p
 transitions with byte-identical saved scope JSON and restored docking. These are consumer-reported
 checks, distinct from the repository browser journeys. Full touch-device and assistive-technology
 acceptance remains open; modal drawers/sheets and rail/pop-out Dashlets remain unimplemented.
+
+The .8 consumer found a documentation delivery gap: `linked-controls.md` existed in the bundle
+but was absent from the installer copy list. The installer now discovers all bundled Markdown
+guides. The isolated check compares installed guides and examples byte-for-byte and compiles the
+vendored examples. It reproduces the missing-file failure against immutable .8; the correction
+ships as .9 without rewriting .8.

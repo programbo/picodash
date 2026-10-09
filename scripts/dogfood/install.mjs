@@ -1,6 +1,6 @@
 // Standalone: this file travels with the bundle and uses only Node built-ins.
 import { createHash } from 'node:crypto'
-import { cp, mkdir, readFile, realpath, writeFile } from 'node:fs/promises'
+import { cp, mkdir, readFile, readdir, realpath, writeFile } from 'node:fs/promises'
 import { spawnSync } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -105,15 +105,10 @@ async function main() {
   for (const pkg of snapshot.packages)
     if (!sameDirectory) await cp(join(bundle, pkg.file), join(vendor, pkg.file))
   if (!sameDirectory) {
-    for (const file of [
-      'snapshot.json',
-      'install.mjs',
-      'GUIDE.md',
-      'consumer-recipes.md',
-      'numeric-targets.md',
-      'open-ended-ranges.md',
-      'example',
-    ])
+    const guides = (await readdir(bundle, { withFileTypes: true }))
+      .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
+      .map((entry) => entry.name)
+    for (const file of ['snapshot.json', 'install.mjs', ...guides, 'example'])
       await cp(join(bundle, file), join(vendor, file), { recursive: true })
   }
   await writeFile(manifestPath, JSON.stringify(next, null, 2) + '\n')

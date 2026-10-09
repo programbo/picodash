@@ -55,6 +55,20 @@ try {
     }
     run('bun', [join(consumer, 'vendor/picodash', snapshot.version, 'install.mjs'), consumer])
   }
+  // Assert the delivered guides and examples, not merely the source checkout's fixtures.
+  const vendor = join(consumer, 'vendor/picodash', snapshot.version)
+  for (const entry of await readdir(bundle, { withFileTypes: true })) {
+    if (entry.isFile() && entry.name.endsWith('.md'))
+      assert.deepEqual(
+        await readFile(join(vendor, entry.name)),
+        await readFile(join(bundle, entry.name)),
+      )
+  }
+  for (const name of await readdir(join(bundle, 'example')))
+    assert.deepEqual(
+      await readFile(join(vendor, 'example', name)),
+      await readFile(join(bundle, 'example', name)),
+    )
   await rm(join(consumer, 'node_modules'), { recursive: true, force: true })
   run('bun', ['install', '--frozen-lockfile'])
   for (const pkg of snapshot.packages) {
@@ -66,6 +80,7 @@ try {
     assert.equal(installed.scripts, undefined)
   }
   await cp(join(root, 'packages/picodash/tests/dogfood'), consumer, { recursive: true })
+  await cp(join(vendor, 'example'), consumer, { recursive: true })
   await cp(join(root, 'test/setup.ts'), join(consumer, 'setup.ts'))
   await writeFile(
     join(consumer, 'vite.config.mjs'),
