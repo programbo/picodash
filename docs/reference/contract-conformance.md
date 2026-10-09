@@ -1074,3 +1074,22 @@ Snapshot .17 (`73b50ac44622ea0b583a08e4e6e4c2d430ae2af9`) passes the package rel
 isolated consumer checks: repeat/frozen installs, .16 update/rollback, installed recipe types,
 component interaction and Vite/Next CSS builds. The Lab production build also passes. The flat
 field/thumb join is commit `9ddb26e`; the independently reversible marker experiment is `73b50ac`.
+
+### Singleton TargetSlider domain, 2026-10-09
+
+TargetSlider and its bound Dashlet accept equal finite bounds. A compatible singleton has a
+stationary centre thumb with honest equal ARIA min/max/current values and read-only semantics;
+it never enters React Aria's zero-span percentage calculation. Target, actual and mark positioning
+also handle zero span explicitly. The numeric field remains mounted with the existing authored
+readOnly/disabled policy, preserving independent intent. Incompatible targets retain their warning
+without a fabricated thumb. No-fit and pending remain explicit application-owned result states.
+
+The target suite passes 15 tests, including singleton no-op pointer/key events, pending/no-fit,
+expansion and collapse focus restoration, retained input/control identity, incompatible values,
+disabled tab order, and bound-control/locale parity without canonical writes. Owning formatting,
+lint and types pass. Built-control browser inspection confirms 97.5px regular and 85.5px compact
+marked row heights across the boundary. Pending/no-fit keep the same height. The flat label/thumb
+join is 0px apart after correcting the stationary thumb's top alignment. A fresh browser session
+confirms focused thumb transfer in both directions, unchanged singleton keys, and no browser errors.
+Dark and light compact screenshots were inspected; all owned sessions were closed. Consumer
+application adoption remains Maz-owned; no solver or consumer-private styling was changed.

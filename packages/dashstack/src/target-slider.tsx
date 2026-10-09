@@ -2,13 +2,19 @@
 
 import { useContext, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
 import { animate } from 'motion'
+import { useLocale } from 'react-aria-components'
 import { NumberField, Slider, type SliderMark, type SliderProps } from './ui.js'
 import { SliderTrackAccessoryContext } from './slider-accessory.js'
 import { DashGroupAncestryContext } from './structure.js'
 import { validateSliderOptions } from './slider-options.js'
 import { isNumberCompatible } from './number-compatibility.js'
+import { composeControlClassName } from './ui-class-name.js'
 
 import { targetResultValue, targetResultMessage, type TargetResult } from './target-result.js'
+
+function targetPosition(value: number, min: number, max: number): number {
+  return min === max ? 50 : ((value - min) / (max - min)) * 100
+}
 
 export type TargetSliderResult = TargetResult
 export type TargetSliderProps = Omit<
@@ -102,7 +108,7 @@ function TargetReferenceMarks({
           data-selected={index === selected || undefined}
           style={
             {
-              '--_picodash-dashstack-slider-mark-position': `${((mark.value - min) / (max - min)) * 100}%`,
+              '--_picodash-dashstack-slider-mark-position': `${targetPosition(mark.value, min, max)}%`,
             } as React.CSSProperties
           }
         >
@@ -126,12 +132,14 @@ export function TargetSlider({
   marks,
   ...props
 }: TargetSliderProps) {
-  if (!Number.isFinite(min) || !Number.isFinite(max) || min >= max)
-    throw new TypeError('TargetSlider requires a finite increasing scale.')
+  if (!Number.isFinite(min) || !Number.isFinite(max) || min > max)
+    throw new TypeError('TargetSlider requires a finite ordered scale.')
   if (!Number.isFinite(step) || step <= 0) throw new TypeError('step must be finite and positive.')
   if (marks?.some((mark) => !Number.isFinite(mark.value) || mark.value < min || mark.value > max))
     throw new TypeError('marks must be finite and within the scale.')
   validateSliderOptions(min, max, step, { allowedRange: props.allowedRange })
+  const { locale } = useLocale()
+  const singleton = min === max
   const achieved = targetResultValue(result)
   const prefix = useId(),
     marksId = useId()
@@ -160,11 +168,12 @@ export function TargetSlider({
     ) ?? -1
   const status = targetResultMessage(result)
   const statusId = `${prefix}-status`
+  const singletonId = `${prefix}-singleton`
   const feedback =
     achieved !== undefined && !achievedOutside ? (
       <AchievedMarker
         key={`${min}:${max}`}
-        position={((achieved - min) / (max - min)) * 100}
+        position={targetPosition(achieved, min, max)}
         pointer={marks?.length ? (selectedMark >= 0 ? 'none' : 'stem') : 'arrow'}
       >
         {readout}
@@ -205,22 +214,38 @@ export function TargetSlider({
       ) : null}
     </>
   )
-  const position = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
+  const position = Math.max(0, Math.min(100, targetPosition(value, min, max)))
   const input = inputValue === null ? Number.NaN : (inputValue ?? value)
   const labelChars = Math.max(8, String(Number(input.toFixed(6))).length + (unit?.length ?? 0) + 3)
   const description =
     [
       props['aria-describedby'],
+      singleton ? singletonId : undefined,
       marks?.length ? marksId : undefined,
       status || achievedOutside ? statusId : undefined,
     ]
       .filter(Boolean)
       .join(' ') || undefined
   const label = props['aria-labelledby'] ? `${prefix} ${props['aria-labelledby']}` : undefined
+  const trackSlot = useRef<HTMLDivElement>(null)
+  const trackHadFocus = useRef(false)
+  useLayoutEffect(() => {
+    const slot = trackSlot.current
+    if (
+      slot &&
+      !props.disabled &&
+      trackHadFocus.current &&
+      slot.ownerDocument.activeElement === slot.ownerDocument.body
+    ) {
+      // The track renderer changes at a singleton boundary. Keep keyboard focus in the control.
+      slot.querySelector<HTMLElement>('[role="slider"], input[type="range"]')?.focus()
+    }
+  }, [singleton, mismatch, props.disabled])
   return (
     <div
       className="picodash-dashstack-target-slider"
       data-result={result.status}
+      data-singleton={singleton || undefined}
       aria-busy={result.status === 'pending'}
     >
       <span id={prefix} className="picodash-visually-hidden">
@@ -252,28 +277,85 @@ export function TargetSlider({
             aria-errormessage={props['aria-errormessage']}
           />
         </div>
-        <SliderTrackAccessoryContext.Provider value={trackAccessory}>
-          {mismatch ? (
-            <div className="picodash-dashstack-slider">
-              <div className="picodash-dashstack-slider-track">{trackAccessory}</div>
-            </div>
-          ) : (
-            <Slider
-              {...props}
-              id={undefined}
-              value={value}
-              min={min}
-              max={max}
-              step={step}
-              onChange={onChange}
-              disabled={props.disabled}
-              aria-label={label ? undefined : `Target ${props['aria-label'] ?? 'value'}`}
-              aria-labelledby={label}
-              aria-describedby={description}
-            />
-          )}
-        </SliderTrackAccessoryContext.Provider>
+        <div
+          ref={trackSlot}
+          onFocusCapture={() => {
+            trackHadFocus.current = true
+          }}
+          onBlurCapture={(event) => {
+            trackHadFocus.current = event.currentTarget.contains(event.relatedTarget)
+          }}
+        >
+          <SliderTrackAccessoryContext.Provider value={trackAccessory}>
+            {singleton && !mismatch ? (
+              <div
+                className={composeControlClassName('picodash-dashstack-slider', props.className)}
+                data-disabled={props.disabled || undefined}
+              >
+                <div className="picodash-dashstack-slider-track" data-picodash-singleton-track>
+                  <div
+                    role="slider"
+                    tabIndex={props.disabled ? -1 : 0}
+                    aria-label={label ? undefined : `Target ${props['aria-label'] ?? 'value'}`}
+                    aria-labelledby={label}
+                    aria-describedby={description}
+                    aria-valuemin={min}
+                    aria-valuemax={max}
+                    aria-valuenow={value}
+                    aria-valuetext={`${new Intl.NumberFormat(locale, props.formatOptions).format(value)}${unit ? ` ${unit}` : ''}`}
+                    aria-readonly="true"
+                    aria-disabled={props.disabled || undefined}
+                    aria-invalid={props['aria-invalid']}
+                    aria-errormessage={props['aria-errormessage']}
+                    data-picodash-dashstack-slider-thumb
+                    data-picodash-singleton-thumb
+                    onKeyDown={(event) => {
+                      if (
+                        [
+                          'ArrowLeft',
+                          'ArrowRight',
+                          'ArrowUp',
+                          'ArrowDown',
+                          'Home',
+                          'End',
+                          'PageUp',
+                          'PageDown',
+                        ].includes(event.key)
+                      )
+                        event.preventDefault()
+                    }}
+                  />
+                  {trackAccessory}
+                </div>
+              </div>
+            ) : mismatch ? (
+              <div className="picodash-dashstack-slider">
+                <div className="picodash-dashstack-slider-track">{trackAccessory}</div>
+              </div>
+            ) : (
+              <Slider
+                {...props}
+                id={undefined}
+                value={value}
+                min={min}
+                max={max}
+                step={step}
+                onChange={onChange}
+                disabled={props.disabled}
+                aria-label={label ? undefined : `Target ${props['aria-label'] ?? 'value'}`}
+                aria-labelledby={label}
+                aria-describedby={description}
+              />
+            )}
+          </SliderTrackAccessoryContext.Provider>
+        </div>
       </div>
+      {singleton ? (
+        <span id={singletonId} className="picodash-visually-hidden">
+          Only available value: {formatted(min)}
+          {!formatValue && unit ? ` ${unit}` : ''}. Slider is read only.
+        </span>
+      ) : null}
       {mismatch ? (
         <p data-picodash-target-warning>
           Target {formatted(value)} is outside the configured interval or step.

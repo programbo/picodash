@@ -2217,6 +2217,29 @@ An off-mark actual result receives a stem at its exact position. Unmarked Target
 arrow. Marks remain reference-only: they do not constrain or snap edits. Pending `lastValue`
 preserves the selected stem, and reduced motion removes the stem transition.
 
+### Singleton TargetSlider scale (2026-10-09)
+
+> Contract decision: A finite `min === max` is one available value, not an invalid or empty scale.
+> Implementation: Implemented for TargetSlider and TargetSliderDashlet.
+
+A compatible target on a singleton scale renders one stationary thumb at the centre of the same
+track. Its slider semantics report equal minimum, maximum and current values, a read-only state,
+and an accessible explanation of the sole available value. Arrow, page and endpoint keys do not
+edit it. Disabled controls remain outside the tab order. No epsilon interval is synthesized.
+
+The numeric target field stays mounted and retains its existing `readOnly`/`disabled` policy;
+authors may still edit numeric intent independently of capacity. A supplied `inputValue` may
+therefore differ from the compatible presentation `value`. Without that separation, an incompatible
+`value` keeps the existing warning and hides the thumb rather than pretending it equals the sole
+value. No canonical repair or callback is emitted by collapsing or expanding the scale.
+
+The target label, matching actual marker and reference mark share the centre position. Pending
+`lastValue`, empty pending, no-fit, error and outside-scale actual results keep their existing
+meanings. A singleton does not imply a successful result. With the same mark-row presence, row
+height is unchanged across the boundary; keyboard focus follows a focused thumb to its replacement.
+The numeric field and outer control retain identity. The control root exposes `data-singleton`.
+Reversed or nonfinite scales, invalid steps and out-of-scale marks remain configuration errors.
+
 ### Slider endpoint detents (2026-10-09)
 
 > Contract: Accepted by John; generalized from Off to authored start/end stops.

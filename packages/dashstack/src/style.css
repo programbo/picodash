@@ -2484,7 +2484,11 @@
   }
 }
 [data-picodash-target-track]:has(
-    [data-picodash-dashstack-slider-thumb]:is([data-dragging], [data-focus-visible]),
+    [data-picodash-dashstack-slider-thumb]:is(
+      [data-dragging],
+      [data-focus-visible],
+      :focus-visible
+    ),
     [data-picodash-target-label-slot]:focus-within
   )
   > [data-picodash-target-label-slot]
@@ -2497,7 +2501,7 @@
 }
 [data-picodash-target-track]:has(
     [data-picodash-target-label-slot]:focus-within,
-    [data-picodash-dashstack-slider-thumb]:is([data-dragging], [data-focus-visible])
+    [data-picodash-dashstack-slider-thumb]:is([data-dragging], [data-focus-visible], :focus-visible)
   )
   .picodash-dashstack-slider:not([data-disabled])
   [data-picodash-dashstack-slider-thumb]::before {
@@ -2631,4 +2635,20 @@
   [data-picodash-detent-track] [data-picodash-dashstack-slider-thumb]::before {
     transition: none;
   }
+}
+
+/* A one-value TargetSlider has a real zero-width domain and a stationary center position. */
+[data-picodash-singleton-thumb] {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -50%);
+  cursor: default;
+}
+[data-picodash-singleton-thumb]:focus-visible {
+  outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
+  outline-offset: 2px;
+}
+.picodash-dashstack-target-slider .picodash-dashstack-slider[data-disabled] {
+  opacity: var(--picodash-opacity-disabled);
 }

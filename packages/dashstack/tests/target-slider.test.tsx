@@ -2,6 +2,7 @@
 import { act, fireEvent, render, screen, cleanup } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vite-plus/test'
 import { createPicodashNexus } from '@picodash/nexus'
+import { I18nProvider } from 'react-aria-components'
 import {
   DashGroup,
   DashStack,
@@ -172,6 +173,120 @@ describe('target versus achieved', () => {
     expect(view.container.querySelector('[data-picodash-achieved-pointer="arrow"]')).toBeTruthy()
     expect(props.onChange).not.toHaveBeenCalled()
   })
+  it('keeps singleton scales finite, stationary and distinct from pending or no-fit', () => {
+    const onChange = vi.fn()
+    const props = {
+      value: 0.6,
+      min: 0.6,
+      max: 0.6,
+      step: 0.01,
+      unit: 'mm',
+      onChange,
+      'aria-label': 'Module',
+      marks: [{ value: 0.6, label: '' }],
+    }
+    const view = render(<TargetSlider {...props} result={{ status: 'ready', value: 0.6 }} />)
+    const input = screen.getByRole('textbox')
+    const root = view.container.querySelector('.picodash-dashstack-target-slider')
+    const thumb = screen.getByRole('slider', { name: 'Target Module' })
+    for (const attribute of ['aria-valuemin', 'aria-valuemax', 'aria-valuenow'])
+      expect(thumb.getAttribute(attribute)).toBe('0.6')
+    expect(thumb.getAttribute('aria-readonly')).toBe('true')
+    expect(thumb.getAttribute('aria-valuetext')).toBe('0.6 mm')
+    expect(thumb.getAttribute('aria-describedby')).toContain(
+      screen.getByText(/Only available value/).id,
+    )
+    act(() => {
+      thumb.focus()
+    })
+    for (const key of ['ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'])
+      fireEvent.keyDown(thumb, { key })
+    fireEvent.pointerDown(thumb, { pointerId: 1, clientX: 20 })
+    fireEvent.pointerMove(thumb, { pointerId: 1, clientX: 200 })
+    fireEvent.pointerUp(thumb, { pointerId: 1 })
+    expect(onChange).not.toHaveBeenCalled()
+    expect(view.container.innerHTML).not.toMatch(/NaN|Infinity/)
+    expect(
+      view.container.querySelector('[data-picodash-target-track]')?.getAttribute('style'),
+    ).toContain('ratio: 0.5')
+    view.rerender(<TargetSlider {...props} result={{ status: 'pending', lastValue: 0.6 }} />)
+    expect(screen.getByRole('slider')).toBe(thumb)
+    expect(screen.getByLabelText('Achieved').textContent).toBe('0.6 mm')
+    expect(root?.getAttribute('aria-busy')).toBe('true')
+    view.rerender(<TargetSlider {...props} result={{ status: 'no-fit' }} />)
+    expect(screen.getByRole('slider')).toBe(thumb)
+    expect(screen.queryByLabelText('Achieved')).toBeNull()
+    expect(root?.getAttribute('data-result')).toBe('no-fit')
+    expect(view.container.querySelector('[data-picodash-target-marks] [data-selected]')).toBeNull()
+    view.rerender(<TargetSlider {...props} max={0.65} result={{ status: 'ready', value: 0.6 }} />)
+    expect(screen.getByRole('textbox')).toBe(input)
+    expect(view.container.querySelector('.picodash-dashstack-target-slider')).toBe(root)
+    expect(document.activeElement).toBe(screen.getByRole('slider'))
+    expect(screen.getByRole('slider').getAttribute('max')).toBe('0.65')
+    view.rerender(<TargetSlider {...props} result={{ status: 'ready', value: 0.6 }} />)
+    expect(document.activeElement).toBe(screen.getByRole('slider'))
+    view.rerender(<TargetSlider {...props} disabled result={{ status: 'ready', value: 0.6 }} />)
+    expect(screen.getByRole('slider').getAttribute('aria-disabled')).toBe('true')
+    expect(screen.getByRole('slider').tabIndex).toBe(-1)
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('supports bound singleton controls without changing canonical values', () => {
+    const nexus = make()
+    const view = render(
+      <I18nProvider locale="de-DE">
+        <DashStack nexus={nexus} id="controls">
+          <TargetSliderDashlet
+            id="target"
+            label="Bore"
+            field={nexus.fields.value}
+            min={2}
+            max={2}
+            result={{ status: 'ready', value: 2 }}
+            formatOptions={{ minimumFractionDigits: 1 }}
+            unit="mm"
+          />
+        </DashStack>
+      </I18nProvider>,
+    )
+    const thumb = screen.getByRole('slider', { name: 'Target Bore' })
+    expect(thumb.getAttribute('aria-valuetext')).toBe('2,0 mm')
+    fireEvent.keyDown(thumb, { key: 'ArrowRight' })
+    expect(nexus.getState().values.value).toBe(2)
+    expect(screen.getByRole('textbox', { name: 'Target Bore' })).toBeTruthy()
+    view.unmount()
+    nexus.destroy()
+  })
+
+  it('does not repair incompatible intent or fake an in-scale singleton result', () => {
+    const onChange = vi.fn()
+    const props = { min: 0.6, max: 0.6, step: 0.01, onChange, 'aria-label': 'Module' }
+    const view = render(
+      <TargetSlider {...props} value={0.7} result={{ status: 'ready', value: 0.8 }} />,
+    )
+    expect(screen.queryByRole('slider')).toBeNull()
+    expect(screen.getByRole('textbox').getAttribute('value')).toBe('0.7')
+    expect(screen.getByText(/Target 0.7 is outside/)).toBeTruthy()
+    expect(screen.getByLabelText('Achieved').textContent).toBe('0.8 · outside scale')
+    expect(view.container.innerHTML).not.toMatch(/NaN|Infinity/)
+    expect(onChange).not.toHaveBeenCalled()
+    view.rerender(
+      <TargetSlider
+        {...props}
+        value={0.6}
+        inputValue={0.7}
+        result={{ status: 'ready', value: 0.6 }}
+      />,
+    )
+    expect(screen.getByRole('slider').getAttribute('aria-valuenow')).toBe('0.6')
+    expect(screen.getByRole('textbox').getAttribute('value')).toBe('0.7')
+    expect(screen.getByRole('textbox').hasAttribute('readonly')).toBe(false)
+    view.rerender(
+      <TargetSlider {...props} value={0.6} readOnly result={{ status: 'ready', value: 0.6 }} />,
+    )
+    expect(screen.getByRole('textbox').hasAttribute('readonly')).toBe(true)
+  })
+
   it('preserves numeric intent and an in-progress text draft as result and capacity change', () => {
     const change = vi.fn()
     const view = render(

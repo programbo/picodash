@@ -318,6 +318,15 @@ editable target or alter the solver's result. Off-mark actual values keep their 
 unmarked sliders retain their arrow. Pending `lastValue` retains the marker, and reduced motion
 makes the transition immediate. The editable value field and thumb also have a flat shared join.
 
+From dogfood.18, a genuine one-value domain can use `min={0.6} max={0.6}` directly. Keep the
+TargetSlider mounted instead of switching to TargetNumber. It renders a stationary centre thumb
+with equal accessible bounds and preserves the normal row height (keep mark-row presence
+consistent). Pass `readOnly` to lock the numeric field too; otherwise it remains an editable intent
+field. `inputValue` can preserve a target outside capacity while `value` supplies the sole feasible
+presentation value. The control never silently rewrites either value. Continue to supply `result`:
+`ready` with the sole actual value differs from `pending` or `no-fit`. Restore a wider min/max domain
+to resume normal dragging. No fake epsilon range or consumer CSS override is required.
+
 For application-owned dynamic capacity, compose a Dashlet with unbound TargetSlider. `value`
 positions the thumb; `inputValue` preserves numeric intent even when the latest capacity is smaller.
 New edits should go through the application's constraint policy. Do not overwrite the stored intent
