@@ -944,3 +944,19 @@ Snapshot .11 (`f4063deff895ae7f33235266c0a34b394e6cc811`) passes the package rel
 and isolated consumption check, including installed guides/compiled recipes, repeat/frozen install,
 .10 update/rollback, component interactions, and Vite/Next CSS builds. The production Lab is
 restored. Planetary-designer adoption remains Maz-owned.
+
+### Compact target input feedback, 2026-10-09
+
+Snapshot .12 (`8a4da67ace3556880b0355cafe747f37c8a35c83`) refines TargetSlider styling without
+changing its API or value behavior. The editable value uses the achieved marker's text-size token,
+reduced vertical padding, and an accent bottom border joined to the thumb. Hover or focus on either
+surface scales the field to 1.15 and the thumb to 1.25 together. Normal-flow positioning preserves
+the join across field heights; coarse-pointer touch targets and reduced-motion behavior remain.
+
+Desktop browser measurements confirm matching 10px text, a 19.5px field height, an exact resting
+field-to-thumb join, and containment at the right track endpoint. The existing gallery browser
+journey passes numeric editing, rollback, endpoint containment, read-only/disabled states and phone
+layout. Motion checks, package checks and all 292 DashStack tests pass. The isolated consumer check
+passes installed guides/compiled recipes, repeat/frozen installation, .11 update/rollback, component
+interactions and Vite/Next CSS builds. The production Lab is restored; consumer adoption remains
+Maz-owned.
