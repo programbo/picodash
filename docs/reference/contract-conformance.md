@@ -1097,3 +1097,17 @@ application adoption remains Maz-owned; no solver or consumer-private styling wa
 Snapshot .18 (`d0b4cffc25087e39e80040ed53410335eb7a6800`) passes all package release checks and
 the isolated consumer's repeat/frozen installs, .17 update/rollback, installed recipe types,
 component interaction and Vite/Next CSS builds. The production Lab build also passes.
+
+### Solid segmented selection, 2026-10-09
+
+The moving SegmentedControl selection indicator now uses solid theme accent paint and accent-text
+foreground. Selected segments retain neutral structural borders instead of an accent border that
+can be occluded by a focused neighbouring segment in read-only mode. Keyboard focus outlines,
+selection underline, React Aria motion and read-only behavior remain unchanged. Forced colors use
+Highlight/HighlightText rather than fixed brand colors.
+
+The owning formatting/lint/type check and build pass. A built-package browser fixture exercises
+Ring/Sun/Carrier: clicking Sun in a read-only Ring group leaves Ring selected with its solid fill
+intact and no write/error; editable pointer and arrow-key selection still reaches Carrier. Dark
+regular and light 390px compact captures were inspected alongside disabled controls. Reduced motion
+reports a 0s indicator transition. The owned browser session was closed and its process exited.
