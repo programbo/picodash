@@ -8,7 +8,7 @@ describe('DashStack stylesheet contract', () => {
   it('keeps decorative emphasis behind content and independent of hover and system focus', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
     expect(css).toMatch(
-      /\[data-picodash-dashlet-shell\]\[data-band\]::before\s*\{[^}]*inset-inline-start:\s*2px;[^}]*pointer-events:\s*none;/s,
+      /\[data-picodash-dashlet-shell\]\[data-band\]::before\s*\{[^}]*inset-inline-start:\s*calc\(-2 \* var\(--picodash-border-width-thin\)\);[^}]*pointer-events:\s*none;/s,
     )
     expect(css).toMatch(/\[data-picodash-dashlet-shell\]:hover\s*\{[^}]*background-color:/s)
     expect(css).toMatch(
