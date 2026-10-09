@@ -1160,3 +1160,9 @@ read-only chips without removal actions and disabled chip dimming. A pointer cap
 212.7px indicator movement through a small overshoot, settling to zero in 300ms. Keyboard and
 reduced-motion transition durations are 0s. Dark and light compact presentation was inspected at
 390px width; browser errors are empty. Owned sessions were closed and their process exits checked.
+
+Snapshot .21 (`98ee03bf362ddc4aaaa5c6d10827046fc336e32d`) passes all package release checks
+(including 304 DashStack tests) and isolated consumer repeat/frozen installs, .20 update/rollback,
+types, component interactions and Vite/Next CSS builds. The Lab production build passes; the live
+light compact gallery at 390px shows solid blue chips and no segmented underline without overflow
+or browser errors. Source changes in this snapshot are CSS and documentation only.
