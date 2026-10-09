@@ -1069,3 +1069,8 @@ Dark regular and light 390px compact screenshots were inspected. Reduced-motion 
 0s transition duration. An RTL DOM-direction probe confirms marker/readout horizontal alignment;
 it does not establish full React Aria locale-driven RTL interaction. These are isolated-control
 checks; application adoption and feedback remain with Maz. The owned browser sessions were closed.
+
+Snapshot .17 (`73b50ac44622ea0b583a08e4e6e4c2d430ae2af9`) passes the package release gate and
+isolated consumer checks: repeat/frozen installs, .16 update/rollback, installed recipe types,
+component interaction and Vite/Next CSS builds. The Lab production build also passes. The flat
+field/thumb join is commit `9ddb26e`; the independently reversible marker experiment is `73b50ac`.
