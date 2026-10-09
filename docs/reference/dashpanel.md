@@ -122,6 +122,9 @@ interface DashPanelProviderProps<TValues extends object, CustomTheme extends str
 - The prototype props `panelBoundary`, `panelBoundaryInset`, `persistLayout`, and `storageKey` do not
   enter the target API.
 
+Numeric `width` values are CSS pixels, matching React style semantics. String widths retain their
+units or CSS expression, for example `width="24rem"` or `width="min(760px, 90vw)"`.
+
 ## DashPanel public API
 
 > Contract: Accepted
@@ -130,8 +133,10 @@ interface DashPanelProviderProps<TValues extends object, CustomTheme extends str
 The current subset implements Provider/Panel composition, Nexus scope boundaries, theme/density,
 semantic naming, width-token styling, and the `boundary`, `boundaryInset`, and `dockPositions` Panel
 policy props. It also implements uncontrolled visibility, transient close/reopen, triggers, and the
-explicit launcher. Confirmed removal, durable layout and placement options, action menus, modal
-presentation, and other future prop groups remain planned.
+explicit launcher. Confirmed removal requests, Nexus-backed durable layout, placement options,
+and action menus are implemented for ordinary Panels. Drawer/sheet modal presentation remains
+planned; declaring either presentation currently throws. Applications choose responsive defaults
+and dock policy explicitly; there is no automatic mobile breakpoint.
 
 The exact launch prop surface is:
 

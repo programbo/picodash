@@ -980,14 +980,17 @@ describe('@picodash/dashstack alpha shell', () => {
     const original = Object.getOwnPropertyDescriptor(globalThis, 'ResizeObserver')
     const originalRootFontSize = document.documentElement.style.fontSize
     document.documentElement.style.fontSize = '16px'
-    let resize!: ResizeObserverCallback
+    const callbacks: ResizeObserverCallback[] = []
+    const resize: ResizeObserverCallback = (entries, observer) => {
+      for (const callback of callbacks) callback(entries, observer)
+    }
     const observed: Element[] = []
     const disconnect = vi.fn()
     Object.defineProperty(globalThis, 'ResizeObserver', {
       configurable: true,
       value: class {
         constructor(callback: ResizeObserverCallback) {
-          resize = callback
+          callbacks.push(callback)
         }
         observe(target: Element) {
           observed.push(target)
@@ -1033,7 +1036,7 @@ describe('@picodash/dashstack alpha shell', () => {
     expect(root.hasAttribute('data-picodash-dashstack-compact')).toBe(true)
 
     act(() => renderer.unmount())
-    expect(disconnect).toHaveBeenCalledOnce()
+    expect(disconnect).toHaveBeenCalledTimes(callbacks.length)
     expect(remProbe.isConnected).toBe(false)
     if (original) Object.defineProperty(globalThis, 'ResizeObserver', original)
     else Reflect.deleteProperty(globalThis, 'ResizeObserver')

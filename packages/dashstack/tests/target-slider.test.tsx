@@ -28,6 +28,32 @@ const make = () =>
   })
 
 describe('target versus achieved', () => {
+  it('shows externally supplied nonnumeric JSON without fabricating a target', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { value: { defaultValue: 2 } },
+    })
+    render(
+      <DashStack nexus={nexus} id="controls">
+        <TargetSliderDashlet
+          id="target"
+          label="Bore"
+          field={nexus.fields.value}
+          result={{ status: 'ready', value: 2 }}
+        />
+      </DashStack>,
+    )
+    act(() => {
+      // Exercise untyped external JSON entering a field without a domain validator.
+      // @ts-expect-error external JSON is deliberately outside the declared TypeScript domain
+      expect(nexus.setValues({ value: null }).ok).toBe(true)
+    })
+    expect(screen.getByText('null')).toBeTruthy()
+    expect(screen.getByRole('note').textContent).toBe('The current target is not a finite number.')
+    expect(screen.queryByRole('slider')).toBeNull()
+    cleanup()
+    nexus.destroy()
+  })
   it('edits target independently from sparse marks and achieved motion', () => {
     const onChange = vi.fn()
     const view = render(
@@ -107,6 +133,7 @@ describe('target versus achieved', () => {
     })
     expect(result).toEqual({ ok: true })
     expect(document.activeElement).toBe(screen.getByRole('textbox', { name: 'Target Bore' }))
+    expect(screen.getByRole('slider', { name: 'Target Bore' })).toBeTruthy()
     expect(await revealDashlet(scope, 'missing')).toEqual({ ok: false, reason: 'not-found' })
   })
 })

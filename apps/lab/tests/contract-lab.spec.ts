@@ -42,6 +42,52 @@ async function openLab(page: Page) {
   )
 }
 
+async function assertStackOverflowFallback(stack: Locator) {
+  await stack.evaluate((element) => {
+    element.style.height = '96px'
+    element.style.maxHeight = '96px'
+    element.style.flex = '0 0 96px'
+  })
+  await expect(stack).toHaveAttribute('data-picodash-stack-overflow')
+  const geometry = await stack.evaluate((root) => {
+    const bands = [
+      ...root.querySelectorAll<HTMLElement>(
+        ':scope > [data-picodash-dashstack-list] > [data-picodash-dashstack-band]',
+      ),
+    ]
+    return {
+      overflow: root.scrollHeight > root.clientHeight,
+      heights: bands.map((band) => band.clientHeight),
+      gaps: bands
+        .slice(1)
+        .map(
+          (band, i) => band.getBoundingClientRect().top - bands[i]!.getBoundingClientRect().bottom,
+        ),
+      middleOverflow: getComputedStyle(bands[1]!).overflowY,
+    }
+  })
+  expect(geometry.overflow).toBe(true)
+  expect(geometry.heights.every((height) => height > 0)).toBe(true)
+  expect(geometry.gaps.every((gap) => gap >= -1)).toBe(true)
+  expect(geometry.middleOverflow).toBe('visible')
+  await stack.evaluate((element) => {
+    element.style.height = '700px'
+    element.style.maxHeight = '700px'
+    element.style.flex = '0 0 700px'
+  })
+  await expect(stack).not.toHaveAttribute('data-picodash-stack-overflow')
+  await expect(
+    stack.locator(
+      ':scope > [data-picodash-dashstack-list] > [data-picodash-dashstack-band="automatic"]',
+    ),
+  ).toHaveCSS('overflow-y', 'auto')
+  await stack.evaluate((element) => {
+    element.style.removeProperty('height')
+    element.style.removeProperty('max-height')
+    element.style.removeProperty('flex')
+  })
+}
+
 test('keeps the Dashlet gallery scrollable and text entry legible on phones', async ({
   page,
   browser,
@@ -133,6 +179,59 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
       values: { number: 42 },
     })
     expect(result).toMatchObject({ outcome: { type: 'transaction_result', result: { ok: true } } })
+    const target = phone.getByRole('textbox', { name: 'Target Bore', exact: true })
+    await target.fill('1.2')
+    await target.press('Tab')
+    await expect(phone.getByRole('textbox', { name: 'Linked target', exact: true })).toHaveValue(
+      '1.2',
+    )
+    await expect(phone.getByLabel('Achieved', { exact: true })).toHaveText('2 mm')
+    const referenceTick = phone.locator(
+      '.picodash-dashstack-target-slider [data-picodash-dashstack-slider-mark="2"]',
+    )
+    await expect(referenceTick).toHaveText('')
+    expect(
+      await referenceTick.evaluate((element) => {
+        const tick = getComputedStyle(element, '::before')
+        return parseFloat(tick.width) > 0 && parseFloat(tick.height) > 0 && tick.content !== 'none'
+      }),
+    ).toBe(true)
+    const targetThumb = phone.getByRole('slider', { name: 'Target Bore', exact: true })
+    await targetThumb.focus()
+    await phone.keyboard.down('ArrowRight')
+    await expect(target).toHaveValue('1.21')
+    await phone.keyboard.press('Escape')
+    await phone.keyboard.up('ArrowRight')
+    await expect(target).toHaveValue('1.2')
+    await targetThumb.focus()
+    await phone.keyboard.down('ArrowRight')
+    await client.setValues(session, {
+      type: 'set_values',
+      requestId: 'external-target',
+      values: { target: 3.14 },
+    })
+    await phone.keyboard.press('Escape')
+    await phone.keyboard.up('ArrowRight')
+    await expect(target).toHaveValue('3.14')
+    await phone.emulateMedia({ reducedMotion: 'reduce' })
+    await client.setValues(session, {
+      type: 'set_values',
+      requestId: 'zero-target',
+      values: { target: 0 },
+    })
+    await expect(phone.getByLabel('Achieved', { exact: true })).toHaveText('0 mm')
+    await expect(phone.locator('[data-picodash-achieved-marker]')).toHaveCSS(
+      '--_picodash-achieved-position',
+      '0%',
+    )
+    await phone.emulateMedia({ reducedMotion: 'no-preference' })
+    await phone.getByRole('button', { name: 'Read-only', exact: true }).click()
+    await expect(target).toHaveAttribute('readonly', '')
+    await phone.getByRole('button', { name: 'Read-only', exact: true }).click()
+    await phone.getByRole('button', { name: 'Disabled', exact: true }).click()
+    await expect(target).toBeDisabled()
+    await expect(targetThumb).toBeDisabled()
+    await phone.getByRole('button', { name: 'Disabled', exact: true }).click()
     const numbers = phone.locator('[data-picodash-dashlet="NumberDashlet"]')
     await expect(numbers.getByRole('textbox', { name: 'Number', exact: true })).toHaveValue('42')
 
@@ -903,6 +1002,9 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
   await expect.poll(() => labels(ready)).toEqual(initial)
   await expect.poll(() => labels(composed)).not.toEqual(initial)
   await capture('m6-organization')
+  await assertStackOverflowFallback(
+    page.getByRole('list', { name: 'Workspace control desk', exact: true }).locator('xpath=..'),
+  )
 
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
   await sourceChoice.click()
@@ -990,7 +1092,7 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   const numberControl = numberDashlet.getByRole('textbox', { name: 'NumberDashlet' })
   await expect(numberControl).toHaveValue('1.235')
   await numberDashlet.scrollIntoViewIfNeeded()
-  await numberDashlet.getByText('NumberDashlet', { exact: true }).click()
+  await numberDashlet.click({ position: { x: 2, y: 2 } })
   await expect(numberControl).toBeFocused()
   const numberHelp = numberDashlet.getByRole('button', { name: 'Help for NumberDashlet' })
   await numberHelp.focus()
@@ -1104,7 +1206,11 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   await colorControl.fill('rgba(10, 20, 30, 0.25)')
   await colorControl.press('Tab')
   await expect(colorControl).toHaveValue('rgba(10, 20, 30, 0.25)')
-  await expectKeyboardOutline(colorControl)
+  await expectKeyboardOutline(
+    colorControl,
+    colorControl.locator('xpath=ancestor::*[@data-picodash-dashlet-shell][1]'),
+    colorControl,
+  )
 
   const choiceControl = choicesList
     .getByRole('radiogroup', { name: 'RadioGroupDashlet' })
@@ -1136,13 +1242,6 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
         .locator('[data-picodash-dashstack-checkbox-marker]'),
       pseudo: '::before',
     },
-    {
-      marker: segmentedDashlet
-        .getByRole('radio', { name: 'Option B', exact: true })
-        .locator('xpath=ancestor::label[1]')
-        .locator('[data-picodash-dashstack-segment-marker]'),
-      pseudo: '::before',
-    },
   ]
   const readMarkerPresentation = (marker: Locator, pseudo: string) =>
     marker.evaluate((element, pseudoElement) => {
@@ -1167,6 +1266,11 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
       expect(presentation.color).not.toBe('rgba(0, 0, 0, 0)')
     }
   }
+  const selectedSegment = segmentedDashlet.locator(
+    '[data-picodash-dashstack-segment][data-selected]',
+  )
+  await expect(selectedSegment).toHaveCSS('text-decoration-line', 'underline')
+  await expect(selectedSegment.locator('[data-picodash-dashstack-segment-indicator]')).toBeVisible()
   await assertSelectedMarkers('ltr')
   await choicesPanel.evaluate((panel) => panel.setAttribute('dir', 'rtl'))
   await assertSelectedMarkers('rtl')
@@ -1251,8 +1355,8 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
 
   const styleBoundary = page.locator('[data-contract-lab-style-lab]')
   await styleBoundary.evaluate((element) => {
-    element.style.blockSize = '30rem'
-    element.style.minBlockSize = '30rem'
+    element.style.blockSize = '48rem'
+    element.style.minBlockSize = '48rem'
   })
   await styleBoundary.scrollIntoViewIfNeeded()
   const automaticBand = basicsList.locator('[data-picodash-dashstack-band="automatic"]')
@@ -1279,6 +1383,7 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   expect(pinnedGeometry.startTop).toBeGreaterThanOrEqual(pinnedGeometry.listTop - 1)
   expect(pinnedGeometry.endTop).toBeGreaterThanOrEqual(pinnedGeometry.automaticBottom - 1)
   expect(pinnedGeometry.endBottom).toBeLessThanOrEqual(pinnedGeometry.listBottom + 1)
+  await assertStackOverflowFallback(basicsList.locator('xpath=..'))
 })
 
 test('opens, cancels, and restores focus for the landed shared AlertDialog', async ({ page }) => {

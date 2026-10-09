@@ -575,7 +575,7 @@ function GalleryTarget({ id, label, nexus }: { id: string; label: string; nexus:
       step={0.01}
       marks={[
         { value: 0, label: '0' },
-        { value: 2, label: '2' },
+        { value: 2, label: '' },
         { value: 10, label: '10' },
       ]}
       result={{ status: 'ready', value: achieved }}

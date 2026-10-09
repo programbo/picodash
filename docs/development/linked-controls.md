@@ -4,7 +4,8 @@ Use one Nexus field for a target shared by a slider, numeric input, and an appli
 Keep computed outcomes in the application's solver result. Picodash presents them without choosing
 which outcome is best.
 
-This API is introduced after dogfood.6. Check the snapshot manifest before using these exports.
+These APIs begin with dogfood.7. Use dogfood.8 or newer for independent unlabelled ticks,
+extreme-height overflow recovery, and numeric Panel widths. Check the snapshot manifest before using these exports.
 Install the packages and styles using [the dogfooding guide](dogfooding.md).
 
 ## Compose priorities with groups
@@ -57,7 +58,9 @@ function Controls() {
 
 Supply the real solver result instead of the constant `2.4`. Target edits use the configured step,
 not the authored marks or feasible outcomes. A bore target of `1.2` can legitimately achieve `2`;
-a ready achieved value of `0` means zero, not unavailable.
+a ready achieved value of `0` means zero, not unavailable. Use `marks={values.map(value =>
+({ value, label: '' }))}` for small unlabelled ticks. Omitting `label` displays the numeric value;
+an empty label suppresses visible text while retaining the numeric accessible reference.
 
 The target number is editable. Empty or rejected input stays in the binding draft when the field
 validator rejects it. Configure numeric validation as above; a JSON-compatible default alone does
@@ -200,3 +203,35 @@ row that needs a clickable visible label, use a native `<label>` containing a co
 `<input type="checkbox">` and its text. Feed changes through the public binding or Nexus API.
 Use `CheckboxGroupDashlet` when the collection itself should be a registered row. Do not wrap
 Picodash's Checkbox (which already renders a label) in another label.
+
+## Put an existing Stack inside a responsive Panel
+
+Keep the existing root Nexus and scope ID. The nested Stack inherits the Panel's `designer` scope
+when it omits both `id` and `nexus`, so existing Stack order and collapsed groups survive.
+
+```tsx
+import { DashPanel, DashPanelProvider, type DashPanelDefaultLayout } from '@picodash/dashpanel'
+
+const defaultLayout: DashPanelDefaultLayout = narrow
+  ? { placement: { mode: 'floating', disposition: { kind: 'free' } }, preferredPosition: { x: 8, y: 8 } }
+  : { placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } } }
+
+<DashPanelProvider nexus={nexus}>
+  <DashPanel id="designer" title="Configuration"
+    defaultLayout={defaultLayout} dockPositions={narrow ? [] : ['full-left']}>
+    <DashStack aria-label="Configuration controls">
+      {/* Keep the existing groups and Dashlets here. */}
+    </DashStack>
+  </DashPanel>
+</DashPanelProvider>
+```
+
+The application supplies `narrow` from its own responsive policy. Changing `defaultLayout` is
+supported. A valid saved dock disabled by `dockPositions` stays dormant; the declared fallback
+renders without overwriting desktop preferences. Restoring the dock policy restores that saved
+placement. A saved floating placement remains applicable and takes precedence over defaults.
+
+This is an ordinary Panel, without modal focus containment or a backdrop. Drawer/sheet
+presentations and skinny toolbar/pop-out Dashlets are not implemented in this snapshot. Import
+`@picodash/dashpanel/style.css` as well as the Stack and UI styles. The complete compiled
+`ResponsiveDesigner` example is included in `LinkedControls.tsx` in the dogfood bundle.

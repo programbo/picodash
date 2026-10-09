@@ -561,34 +561,50 @@ function TargetSliderDashletInner<F extends ScalarField<number>>(
 ) {
   return (
     <Dashlet {...props} ref={ref} field={asDashletBindingField(field)}>
-      {(context: SingleFieldDashletRenderContext<number>) => (
-        <TargetSlider
-          id={context.binding.controlId}
-          value={context.binding.value}
-          inputValue={
-            context.binding.dirty
-              ? typeof context.binding.draftValue === 'number'
-                ? context.binding.draftValue
-                : null
-              : context.binding.value
-          }
-          onChange={(value) => context.binding.setInput(value)}
-          createGesture={(options) => context.binding.createNumericGesture(options)}
-          min={min}
-          max={max}
-          step={step}
-          marks={marks}
-          allowedRange={allowedRange}
-          result={result}
-          formatOptions={formatOptions}
-          formatValue={formatValue}
-          disabled={context.disabled}
-          readOnly={context.readOnly}
-          aria-labelledby={context.labelId}
-          aria-describedby={describedBy(context, false, context.binding)}
-          {...bindingAria(context.binding)}
-        />
-      )}
+      {(context: SingleFieldDashletRenderContext<number>) => {
+        const canonical = context.binding.value
+        if (typeof canonical !== 'number' || !Number.isFinite(canonical))
+          return (
+            <>
+              <output id={context.binding.controlId} aria-labelledby={context.labelId}>
+                {JSON.stringify(canonical)}
+              </output>
+              <PresentationWarning
+                context={context}
+                incompatible
+                message="The current target is not a finite number."
+              />
+            </>
+          )
+        return (
+          <TargetSlider
+            id={context.binding.controlId}
+            value={context.binding.value}
+            inputValue={
+              context.binding.dirty
+                ? typeof context.binding.draftValue === 'number'
+                  ? context.binding.draftValue
+                  : null
+                : context.binding.value
+            }
+            onChange={(value) => context.binding.setInput(value)}
+            createGesture={(options) => context.binding.createNumericGesture(options)}
+            min={min}
+            max={max}
+            step={step}
+            marks={marks}
+            allowedRange={allowedRange}
+            result={result}
+            formatOptions={formatOptions}
+            formatValue={formatValue}
+            disabled={context.disabled}
+            readOnly={context.readOnly}
+            aria-labelledby={context.labelId}
+            aria-describedby={describedBy(context, false, context.binding)}
+            {...bindingAria(context.binding)}
+          />
+        )
+      }}
     </Dashlet>
   )
 }

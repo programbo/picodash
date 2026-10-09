@@ -4,6 +4,7 @@ import {
   Button,
   Group,
   Input,
+  Label,
   ListBox,
   ListBoxItem,
   NumberField as AriaNumberField,
@@ -320,13 +321,17 @@ export function Slider({
         step={step}
         formatOptions={formatOptions}
         isDisabled={props.disabled}
-        aria-label={props['aria-label']}
+        aria-label={undefined}
         aria-labelledby={props['aria-labelledby']}
         aria-describedby={props['aria-describedby']}
         aria-invalid={props['aria-invalid']}
         aria-errormessage={props['aria-errormessage']}
       >
-        <SliderOutput>{({ state }) => state.getThumbValueLabel(0)}</SliderOutput>
+        {/* A label anchor keeps React Aria from naming the thumb from group contents. */}
+        <Label className="picodash-visually-hidden">
+          {props['aria-labelledby'] ? null : props['aria-label']}
+        </Label>
+        <SliderOutput aria-hidden="true">{({ state }) => state.getThumbValueLabel(0)}</SliderOutput>
         <SliderTrack
           className="picodash-dashstack-slider-track"
           data-constrained={allowedRange ? true : undefined}

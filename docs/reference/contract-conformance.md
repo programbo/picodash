@@ -167,10 +167,10 @@ allocation; obsolete schema envelopes recover to declared Lab defaults. The expa
 journey protects the animated maximum-height limit from intermediate geometry renders. The
 experimental Charts 0.12 contract pin remains unchanged; Vitest stays aligned with Vite+.
 
-Known height gap: contracting the Style Lab's Basics & readout Panel below its combined pinned
-content height can reduce the automatic lane to zero and clip the pinned Readout group. The
-600px phone fixture proves usable overflow, not the minimum-height limit; that limit still needs
-correction against `PANEL-PLACEMENT-HEIGHT-1`.
+The organizational-group follow-up closes the former short-height gap: pinned bands retain their
+natural heights and the Stack switches to outer scrolling when they exhaust the available space.
+The standalone value-binding and two-Panel Style Lab journeys force a 96px Stack, verify that the
+three bands do not overlap and remain reachable, then expand it and verify restored middle scrolling.
 
 | ID             | Contract area                                | Primary evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Status   | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | -------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -869,6 +869,18 @@ Source-owned item attention stays ephemeral. TargetSlider separates editable tar
 achieved-result states and independent marks; the achieved marker does not mutate values.
 
 Owning evidence: `subgroups.test.tsx`, `target-slider.test.tsx`, `numeric-gesture.test.ts`,
-`item-interaction.test.ts`, and the installed-consumer `LinkedControls.tsx` fixture. Checkpoint
-browser coverage and real designer adoption are still in progress; this is not a claim of complete
-responsive, touch or assistive-technology acceptance.
+`item-interaction.test.ts`, and the installed-consumer `LinkedControls.tsx` fixture. The .7 isolated
+consumer passed repeat install, update/rollback, frozen reinstall, type checking, DOM interaction,
+and Vite/Next CSS checks.
+
+The follow-up has 288 passing DashStack tests and 195 passing DashPanel tests. The existing phone,
+standalone value-binding, and two-Panel Style Lab journeys pass. They cover editable TargetSlider
+values, a stable accessible thumb name, held-key Escape rollback, an external write during a
+gesture, reduced-motion achieved zero, label-free reference ticks, read-only/disabled controls,
+and inner/outer overflow recovery. Numeric Panel widths now serialize as CSS pixels.
+
+Maz reports real .7 designer adoption: shared target manipulation, Escape rollback, explicit
+reveal/focus after reopening a Panel, preserved scope metadata, and desktop/390px/desktop
+transitions with byte-identical saved scope JSON and restored docking. These are consumer-reported
+checks, distinct from the repository browser journeys. Full touch-device and assistive-technology
+acceptance remains open; modal drawers/sheets and rail/pop-out Dashlets remain unimplemented.

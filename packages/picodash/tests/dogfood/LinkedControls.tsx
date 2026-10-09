@@ -13,6 +13,7 @@ import {
   type TargetSliderResult,
 } from '@picodash/dashstack'
 import { TargetSlider } from '@picodash/dashstack/ui'
+import { DashPanel, DashPanelProvider, type DashPanelDefaultLayout } from '@picodash/dashpanel'
 
 export function createTargets() {
   return createPicodashNexus({
@@ -105,4 +106,34 @@ export function negativeTypes(nexus: ReturnType<typeof createTargets>) {
   // @ts-expect-error ready state requires a value
   const missing: TargetSliderResult = { status: 'ready' }
   void [bad, missing, TargetSlider]
+}
+
+// A Panel and its primary Stack share the existing designer scope.
+export function ResponsiveDesigner({
+  nexus,
+  narrow,
+}: {
+  nexus: ReturnType<typeof createTargets>
+  narrow: boolean
+}) {
+  const defaultLayout: DashPanelDefaultLayout = narrow
+    ? {
+        placement: { mode: 'floating', disposition: { kind: 'free' } },
+        preferredPosition: { x: 8, y: 8 },
+      }
+    : { placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } } }
+  return (
+    <DashPanelProvider nexus={nexus}>
+      <DashPanel
+        id="designer"
+        title="Configuration"
+        defaultLayout={defaultLayout}
+        dockPositions={narrow ? [] : ['full-left']}
+      >
+        <DashStack aria-label="Configuration controls">
+          <NumberDashlet id="bore" label="Bore" field={nexus.fields.bore} step={0.01} />
+        </DashStack>
+      </DashPanel>
+    </DashPanelProvider>
+  )
 }

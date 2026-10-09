@@ -394,7 +394,8 @@ function panelStyle(
   const resolved = { ...style } as CSSProperties & {
     '--picodash-panel-width'?: CSSProperties['width']
   }
-  if (width !== undefined) resolved['--picodash-panel-width'] = width
+  if (width !== undefined)
+    resolved['--picodash-panel-width'] = typeof width === 'number' ? `${width}px` : width
   return resolved
 }
 

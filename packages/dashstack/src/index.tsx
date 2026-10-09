@@ -1877,6 +1877,35 @@ const DashStackImpl = forwardRef<HTMLDivElement, DashStackProps>(function DashSt
       remProbe.remove()
     }
   }, [])
+  useLayoutEffect(() => {
+    const root = rootRef.current
+    if (!root) return
+    const view = root.ownerDocument.defaultView
+    const Observer = view?.ResizeObserver ?? globalThis.ResizeObserver
+    if (typeof Observer !== 'function') return
+    const list = root.querySelector<HTMLElement>(':scope > [data-picodash-dashstack-list]')
+    const start = list?.querySelector<HTMLElement>(
+      ':scope > [data-picodash-dashstack-band="start"]',
+    )
+    const end = list?.querySelector<HTMLElement>(':scope > [data-picodash-dashstack-band="end"]')
+    const header = root.querySelector<HTMLElement>(':scope > [data-slot="dash-header"]')
+    if (!list || !start || !end) return
+    const syncOverflow = () => {
+      const padding = Number.parseFloat(view?.getComputedStyle(list).paddingBottom ?? '0') || 0
+      const pinned = start.offsetHeight + end.offsetHeight
+      const available = root.clientHeight - (header?.offsetHeight ?? 0) - padding
+      // Once the middle reaches zero, expose all content in the outer scrollport.
+      // Pinned heights do not depend on this mode, so resizing cannot oscillate it.
+      root.toggleAttribute('data-picodash-stack-overflow', pinned > 0 && available <= pinned)
+    }
+    const observer = new Observer(syncOverflow)
+    for (const element of [root, start, end, header]) if (element) observer.observe(element)
+    syncOverflow()
+    return () => {
+      observer.disconnect()
+      root.removeAttribute('data-picodash-stack-overflow')
+    }
+  }, [title !== undefined])
   const listName =
     ariaLabelledBy ?? (ariaLabel === undefined && title !== undefined ? headingId : undefined)
   return (

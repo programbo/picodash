@@ -2293,3 +2293,30 @@
     box-shadow: none;
   }
 }
+
+/* Fixed bands retain their content height; exceptionally short Stacks expose one outer scroll. */
+[data-picodash-dashstack-band='start'],
+[data-picodash-dashstack-band='end'] {
+  min-block-size: min-content;
+}
+[data-picodash-stack-overflow] > [data-picodash-dashstack-list] {
+  flex: 0 0 auto;
+  grid-template-rows: auto auto auto;
+}
+[data-picodash-stack-overflow]
+  > [data-picodash-dashstack-list]
+  > [data-picodash-dashstack-band='automatic'] {
+  overflow: visible;
+}
+
+/* Target reference ticks remain visible even when the author suppresses their labels. */
+.picodash-dashstack-target-slider [data-picodash-dashstack-slider-mark]::before {
+  content: '';
+  position: absolute;
+  inset-block-start: calc(
+    -1 * (var(--picodash-space-4) + var(--picodash-font-size-sm) + var(--picodash-space-1))
+  );
+  inline-size: var(--picodash-border-width-thin);
+  block-size: calc(var(--picodash-space-1) + var(--picodash-space-0-5));
+  background: var(--picodash-color-text-muted);
+}

@@ -904,6 +904,15 @@ describe('@picodash/dashpanel alpha shell', () => {
       '--consumer-token': 'ok',
       '--picodash-panel-width': '24rem',
     })
+    act(() =>
+      renderer.update(
+        createElement(DashPanelProvider, {
+          nexus,
+          children: createElement(DashPanel, { id: 'sized', title: 'Sized', width: 370 }),
+        }),
+      ),
+    )
+    expect(renderer.root.findByType('aside').props.style['--picodash-panel-width']).toBe('370px')
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()
 
