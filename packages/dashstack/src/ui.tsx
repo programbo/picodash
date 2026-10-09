@@ -29,6 +29,7 @@ import { ChoiceOptionContent } from './choice-option-content.js'
 import { validateChoiceOptions } from './ui-choices.js'
 import { composeControlClassName } from './ui-class-name.js'
 import { ChoicePopover } from './ui-popover.js'
+import { useSteppedThumbMotion } from './stepped-thumb-motion.js'
 import { useNumericControlGesture, type NumericGestureFactory } from './numeric-control-gesture.js'
 import { validateSliderOptions, type SliderOptions } from './slider-options.js'
 
@@ -307,6 +308,7 @@ function ContinuousSlider({
 }: SliderProps) {
   const accessory = useContext(SliderTrackAccessoryContext)
   const rootRef = useRef<HTMLDivElement>(null)
+  useSteppedThumbMotion(rootRef, [value], min, max, step, !!(props.disabled || props.readOnly))
   const change = useNumericControlGesture({
     ref: rootRef,
     createGesture,
@@ -355,6 +357,7 @@ function ContinuousSlider({
         </SliderOutput>
         <SliderTrack
           className="picodash-dashstack-slider-track"
+          data-picodash-step-track
           data-constrained={allowedRange ? true : undefined}
         >
           {allowedRange && (

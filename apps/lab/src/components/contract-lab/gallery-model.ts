@@ -201,6 +201,7 @@ export function createGalleryNexus() {
       color: styleLabFields.color,
       choice: styleLabFields.select,
       selections: styleLabFields.multiSelect,
+      countRange: { defaultValue: { start: 3, end: 12 } },
       detents: {
         defaultValue: 2,
         validate: (value: number) =>

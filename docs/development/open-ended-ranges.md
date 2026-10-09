@@ -1,91 +1,76 @@
 # Compose an open-ended count range
 
-Keep an unrestricted upper bound as `null` in application state. Project it to a finite endpoint
-for Picodash's range control, and provide an explicit **Any maximum** checkbox. This preserves the
-request when other inputs change the current feasible ceiling.
-
-The public APIs used here are available in dogfood `.2`. Snapshot `.5` adds this guide and
-`example/OpenCountRange.tsx`; it does not change runtime APIs. In the source checkout, the tested
-example is `packages/picodash/tests/dogfood/OpenCountRange.tsx`.
+Keep an unrestricted upper bound as `null` in application state. In dogfood `.23`, map it to a
+finite `endDetent={{ value: sentinel, label: 'Any' }}` on RangeSlider. The sentinel is a presentation
+value and never enters the domain request. The earlier Any maximum checkbox is no longer needed.
 
 ## Use the composition
 
-Copy `example/OpenCountRange.tsx` into your app. It exports an application-owned model factory and
-`OpenCountRangeRecipe`, which renders a bound Dashlet inside its own Stack. Import
-`@picodash/picodash/style.css` once and create the model once for the appropriate application/client
-lifetime, as in the [numeric target example](numeric-targets.md#start-with-the-example).
+Copy `example/OpenCountRange.tsx` into your app. It exports `createOpenCountNexus` and
+`OpenCountRangeRecipe`. Import `@picodash/picodash/style.css` once and create the model once for the
+application/client lifetime. The source fixture is `packages/picodash/tests/dogfood/OpenCountRange.tsx`.
+Pass `feasibleMax` and `achieved` from the solver as finite safe integers or `null`; null means no
+candidates/no solution. Two is this example's domain floor, not a planetary-gear rule.
 
-Pass the model as `nexus`, the solver's current ceiling as `feasibleMax`, and its achieved count as
-`achieved`. Both solver props are finite safe integers or `null`; `feasibleMax: null` means there are
-no candidates, while `achieved: null` means no solution satisfies the request. The example's domain
-floor of two is illustrative, not a planetary-gear rule. Adapt it to the application.
-
-The public primitives come from `@picodash/dashstack/ui`. `RangeSlider` is controlled and does not
-write Nexus itself. The bound Dashlet supplies the binding, draft handling, and discard action.
-The checkbox's `aria-label` is also its visible label. No extra label or duplicate discard button
-is needed.
-
-## Store intent, derive the endpoint
-
-The entire request is one validated Nexus field:
+The request remains one validated field:
 
 ```ts
 type CountWindow = { min: number; max: number | null }
-// Example initial request:
 const requested: CountWindow = { min: 3, max: null }
 ```
 
-The adapter uses these rules:
+`projectCountWindow` includes the feasible ceiling and any finite requested endpoint in the numeric
+scale, then places Any at `scaleMax + 1`. It rejects a ceiling with no safe integer left for the
+sentinel. The control provides a separate physical gap; the sentinel's numerical distance does not
+set that gap's width. Changing feasibility only changes this projection, never the stored request.
 
-| Action                                | Stored request                  | Display                                |
-| ------------------------------------- | ------------------------------- | -------------------------------------- |
-| Feasible ceiling changes from 8 to 12 | Remains `{ min: 3, max: null }` | End moves from 8 to 12                 |
-| Move only Start from 3 to 4           | `{ min: 4, max: null }`         | Any remains selected                   |
-| Move End from 12 to 11                | `{ min: 4, max: 11 }`           | Any becomes unselected                 |
-| Move a finite End to the far right    | Keeps a finite maximum          | Does not silently mean Any             |
-| Select Any maximum                    | `{ min: 4, max: null }`         | End uses the current finite projection |
+| Action                                                                                     | Stored request                        |
+| ------------------------------------------------------------------------------------------ | ------------------------------------- |
+| Feasible ceiling changes while Any is selected                                             | Keeps `max: null`                     |
+| Move Start while Any is selected                                                           | Changes `min`, keeps `max: null`      |
+| Move End inward from Any                                                                   | Sets the last regular numeric maximum |
+| Reach the regular numeric maximum                                                          | Keeps a finite maximum                |
+| Pull End through its detent, press End, or press its increasing arrow again at the maximum | Sets `max: null`                      |
 
-Toggling Any off uses the displayed endpoint as the explicit maximum. All edits submit one whole
-record through `binding.setInput`; there is no intermediate state with separately written bounds.
-Recomputing the display does not call a setter or create a Nexus notification.
+Both `onChange` and the gesture adapter map `{ start, end }` to the complete `{ min, max }` record.
+The adapter wraps `binding.createValueGesture(options)` and forwards begin/commit/cancel/release;
+its update maps the sentinel back to null. Keeping the live `active` getter is essential: external
+writes revoke gesture ownership synchronously. Escape restores the initial whole record only while
+that gesture still owns it. Never independently write the two bounds or let a local rollback
+replace newer application data. The copyable example includes this adapter.
 
-The essential projection is:
+A finite request beyond the feasible ceiling remains visible and editable; it is not proof of a
+solution. No candidates produce a finite fallback scale and “No feasible solution” in the separate
+Planets Dashlet. The solver owns feasibility and priorities. A rejected draft must not replace the
+accepted design or achieved result.
 
-```ts
-const end = requested.max ?? Math.max(requested.min, feasibleMax ?? requested.min)
-const value = { start: requested.min, end }
-const scaleMax = Math.max(countFloor + 1, end, feasibleMax ?? countFloor)
-```
+## Public control contract
 
-The copyable example contains `projectCountWindow` and `applyCountDrag`. These are application
-helpers, not Picodash exports. They preserve `null` when only Start changes, and use the new finite
-End when that endpoint changes. A no-op edit at End leaves Any unchanged; use the checkbox for an
-explicit mode change.
+`RangeSlider` and `RangeDashlet` accept finite `startDetent` and `endDetent` objects using the same
+`{ value, label }` shape as Slider. Start's extra stop belongs only to the lower thumb; End's belongs
+only to the upper. Numeric endpoints remain ordered and step-aligned. Both thumbs can coincide in
+the numeric interval; neither crosses the other or enters the other thumb's detent.
 
-When the ceiling drops below the requested minimum, the track still displays the request. When an
-explicit finite maximum exceeds the ceiling, it also stays intact and the scale extends to show it.
-A finite endpoint is therefore **not proof of feasibility**. The separate requested-range, feasible-
-ceiling, and achieved-count readouts explain the difference. With no candidates, the track uses a
-finite fallback and the achieved readout says “No feasible solution.” Neither case silently rewrites
-saved intent.
+Track clicks select numeric values. Pulling a thumb beyond its endpoint crosses the resisted gap.
+Held arrows park at the numeric boundary; release and press again to enter the detent. Home/End
+select the active thumb's permitted outer limit. RTL reverses horizontal arrows. Native accessible
+value text announces Any/Off at the respective stop. `formatValue(range)` controls the combined
+visual readout, for example `3–Any` or `3–∞`; it does not change accessibility or saved meaning.
 
-This example validates integer, ordered request bounds, not gear geometry. Compute `achieved` from
-accepted Nexus values and committed priority using your solver. A rejected draft must not replace
-the accepted design or its achieved result. Choose an explicit application policy if infeasible
-requests should instead be rejected; Picodash does not choose that policy for you.
+RangeDashlet binds one finite `{ start, end }` field and supplies owned gesture handling automatically.
+Nullable domain fields use the custom Dashlet adapter above. Unbound RangeSlider takes `createGesture`
+when a host needs revision-safe rollback; without it, it remains a controlled input whose owner
+handles cancellation. Detents do not add arbitrary uneven steps, allowedRange, or reference marks.
+Never send `null` or `Infinity` to the control.
 
-## Public control limits
+## Derived scalar results
 
-`RangeSlider` and ready-made `RangeDashlet` take finite `{ start, end }` values with finite
-`min`, `max`, and `step`. They have no open-ended endpoint prop. Do not pass `null` or `Infinity`
-to the control. `null` belongs in the application's request field, while `Infinity` is not valid
-Nexus JSON data.
-
-The public range control does not expose `allowedRange`, `marks`, or per-thumb custom value text.
-Its Start and End inputs remain numeric. The example associates both with the explanatory readout;
-“Any” is conveyed by that description and the checkbox, not by an unbounded thumb announcement.
-If a thumb must itself announce “Any” in place of a number, that needs a public control extension.
-The example has keyboard/DOM evidence, not a screen-reader usability certification.
+An asynchronous solver's achieved count need not become a second Nexus field. Render an unbound
+`Dashlet` with an `output`, as the example does for Planets. Use `DisplayDashlet` when the result is
+already a Nexus field. For pending results, show “Calculating” or explicitly label a retained result
+as previous; for no-fit show “No feasible solution”; do not silently present a stale result as fresh.
+The example's `achieved: null` means no-fit, not pending. Apps with pending/error states should pass
+their explicit result state to their own readout component.
 
 ## Choose a module slider's scale
 
@@ -113,8 +98,9 @@ that sparse feasible set.
 
 ## Verification
 
-The example test exercises ceiling changes without writes, atomic Start/End edits, explicit Any
-selection, preservation of a finite request beyond the ceiling, no-candidate display, and rejection
-of Infinity. It also runs with public typechecking in the standalone tarball-consumer check. This
-validates the adapter and package boundary; the application's solver still needs its own feasibility
-and priority tests.
+The copyable example tests projection changes without writes, whole-record Start/End edits,
+Any-to-finite and finite-to-Any transitions, infeasible saved intent, and rejection of Infinity.
+It is typechecked in the isolated tarball consumer. DashStack tests own detent keyboard semantics,
+ordered updates, cancellation, external-write fencing, configuration changes and read-only behavior;
+Nexus gesture tests own atomic rollback and revision fencing. Browser checks own pointer geometry,
+RTL, spring paint and reduced motion. The application's solver needs its own feasibility tests.

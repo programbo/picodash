@@ -2,6 +2,7 @@
 
 import { useContext, useEffect, useId, useLayoutEffect, useRef } from 'react'
 import { animate } from 'motion'
+import { thumbSnapSpring, minimumStepPixels } from './stepped-thumb-motion.js'
 import type { SliderProps } from './ui.js'
 import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
 import { composeControlClassName } from './ui-class-name.js'
@@ -119,7 +120,13 @@ export function DetentSlider({
       !track ||
       !previous ||
       previous.configuration !== configuration ||
-      previous.phase === phase ||
+      (previous.phase === phase &&
+        (max === min ||
+          ((detentGeometry(track.getBoundingClientRect().width, scale).end -
+            detentGeometry(track.getBoundingClientRect().width, scale).start) *
+            step) /
+            (max - min) <
+            minimumStepPixels)) ||
       disabled ||
       !visible
     )
@@ -132,11 +139,9 @@ export function DetentSlider({
     const offset =
       (detentPosition(previous.value, width, scale) - detentPosition(value, width, scale)) *
       direction
+    track.style.setProperty('--_picodash-detent-snap', `${offset}px`)
     const motion = animate(offset, 0, {
-      type: 'spring',
-      stiffness: 1800,
-      damping: 36,
-      mass: 0.2,
+      ...thumbSnapSpring,
       onUpdate: (next) => track.style.setProperty('--_picodash-detent-snap', `${next}px`),
     })
     const stop = () => {

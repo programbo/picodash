@@ -1,7 +1,7 @@
 'use client'
 import { createPicodashNexus, type PicodashIssueInput } from '@picodash/nexus'
 import { DashStack, Dashlet, type SingleFieldDashletRenderContext } from '@picodash/dashstack'
-import { Checkbox, RangeSlider, type NumberRangeValue } from '@picodash/dashstack/ui'
+import { RangeSlider, type NumberRangeValue } from '@picodash/dashstack/ui'
 
 export type CountWindow = { min: number; max: number | null }
 const defaultWindow: CountWindow = { min: 3, max: null }
@@ -37,11 +37,19 @@ export type CountNexus = ReturnType<typeof createOpenCountNexus>
 
 // feasibleMax is a solver-owned finite integer ceiling, or null when no candidate exists.
 export function projectCountWindow(requested: CountWindow, feasibleMax: number | null) {
-  const end = requested.max ?? Math.max(requested.min, feasibleMax ?? requested.min)
+  const scaleMax = Math.max(
+    countFloor + 1,
+    requested.min,
+    requested.max ?? countFloor,
+    feasibleMax ?? countFloor,
+  )
+  const sentinel = scaleMax + 1
+  if (!Number.isSafeInteger(sentinel))
+    throw new RangeError('Count range needs room for a finite presentation sentinel.')
   return {
-    value: { start: requested.min, end },
-    // Preserve an explicit request beyond current feasibility, and keep it editable.
-    scaleMax: Math.max(countFloor + 1, end, feasibleMax ?? countFloor),
+    value: { start: requested.min, end: requested.max ?? sentinel },
+    scaleMax,
+    endDetent: { value: sentinel, label: 'Any' },
   }
 }
 export function applyCountDrag(
@@ -49,12 +57,8 @@ export function applyCountDrag(
   feasibleMax: number | null,
   next: NumberRangeValue,
 ): CountWindow {
-  const previousEnd = projectCountWindow(requested, feasibleMax).value.end
-  return {
-    min: next.start,
-    // A start-only edit preserves Any. Moving End explicitly chooses a finite bound.
-    max: requested.max === null && next.end === previousEnd ? null : next.end,
-  }
+  const { endDetent } = projectCountWindow(requested, feasibleMax)
+  return { min: next.start, max: next.end === endDetent.value ? null : next.end }
 }
 
 export function OpenCountRangeRecipe({
@@ -87,32 +91,36 @@ export function OpenCountRangeRecipe({
                 min={countFloor}
                 max={projection.scaleMax}
                 step={1}
-                value={projection.value}
-                onChange={(next) => binding.setInput(applyCountDrag(requested, feasibleMax, next))}
-              />
-              <Checkbox
-                aria-label="Any maximum"
-                aria-describedby={readoutId}
-                disabled={context.disabled}
-                readOnly={context.readOnly}
-                isSelected={requested.max === null}
-                onChange={(any) =>
-                  binding.setInput({ min: requested.min, max: any ? null : projection.value.end })
+                endDetent={projection.endDetent}
+                formatValue={(value) =>
+                  `${value.start}–${value.end === projection.endDetent.value ? 'Any' : value.end}`
                 }
+                value={projection.value}
+                createGesture={(options) => {
+                  const gesture = binding.createValueGesture(options)
+                  return {
+                    get active() {
+                      return gesture.active
+                    },
+                    begin: () => gesture.begin(),
+                    update: (next) => gesture.update(applyCountDrag(requested, feasibleMax, next)),
+                    commit: () => gesture.commit(),
+                    cancel: (reason) => gesture.cancel(reason),
+                    release: () => gesture.release(),
+                  }
+                }}
+                onChange={(next) => binding.setInput(applyCountDrag(requested, feasibleMax, next))}
               />
               <p id={readoutId}>
                 Requested {requested.min}–{requested.max ?? 'Any'}. Current feasible ceiling:{' '}
                 {feasibleMax ?? 'none'}.
-                {requested.max === null
-                  ? ` Any is shown at ${projection.value.end} on this finite track.`
-                  : ''}
               </p>
-              <output aria-label="Achieved planet count">
-                {achieved ?? 'No feasible solution'}
-              </output>
             </>
           )
         }}
+      </Dashlet>
+      <Dashlet id="achieved-count" label="Planets">
+        <output aria-label="Achieved planet count">{achieved ?? 'No feasible solution'}</output>
       </Dashlet>
     </DashStack>
   )

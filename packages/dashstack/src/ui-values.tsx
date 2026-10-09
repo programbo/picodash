@@ -45,6 +45,10 @@ import {
 import { useRef, useState, type ComponentProps, type ReactNode } from 'react'
 import type { DashStackControlProps } from './ui.js'
 import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
+import { DetentRangeSlider } from './detent-range.js'
+import { validateSliderOptions, type SliderDetent } from './slider-options.js'
+import { useValueControlGesture, type ValueGestureFactory } from './numeric-control-gesture.js'
+import { useSteppedThumbMotion } from './stepped-thumb-motion.js'
 import { composeControlClassName } from './ui-class-name.js'
 
 export type NumberRangeValue = {
@@ -180,6 +184,10 @@ function segmentInput(segment: TemporalSegment) {
 }
 
 export type RangeSliderProps = DashStackControlProps & {
+  readonly startDetent?: SliderDetent
+  readonly endDetent?: SliderDetent
+  readonly formatValue?: (value: NumberRangeValue) => ReactNode
+  readonly createGesture?: ValueGestureFactory<NumberRangeValue>
   readonly value: NumberRangeValue
   readonly onChange: (value: NumberRangeValue) => void
   readonly min?: number
@@ -200,16 +208,45 @@ function validateRangeSliderConfiguration(min: number, max: number, step: number
     throw new TypeError('step must be a positive finite number.')
 }
 
-export function RangeSlider({
+export function RangeSlider(props: RangeSliderProps) {
+  const { min = 0, max = 100, step = 1 } = props
+  validateRangeSliderConfiguration(min, max, step)
+  validateSliderOptions(min, max, step, props)
+  return props.startDetent || props.endDetent ? (
+    <DetentRangeSlider {...props} min={min} max={max} step={step} />
+  ) : (
+    <ContinuousRangeSlider {...props} />
+  )
+}
+
+function ContinuousRangeSlider({
   value,
   onChange,
   min = 0,
   max = 100,
   step = 1,
   formatOptions,
+  formatValue,
+  createGesture,
   ...props
 }: RangeSliderProps) {
   validateRangeSliderConfiguration(min, max, step)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const change = useValueControlGesture({
+    ref: rootRef,
+    createGesture,
+    onChange,
+    configuration: JSON.stringify([min, max, step]),
+    disabled: !!(props.disabled || props.readOnly),
+  })
+  useSteppedThumbMotion(
+    rootRef,
+    [value.start, value.end],
+    min,
+    max,
+    step,
+    !!(props.disabled || props.readOnly),
+  )
   const startInputRef = usePrimaryControlRef<HTMLInputElement>()
   const endInputRef = usePrimaryControlRef<HTMLInputElement>()
   const readOnlyDescription = useReadOnlyDescription(props.readOnly, props['aria-describedby'])
@@ -217,6 +254,7 @@ export function RangeSlider({
   return (
     <>
       <AriaSlider<number[]>
+        ref={rootRef}
         id={props.id}
         className={composeControlClassName('picodash-dashstack-range-slider', props.className)}
         value={[value.start, value.end]}
@@ -225,7 +263,7 @@ export function RangeSlider({
             ? undefined
             : (next) => {
                 if (Array.isArray(next) && next.length >= 2) {
-                  onChange({ start: next[0]!, end: next[1]! })
+                  change({ start: next[0]!, end: next[1]! })
                 }
               }
         }
@@ -241,8 +279,14 @@ export function RangeSlider({
         aria-invalid={props['aria-invalid']}
         aria-errormessage={props['aria-errormessage']}
       >
-        <SliderOutput />
-        <SliderTrack className="picodash-dashstack-range-slider-track">
+        <SliderOutput>
+          {({ state }) =>
+            formatValue
+              ? formatValue(value)
+              : `${state.getThumbValueLabel(0)}–${state.getThumbValueLabel(1)}`
+          }
+        </SliderOutput>
+        <SliderTrack className="picodash-dashstack-range-slider-track" data-picodash-step-track>
           <SliderThumb
             index={0}
             // At the upper limit only Start can move inward; keep it reachable when thumbs coincide.

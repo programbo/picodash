@@ -177,6 +177,9 @@ export type {
 } from './documents.js'
 
 export type {
+  ValueGesture,
+  ValueGestureOptions,
+  ValueGestureEnd,
   NumericGesture,
   NumericGestureOptions,
   NumericGestureEnd,

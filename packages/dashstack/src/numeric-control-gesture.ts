@@ -1,8 +1,11 @@
 import { useContext, useEffect, useRef, type RefObject } from 'react'
-import type { NumericGesture, NumericGestureOptions } from '@picodash/nexus'
+import type { ValueGesture, ValueGestureOptions, PicodashJsonValue } from '@picodash/nexus'
 import { DashGroupAncestryContext } from './structure.js'
 
-export type NumericGestureFactory = (options?: NumericGestureOptions) => NumericGesture
+export type ValueGestureFactory<Value extends PicodashJsonValue> = (
+  options?: ValueGestureOptions,
+) => Omit<ValueGesture, 'update'> & { update(value: Value): ReturnType<ValueGesture['update']> }
+export type NumericGestureFactory = ValueGestureFactory<number>
 const editKeys = new Set([
   'ArrowLeft',
   'ArrowRight',
@@ -15,7 +18,7 @@ const editKeys = new Set([
 ])
 
 /** Pointer and held-key gestures share one owner; visual animation never enters this path. */
-export function useNumericControlGesture({
+export function useValueControlGesture<Value extends PicodashJsonValue>({
   ref,
   createGesture,
   onChange,
@@ -23,8 +26,8 @@ export function useNumericControlGesture({
   disabled,
 }: {
   ref: RefObject<HTMLElement | null>
-  createGesture: NumericGestureFactory | undefined
-  onChange: (value: number) => void
+  createGesture: ValueGestureFactory<Value> | undefined
+  onChange: (value: Value) => void
   configuration: string
   disabled: boolean
 }) {
@@ -32,7 +35,7 @@ export function useNumericControlGesture({
   const latest = useRef({ createGesture, onChange, disabled })
   latest.current = { createGesture, onChange, disabled }
   const state = useRef<{
-    gesture?: NumericGesture
+    gesture?: ReturnType<ValueGestureFactory<Value>>
     held: boolean
     blocked: boolean
     ending: boolean
@@ -123,7 +126,7 @@ export function useNumericControlGesture({
       cancel('removed')
     }
   }, [ref])
-  return (value: number) => {
+  return (value: Value) => {
     const current = state.current
     if (latest.current.disabled || current.blocked) return
     // An external write synchronously revokes ownership before its queued onEnd callback.
@@ -137,3 +140,5 @@ export function useNumericControlGesture({
     if (!current.held) end()
   }
 }
+
+export const useNumericControlGesture = useValueControlGesture

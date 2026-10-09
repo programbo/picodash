@@ -11,6 +11,7 @@ import { parseAbsolute, parseDate, parseTime } from '@internationalized/date'
 import { parseColor } from 'react-aria-components'
 import type { PicodashJsonValue } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
+import { validateSliderOptions, type SliderOptions } from './slider-options.js'
 import { isNumberCompatible } from './number-compatibility.js'
 import { PresentationWarning, presentationWarningId } from './presentation-warning.js'
 import { asDashletBindingField } from './ready-made-field-types.js'
@@ -100,15 +101,20 @@ function validateStep(step: number | undefined): void {
     throw new TypeError('step must be a positive finite number.')
 }
 
-function rangeCompatible(value: NumberRangeValue, min: number, max: number, step: number): boolean {
+function rangeCompatible(
+  value: NumberRangeValue,
+  min: number,
+  max: number,
+  step: number,
+  options: SliderOptions,
+): boolean {
   return (
     Number.isFinite(value.start) &&
     Number.isFinite(value.end) &&
     value.start <= value.end &&
-    value.start >= min &&
-    value.end <= max &&
-    isNumberCompatible(value.start, min, max, step) &&
-    isNumberCompatible(value.end, min, max, step)
+    (value.start === options.startDetent?.value ||
+      isNumberCompatible(value.start, min, max, step)) &&
+    (value.end === options.endDetent?.value || isNumberCompatible(value.end, min, max, step))
   )
 }
 
@@ -131,7 +137,7 @@ export type RangeDashletProps<
   F extends ScalarField<PicodashJsonValue> = ExactField<NumberRangeValue>,
 > = Shell &
   ExactCompoundFieldProps<F, NumberRangeValue> &
-  Pick<RangeSliderProps, 'min' | 'max' | 'step' | 'formatOptions'> & {
+  Pick<RangeSliderProps, 'min' | 'max' | 'step' | 'formatOptions' | 'startDetent' | 'endDetent'> & {
     readonly formatValue?: (value: NumberRangeValue) => ReactNode
   }
 
@@ -143,12 +149,15 @@ function RangeDashletInner<F extends ScalarField<PicodashJsonValue>>(
     step = 1,
     formatOptions,
     formatValue,
+    startDetent,
+    endDetent,
     ...props
   }: RangeDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateBounds(min, max)
   validateStep(step)
+  validateSliderOptions(min, max, step, { startDetent, endDetent })
   return (
     <Dashlet
       {...props}
@@ -160,7 +169,7 @@ function RangeDashletInner<F extends ScalarField<PicodashJsonValue>>(
         const binding = context.binding
         const canonical = binding.value as NumberRangeValue
         const value = (binding.draftValue ?? canonical) as NumberRangeValue
-        const mismatch = !rangeCompatible(canonical, min, max, step)
+        const mismatch = !rangeCompatible(canonical, min, max, step, { startDetent, endDetent })
         return (
           <>
             {mismatch ? (
@@ -177,6 +186,10 @@ function RangeDashletInner<F extends ScalarField<PicodashJsonValue>>(
                 id={binding.controlId}
                 value={value}
                 onChange={binding.setInput}
+                createGesture={binding.createValueGesture}
+                startDetent={startDetent}
+                endDetent={endDetent}
+                formatValue={formatValue}
                 min={min}
                 max={max}
                 step={step}

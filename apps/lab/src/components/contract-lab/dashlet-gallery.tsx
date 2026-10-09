@@ -19,6 +19,7 @@ import {
   SwitchDashlet,
   SliderDashlet,
   TargetSliderDashlet,
+  RangeDashlet,
   TargetNumberDashlet,
   DisplayDashlet,
   StatusDashlet,
@@ -508,6 +509,18 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
                     step={0.1}
                     startDetent={{ value: 0, label: 'Off' }}
                     endDetent={{ value: 12, label: 'Any' }}
+                  />
+                  <RangeDashlet
+                    id="range-detents"
+                    label="Count range"
+                    field={nexus.fields.countRange}
+                    min={2}
+                    max={12}
+                    step={1}
+                    endDetent={{ value: 13, label: 'Any' }}
+                    formatValue={(value) =>
+                      `${value.start}–${value.end === 13 ? 'Any' : value.end}`
+                    }
                   />
                   <GalleryTarget id="target-bore" label="Bore" nexus={nexus} />
                   <TargetNumberDashlet

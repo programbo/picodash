@@ -1188,3 +1188,28 @@ including all 306 DashStack tests. The isolated consumer passes install, repeat/
 the new controls; live Home-to-Off and editable target-at-minimum checks pass, with the calculated
 10px origin, no horizontal overflow or browser errors. Snapshot recommendation is updated only
 after these checks. Consumer application adoption remains owned by Maz.
+
+### Range detents and compact target feedback (2026-10-09)
+
+RangeSlider and RangeDashlet accept start/end detents on their corresponding thumbs. The native
+two-thumb control retains ordering, per-end accessible values, numeric-only track clicks and
+fresh-press keyboard entry into a detent. Whole-record gestures use the same Nexus revision and
+binding ownership as numeric gestures; Escape cannot overwrite an intervening external write.
+The installed open-ended range recipe maps a finite UI sentinel to canonical null atomically.
+
+Ordinary Slider and RangeSlider add paint-only spring settling when individual steps span at least
+8px. Detent transitions use the same stiff spring. Fine continuous steps stay direct, and reduced
+motion disables settling. A browser sample of a stepped Range settles within 0.5px by 88ms and
+reaches zero by 121ms. Native pointer entry into Any and RTL keyboard exit back to 12 were verified.
+
+TargetSlider no longer reserves both ordinary marker-label space and achieved-readout space.
+Dot-only fixtures measure 68px high with 4px below the actual readout; visible marker captions retain
+a separate row (86px total, 4px clearance). TargetNumber Actual has a transparent background and
+only a bottom border. Built-control dark and RTL captures were inspected, including 390px width
+without horizontal overflow. Owned browser sessions were closed and their process exits checked.
+
+The complete package release gate passes (476 Nexus, 40 Dev Bridge, 81 UI, 310 DashStack,
+195 DashPanel and 16 facade tests). The production Lab build passes. Live Lab keyboard End enters
+Any (13), ArrowLeft returns to 12, and the Actual border computes to 0/0/1px with a transparent
+background. At 390px there is no horizontal overflow. The fresh live browser reports no errors;
+its owned session closes successfully.

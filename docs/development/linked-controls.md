@@ -420,7 +420,7 @@ changed bounds, disabled state, ancestor hiding and removal use the existing num
 cancellation rules. Read-only controls remain inspectable without accepting edits.
 
 Use `formatValue` for output text such as `3–Any`; formatting does not alter stored values or
-interaction. Detents currently belong to Slider, not RangeSlider or TargetSlider. `allowedRange`
+interaction. Detents belong to Slider and RangeSlider, not TargetSlider. See [open-ended ranges](open-ended-ranges.md) for a nullable Range adapter. `allowedRange`
 and `fillOrigin` cannot be combined with detents in this version. The installed
 `example/LinkedControls.tsx` includes `createDetentSizes` and `DetentSizeControls` using the public
 contract, including a step validator.

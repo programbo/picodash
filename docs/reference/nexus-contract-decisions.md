@@ -2573,3 +2573,18 @@ invalidates the relevant sources. No domain relationship graph is introduced.
 See [ADR 0008](../adr/0008-organizational-subgroups-and-linked-controls.md),
 [usage recipes](../development/linked-controls.md), `tests/numeric-gesture.test.ts`, and
 `tests/item-interaction.test.ts` in the Nexus package.
+
+## Whole-value gestures (2026-10-09)
+
+> Contract: Revised from the numeric-only gesture restriction to support atomic compound edits.
+> Implementation: Implemented
+> Evidence: `packages/nexus/tests/numeric-gesture.test.ts` and DashStack detent-range tests.
+
+Root/scoped `createValueGesture(field, options?)` and `createValueInputGesture(binding, options?)`
+share the numeric gesture controller's lifecycle, private revision fencing, binding ownership,
+validation, teardown and rollback outcomes. `ValueGesture` updates one complete strict JSON value,
+including null, arrays and objects. Field validation remains authoritative. End events carry JSON
+initial/final values and compare structurally for `changed`. No UI geometry or new persistence model
+is introduced. Dashlet input bindings expose `createValueGesture(options?)` for composed controls.
+The numeric APIs retain their number-only boundaries and existing types. Controllers never combine
+independent fields: model a compound edit as one field or use an existing atomic transaction.

@@ -1,4 +1,5 @@
-import type { CoreTransactionResult } from './kernel/index.js'
+import { clonePicodashValue, picodashJsonEqual } from './json.js'
+import type { CoreTransactionResult, PicodashJsonValue } from './kernel/index.js'
 
 export type NumericGestureCancelReason =
   | 'escape'
@@ -10,40 +11,51 @@ export type NumericGestureCancelReason =
   | 'released'
   | 'destroyed'
   | 'cancelled'
-export type NumericGestureEnd = Readonly<{
+export type ValueGestureEnd<Value extends PicodashJsonValue = PicodashJsonValue> = Readonly<{
   outcome: 'committed' | 'cancelled'
   reason: 'commit' | NumericGestureCancelReason
-  initialValue: number
-  finalValue: number | null
+  initialValue: Value
+  finalValue: Value | null
   changed: boolean
   rollback: 'unnecessary' | 'applied' | 'rejected' | 'superseded'
 }>
-export type NumericGestureOptions = { readonly onEnd?: (event: NumericGestureEnd) => void }
-export interface NumericGesture<Result extends CoreTransactionResult = CoreTransactionResult> {
+export type ValueGestureOptions<Value extends PicodashJsonValue = PicodashJsonValue> = {
+  readonly onEnd?: (event: ValueGestureEnd<Value>) => void
+}
+export interface ValueGesture<
+  Value extends PicodashJsonValue = PicodashJsonValue,
+  Result extends CoreTransactionResult = CoreTransactionResult,
+> {
   readonly active: boolean
   begin(): boolean
-  update(value: number): Result
-  commit(): NumericGestureEnd | undefined
-  cancel(reason?: NumericGestureCancelReason): NumericGestureEnd | undefined
+  update(value: Value): Result
+  commit(): ValueGestureEnd<Value> | undefined
+  cancel(reason?: NumericGestureCancelReason): ValueGestureEnd<Value> | undefined
   release(): void
 }
+export type NumericGestureEnd = ValueGestureEnd<number>
+export type NumericGestureOptions = ValueGestureOptions<number>
+export type NumericGesture<Result extends CoreTransactionResult = CoreTransactionResult> =
+  ValueGesture<number, Result>
 
 /** Kernel-private port: revisions and privileged teardown writes never escape Nexus. */
-export function createNumericGestureController<Result extends CoreTransactionResult>(
+export function createValueGestureController<
+  Value extends PicodashJsonValue,
+  Result extends CoreTransactionResult,
+>(
   port: {
-    read(): { value: number | null; revision: number; input: unknown }
+    read(): { value: Value; revision: number; input: unknown }
     assertAvailable(): void
+    assertInitial(): void
     fail(): never
-    write(value: number): Result
-    restore(value: number, locked: boolean): Result
+    write(value: Value): Result
+    restore(value: Value, locked: boolean): Result
     clearDraft(): void
     detach(): void
   },
-  options: NumericGestureOptions,
+  options: ValueGestureOptions<Value>,
 ) {
-  let state:
-    | { initialValue: number; revision: number; input: unknown; touched: boolean }
-    | undefined
+  let state: { initialValue: Value; revision: number; input: unknown; touched: boolean } | undefined
   let updating = false
   let released = false
   function available() {
@@ -54,40 +66,40 @@ export function createNumericGestureController<Result extends CoreTransactionRes
     if (!state) return undefined
     const previous = state
     state = undefined
-    let rollback: NumericGestureEnd['rollback'] = 'unnecessary'
+    let rollback: ValueGestureEnd<Value>['rollback'] = 'unnecessary'
     const current = port.read()
     if (current.revision !== previous.revision || current.input !== previous.input) {
       reason = 'external-write'
       rollback = 'superseded'
     } else if (reason !== 'commit') {
-      if (current.value !== previous.initialValue) {
+      if (!picodashJsonEqual(current.value, previous.initialValue)) {
         const result = port.restore(previous.initialValue, locked)
         rollback = result.ok ? 'applied' : 'rejected'
       }
       if (previous.touched) port.clearDraft()
     }
     const finalValue = port.read().value
-    const event: NumericGestureEnd = Object.freeze({
+    const event: ValueGestureEnd<Value> = Object.freeze({
       outcome: reason === 'commit' ? 'committed' : 'cancelled',
       reason,
       initialValue: previous.initialValue,
       finalValue,
-      changed: finalValue !== previous.initialValue,
+      changed: !picodashJsonEqual(finalValue, previous.initialValue),
       rollback,
     })
     // End callbacks run after the transaction lock and subscriber dispatch unwind.
     if (options.onEnd) queueMicrotask(() => options.onEnd?.(event))
     return event
   }
-  const gesture: NumericGesture<Result> = Object.freeze({
+  const gesture: ValueGesture<Value, Result> = Object.freeze({
     get active() {
       return !!state
     },
     begin() {
       available()
       if (state) return false
+      port.assertInitial()
       const current = port.read()
-      if (current.value === null) port.fail()
       state = {
         initialValue: current.value,
         revision: current.revision,
@@ -96,10 +108,10 @@ export function createNumericGestureController<Result extends CoreTransactionRes
       }
       return true
     },
-    update(value: number) {
+    update(value: Value) {
       available()
       if (!state) port.fail()
-      if (!Number.isFinite(value)) port.fail()
+      clonePicodashValue(value)
       updating = true
       try {
         const result = port.write(value)

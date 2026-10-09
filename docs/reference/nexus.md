@@ -2162,3 +2162,18 @@ sources; separate app-owned IDs preserve origin. Source IDs do not require mount
 
 [Linked-control recipes](../development/linked-controls.md) document cancellation boundaries,
 rollback rejection, source cleanup, and the distinction between intent and computed outcomes.
+
+## Whole-value gestures (2026-10-09)
+
+> Contract: Revised from the numeric-only gesture restriction to support atomic compound edits.
+> Implementation: Implemented
+> Evidence: `packages/nexus/tests/numeric-gesture.test.ts` and DashStack detent-range tests.
+
+Root/scoped `createValueGesture(field, options?)` and `createValueInputGesture(binding, options?)`
+share the numeric gesture controller's lifecycle, private revision fencing, binding ownership,
+validation, teardown and rollback outcomes. `ValueGesture` updates one complete strict JSON value,
+including null, arrays and objects. Field validation remains authoritative. End events carry JSON
+initial/final values and compare structurally for `changed`. No UI geometry or new persistence model
+is introduced. Dashlet input bindings expose `createValueGesture(options?)` for composed controls.
+The numeric APIs retain their number-only boundaries and existing types. Controllers never combine
+independent fields: model a compound edit as one field or use an existing atomic transaction.

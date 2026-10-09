@@ -1,7 +1,9 @@
 import {
-  createNumericGestureController,
+  createValueGestureController,
   type NumericGesture,
   type NumericGestureOptions,
+  type ValueGesture,
+  type ValueGestureOptions,
 } from '../numeric-gesture.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { clonePicodashValue, picodashJsonEqual } from '../json.js'
@@ -732,6 +734,14 @@ export interface BindingInteractionCommands<
   Fields extends Record<string, FieldLike>,
   Result extends CoreTransactionResult = CoreTransactionResult,
 > {
+  createValueGesture<Key extends keyof Fields & string>(
+    field: PicodashField<ValuesOf<Fields>, Key>,
+    options?: ValueGestureOptions,
+  ): ValueGesture<PicodashJsonValue, Result>
+  createValueInputGesture<Key extends keyof Fields & string>(
+    binding: import('../integration-leases.js').BindingHandle<Fields, Key>,
+    options?: ValueGestureOptions,
+  ): ValueGesture<PicodashJsonValue, Result>
   createNumericGesture<Key extends keyof Fields & string>(
     field: PicodashField<ValuesOf<Fields>, Key> &
       (ValuesOf<Fields>[Key] extends number ? unknown : never),
@@ -2473,7 +2483,10 @@ export function createPicodashNexus<
   const numericGestures = new Set<{
     scopeId: string | undefined
     binding: object | undefined
-    controller: ReturnType<typeof createNumericGestureController<CoreTransactionResult>>
+    controller: Pick<
+      ReturnType<typeof createValueGestureController<PicodashJsonValue, CoreTransactionResult>>,
+      'changed' | 'teardown'
+    >
   }>()
 
   type RepairRecord = {
@@ -3176,6 +3189,8 @@ export function createPicodashNexus<
     withWriteLock(() => executeDocumentImportPlanLocked(plan, expectedReceiverScopeId))
   const storeImplementation: RootNexus<Fields, NexusResult, boolean, boolean> = {
     kind: 'root',
+    createValueGesture: (field, options) => valueGesture(field, options),
+    createValueInputGesture: (binding, options) => valueInputGesture(binding, options),
     createNumericGesture: (field, options) => numericGesture(field, options),
     createNumericInputGesture: (binding, options) => numericInputGesture(binding, options),
     fields,
@@ -3572,6 +3587,17 @@ export function createPicodashNexus<
     return numericGesture(record.field, options, record.scopeId, handle)
   }
 
+  function valueInputGesture<Value extends PicodashJsonValue>(
+    handle: object,
+    options?: ValueGestureOptions<Value>,
+    scopeId?: string,
+  ) {
+    const record = bindingRecordFor(handle)
+    if (record.mode !== 'input' || (scopeId !== undefined && record.scopeId !== scopeId))
+      throw new PicodashContractError('invalid-binding-handle', { reason: 'wrong-kind' })
+    return valueGesture(record.field, options, record.scopeId, handle)
+  }
+
   function numericGesture(
     field: unknown,
     options: NumericGestureOptions = {},
@@ -3579,10 +3605,22 @@ export function createPicodashNexus<
     binding?: object,
   ) {
     assertOwned(field)
+    if (typeof values[field.key] !== 'number' || !Number.isFinite(values[field.key]))
+      throw new PicodashContractError('invalid-configuration')
+    // The numeric compatibility API retains its number-only boundary.
+    return valueGesture(field, options, scopeId, binding, true)
+  }
+
+  function valueGesture<Value extends PicodashJsonValue>(
+    field: unknown,
+    options: ValueGestureOptions<Value> = {},
+    scopeId?: string,
+    binding?: object,
+    numeric = false,
+  ) {
+    assertOwned(field)
     const key = field.key
     if (
-      typeof values[key] !== 'number' ||
-      !Number.isFinite(values[key]) ||
       !options ||
       typeof options !== 'object' ||
       (options.onEnd !== undefined && typeof options.onEnd !== 'function')
@@ -3597,7 +3635,7 @@ export function createPicodashNexus<
     const record = {
       scopeId,
       binding,
-      controller: createNumericGestureController(
+      controller: createValueGestureController<Value, CoreTransactionResult>(
         {
           read() {
             const value = values[key]
@@ -3609,19 +3647,28 @@ export function createPicodashNexus<
                   ?.get(record.alias)
               : undefined
             return {
-              value: typeof value === 'number' && Number.isFinite(value) ? value : null,
+              value: (numeric && (typeof value !== 'number' || !Number.isFinite(value))
+                ? null
+                : value) as Value,
               revision: fieldRevisions.get(key)!,
               input,
             }
           },
           assertAvailable,
+          assertInitial() {
+            if (numeric && (typeof values[key] !== 'number' || !Number.isFinite(values[key])))
+              throw new PicodashContractError('invalid-configuration')
+          },
           fail() {
             throw new PicodashContractError('invalid-configuration')
           },
-          write: (value) =>
-            binding
+          write: (value) => {
+            if (numeric && (typeof value !== 'number' || !Number.isFinite(value)))
+              throw new PicodashContractError('invalid-configuration')
+            return binding
               ? setInputInternal(binding, value)
-              : transactAttributed({ [key]: value }, scopeId),
+              : transactAttributed({ [key]: value }, scopeId)
+          },
           restore: (value, locked) =>
             transactAttributed({ [key]: value }, scopeId, 'programmatic', {
               canonicalSupplied: true,
@@ -5051,6 +5098,8 @@ export function createPicodashNexus<
     const scoped: ScopedNexus<Fields, NexusResult, boolean, boolean> = {
       kind: 'scoped',
       createItemInteractionSource: (itemId) => createItemSource(scopeId, itemId),
+      createValueGesture: (field, options) => valueGesture(field, options, scopeId),
+      createValueInputGesture: (binding, options) => valueInputGesture(binding, options, scopeId),
       createNumericGesture: (field, options) => numericGesture(field, options, scopeId),
       createNumericInputGesture: (binding, options) =>
         numericInputGesture(binding, options, scopeId),

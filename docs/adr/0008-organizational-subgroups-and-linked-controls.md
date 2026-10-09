@@ -45,3 +45,11 @@ stable; membership always comes from current JSX. No persisted-schema migration 
 The public examples and executable evidence are linked from
 [linked controls](../development/linked-controls.md) and
 [contract conformance](../reference/contract-conformance.md).
+
+### Whole-value gesture amendment (2026-10-09)
+
+Range detents require the same ownership and cancellation guarantees as single numeric controls.
+Extend the existing controller to one complete JSON field through createValueGesture and
+createValueInputGesture. This keeps private revision fencing in Nexus and avoids UI-owned rollback
+based on equality alone. Numeric compatibility APIs remain number-only; UI products still own
+pointer and keyboard state and transient spring paint.

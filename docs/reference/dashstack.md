@@ -979,7 +979,7 @@ facade-specific state or behavior.
 | `CheckboxGroupDashlet<T>` | `readonly T[]`                       | `options`                                                                                                                   |
 | `MultiSelectDashlet<T>`   | `readonly T[]`                       | `options`, `placeholder?`                                                                                                   |
 | `SearchDashlet`           | `string`                             | `placeholder?`                                                                                                              |
-| `RangeDashlet`            | `{ start: number; end: number }`     | `min?=0`, `max?=100`, `step?=1`, `formatOptions?`, `formatValue?`                                                           |
+| `RangeDashlet`            | `{ start: number; end: number }`     | `min?=0`, `max?=100`, `step?=1`, `formatOptions?`, `formatValue?`, `startDetent?`, `endDetent?`                             |
 | `MeterDashlet`            | `number`                             | `min?=0`, `max?=100`, `formatOptions?`, `formatValue?`                                                                      |
 | `ProgressDashlet`         | `number`                             | `min?=0`, `max?=100`, `formatOptions?`, `formatValue?`                                                                      |
 | `StatusDashlet<T>`        | `string \| number`                   | `options`                                                                                                                   |
@@ -2264,7 +2264,7 @@ The sentinel is finite and strictly outside its corresponding min/max endpoint; 
 nonempty. Authors own its meaning and formatting. Values between a sentinel and its numeric endpoint
 are never emitted. The min-anchored step interval may be singleton; a nonaligned maximum ends at
 the preceding step. Detents are mutually exclusive with `allowedRange` and `fillOrigin` for now.
-They do not extend TargetSlider or RangeSlider.
+They do not extend TargetSlider. RangeSlider support is described below.
 
 Detent sliders use a connected track with dots for each detent, the numeric minimum and the
 last reachable step. Coincident stops share a dot; authored marks add reference dots. The current
@@ -2302,3 +2302,24 @@ stays aligned at the ends and the label stays centred where space permits. Resiz
 container and label sizes; CSS derives the origin from the live value without per-drag layout reads.
 The detent spring is firmer (stiffness 1800, damping 36, mass 0.2), affects paint only, and is
 disabled by reduced motion. Pointer resistance and keyboard boundary rules are unchanged.
+
+### Range endpoint detents and step feedback (2026-10-09)
+
+RangeSlider and RangeDashlet accept the existing `startDetent`/`endDetent` shape. Each belongs only
+to its corresponding thumb. Numeric values stay ordered and min-anchored-step compatible; no gap
+values are emitted. The combined `formatValue` remains application-owned; native thumb text uses
+the detent label. Bounds and sentinel changes do not silently repair canonical values. Bound ranges
+use `binding.createValueGesture` for atomic live records and revision-safe cancellation. Unbound
+RangeSlider accepts an optional `createGesture` factory with the same lifecycle and range-valued
+update. Without a factory, onChange remains controlled and the host owns cancellation.
+
+Pointer gaps, held-key parking, new-press crossing, Home/End, RTL and reduced motion follow Slider.
+A start thumb cannot enter the end detent, or vice versa. Plain Slider/RangeSlider steps whose
+rendered separation is at least 8px receive the same stiff spring paint during active interaction;
+fine steps remain direct. Canonical values, accessible values and hit geometry update immediately.
+Detent phase changes always use the short spring unless disabled, hidden or reduced motion.
+See [the open-count recipe](../development/open-ended-ranges.md) for nullable application bounds.
+
+TargetSlider reserves a second text row only for visible mark captions. Dot-only references share
+the achieved-value row. TargetNumber's Actual output has a transparent background and a single
+bottom border; units and the field caption keep their existing alignment.

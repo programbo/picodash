@@ -313,6 +313,7 @@ export function TargetSlider({
       className="picodash-dashstack-target-slider"
       data-result={result.status}
       data-singleton={singleton || undefined}
+      data-mark-labels={marks?.some((mark) => mark.label !== '') || undefined}
       aria-busy={result.status === 'pending'}
     >
       <span id={prefix} className="picodash-visually-hidden">

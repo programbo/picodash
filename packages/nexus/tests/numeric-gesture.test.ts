@@ -237,3 +237,75 @@ describe('numeric gestures', () => {
     nexus.destroy({ discardUnpersisted: true })
   })
 })
+
+it('owns whole JSON values atomically, including null, with revision-fenced rollback', async () => {
+  const nexus = createPicodashNexus({
+    valueOwner: 'nexus',
+    fields: {
+      range: {
+        defaultValue: { start: 3, end: null } as { start: number; end: number | null },
+        validate: (v: { start: number; end: number | null }) =>
+          v.end !== null && v.start > v.end ? [{ message: 'Ordered' }] : [],
+      },
+      nullable: { defaultValue: null },
+    },
+  })
+  const observed: unknown[] = []
+  const off = nexus.subscribe(() => observed.push(nexus.getState().values.range))
+  const gesture = nexus.createValueGesture(nexus.fields.range)
+  gesture.begin()
+  expect(gesture.update({ start: 4, end: 12 }).ok).toBe(true)
+  expect(observed).toEqual([{ start: 4, end: 12 }])
+  expect(gesture.update({ start: 20, end: 12 }).ok).toBe(false)
+  expect(gesture.cancel('escape')).toMatchObject({
+    rollback: 'applied',
+    finalValue: { start: 3, end: null },
+  })
+  gesture.begin()
+  gesture.update({ start: 5, end: 12 })
+  nexus.setValue(nexus.fields.range, { start: 6, end: 12 })
+  nexus.setValue(nexus.fields.range, { start: 5, end: 12 })
+  expect(gesture.active).toBe(false)
+  expect(gesture.cancel()).toBeUndefined()
+  expect(nexus.getState().values.range).toEqual({ start: 5, end: 12 })
+  const nullable = nexus.createValueGesture(nexus.fields.nullable)
+  expect(nullable.begin()).toBe(true)
+  nullable.update({ x: 1 })
+  expect(nullable.cancel()).toMatchObject({ finalValue: null, rollback: 'applied' })
+  nullable.release()
+  gesture.release()
+  off()
+  nexus.destroy()
+  await Promise.resolve()
+})
+
+it('scoped whole-value input gestures clear rejected drafts and cancel on binding release', () => {
+  const nexus = createPicodashNexus({
+    valueOwner: 'nexus',
+    fields: {
+      range: {
+        defaultValue: { start: 3, end: 12 },
+        validate: (v: { start: number; end: number }) =>
+          v.start > v.end ? [{ message: 'Ordered' }] : [],
+      },
+    },
+  })
+  const scope = nexus.scope('range'),
+    lease = acquireBindingLease(scope, {
+      itemId: 'range',
+      field: nexus.fields.range,
+      mode: 'input',
+      alias: 'value',
+    })
+  const gesture = scope.createValueInputGesture(lease)
+  gesture.begin()
+  gesture.update({ start: 4, end: 11 })
+  expect(gesture.update({ start: 20, end: 11 }).ok).toBe(false)
+  expect(gesture.cancel()).toMatchObject({ rollback: 'applied', finalValue: { start: 3, end: 12 } })
+  gesture.begin()
+  gesture.update({ start: 5, end: 10 })
+  lease.release()
+  expect(nexus.getState().values.range).toEqual({ start: 3, end: 12 })
+  expect(() => gesture.begin()).toThrow()
+  nexus.destroy()
+})

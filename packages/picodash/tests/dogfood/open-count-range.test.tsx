@@ -5,7 +5,7 @@ import { fireEvent, getByRole } from '@testing-library/react'
 import { expect, it } from 'vite-plus/test'
 import { createOpenCountNexus, OpenCountRangeRecipe, projectCountWindow } from './OpenCountRange.js'
 
-it('projects Any without writes, commits atomic endpoint edits, and keeps unavailable intent', () => {
+it('projects Any without writes, commits atomic endpoint edits, and keeps unavailable intent', async () => {
   const nexus = createOpenCountNexus()
   const element = document.createElement('div')
   document.body.append(element)
@@ -21,24 +21,28 @@ it('projects Any without writes, commits atomic endpoint edits, and keeps unavai
     render(12, 4)
     expect(writes).toBe(0)
     expect(nexus.getState().values.counts).toEqual({ min: 3, max: null })
-    expect(getByRole(element, 'slider', { name: /^End\b/ }).getAttribute('value')).toBe('12')
+    expect(getByRole(element, 'slider', { name: /^End\b/ }).getAttribute('aria-valuetext')).toBe(
+      'Any',
+    )
     act(() => {
       fireEvent.keyDown(getByRole(element, 'slider', { name: /^Start\b/ }), { key: 'ArrowRight' })
+      fireEvent.keyUp(getByRole(element, 'slider', { name: /^Start\b/ }), { key: 'ArrowRight' })
     })
     expect(nexus.getState().values.counts).toEqual({ min: 4, max: null })
     expect(writes).toBe(1)
+    await act(async () => {})
     act(() => {
       fireEvent.keyDown(getByRole(element, 'slider', { name: /^End\b/ }), { key: 'ArrowLeft' })
-    })
-    expect(nexus.getState().values.counts).toEqual({ min: 4, max: 11 })
-    expect(writes).toBe(2)
-    act(() => {
-      fireEvent.keyDown(getByRole(element, 'slider', { name: /^End\b/ }), { key: 'ArrowRight' })
+      fireEvent.keyUp(getByRole(element, 'slider', { name: /^End\b/ }), { key: 'ArrowLeft' })
     })
     expect(nexus.getState().values.counts).toEqual({ min: 4, max: 12 })
+    expect(writes).toBe(2)
+    await act(async () => {})
     act(() => {
-      fireEvent.click(getByRole(element, 'checkbox', { name: 'Any maximum' }))
+      fireEvent.keyDown(getByRole(element, 'slider', { name: /^End\b/ }), { key: 'ArrowRight' })
+      fireEvent.keyUp(getByRole(element, 'slider', { name: /^End\b/ }), { key: 'ArrowRight' })
     })
+    await act(async () => {})
     expect(nexus.getState().values.counts).toEqual({ min: 4, max: null })
     const before = writes
     render(2, null)
@@ -51,6 +55,7 @@ it('projects Any without writes, commits atomic endpoint edits, and keeps unavai
     expect(projectCountWindow({ min: 3, max: 12 }, 8)).toEqual({
       value: { start: 3, end: 12 },
       scaleMax: 12,
+      endDetent: { value: 13, label: 'Any' },
     })
     expect(nexus.setValue(nexus.fields.counts, { min: 4, max: Infinity }).ok).toBe(false)
   } finally {

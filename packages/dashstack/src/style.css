@@ -2299,7 +2299,14 @@
   display: none;
 }
 .picodash-dashstack-target-slider [data-picodash-target-track] {
-  padding-block-end: calc(var(--picodash-font-size-sm) + var(--picodash-space-4));
+  padding-block-end: calc(var(--picodash-font-size-sm) * 1.25 + var(--picodash-space-3));
+}
+.picodash-dashstack-target-slider
+  .picodash-dashstack-slider:has([data-picodash-dashstack-slider-marks]) {
+  padding-block-end: 0;
+}
+.picodash-dashstack-target-slider[data-mark-labels] [data-picodash-target-track] {
+  padding-block-end: calc(var(--picodash-font-size-sm) * 2.25 + var(--picodash-space-5));
 }
 .picodash-dashstack-target-slider [data-picodash-achieved-marker] {
   position: absolute;
@@ -2317,6 +2324,7 @@
   background: var(--picodash-color-text);
 }
 [data-picodash-achieved-readout] {
+  line-height: 1.25;
   position: absolute;
   inset-block-start: var(--picodash-space-1);
   transform: translateX(
@@ -2354,6 +2362,7 @@
   box-shadow: inset 0 0 12px 2px color-mix(in oklab, var(--_picodash-group-glow) 35%, transparent);
 }
 [dir='rtl'] [data-picodash-achieved-readout] {
+  line-height: 1.25;
   transform: translateX(
     calc(
       -1 *
@@ -2418,6 +2427,7 @@
   display: none;
 }
 [data-picodash-achieved-pointer='arrow'] + [data-picodash-achieved-readout] {
+  line-height: 1.25;
   inset-block-start: var(--picodash-space-2);
 }
 /* An off-mark result still gets a stem at its exact position, never a fabricated selection. */
@@ -2475,6 +2485,10 @@
   overflow-wrap: anywhere;
 }
 [data-picodash-target-actual] {
+  background: transparent;
+  border: 0;
+  border-block-end: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: end;
@@ -2532,6 +2546,7 @@
 .picodash-dashstack-target-slider .picodash-dashstack-slider-track {
   margin-inline: var(--_picodash-target-edge);
   margin-block-start: var(--_picodash-target-thumb-rise);
+  margin-block-end: 0;
   background: transparent;
 }
 /* Extend only the painted track; value coordinates and pointer geometry stay unchanged. */
@@ -2820,4 +2835,49 @@
 }
 .picodash-dashstack-target-slider .picodash-dashstack-slider[data-disabled] {
   opacity: var(--picodash-opacity-disabled);
+}
+
+/* Step settling moves paint only. Numeric positions and hit areas stay immediate. */
+[data-picodash-dashstack-slider-thumb]::before,
+[data-picodash-dashstack-range-slider-thumb]::before {
+  translate: var(--_picodash-step-snap, 0px) 0;
+}
+.picodash-dashstack-range-slider[data-detent-range] [data-picodash-detent-track] {
+  background: color-mix(in oklab, var(--picodash-color-text) 12%, transparent);
+  margin-inline: calc(var(--picodash-control-height-md) / 2);
+}
+.picodash-dashstack-range-slider[data-detent-range] [data-picodash-detent-track]::before {
+  inset-inline: var(--_picodash-detent-start) var(--_picodash-detent-end);
+}
+[data-detent-range] [data-picodash-dashstack-range-slider-thumb] {
+  position: absolute;
+  inset-block-start: 50%;
+  transform: translate(-50%, -50%);
+}
+[data-detent-range]:dir(rtl) [data-picodash-dashstack-range-slider-thumb] {
+  transform: translate(50%, -50%);
+}
+[data-detent-range] [data-picodash-dashstack-range-slider-thumb]::before {
+  translate: calc(var(--_picodash-step-snap, 0px) + var(--_picodash-detent-pull, 0px)) 0;
+}
+@media (pointer: fine) {
+  .picodash-dashstack-range-slider[data-detent-range] [data-picodash-detent-track] {
+    margin-inline: calc(var(--picodash-space-3) * 1.25);
+  }
+}
+
+@media (pointer: coarse) {
+  .picodash-dashstack-slider [data-picodash-dashstack-slider-thumb],
+  .picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb] {
+    background: transparent;
+  }
+  [data-picodash-dashstack-slider-thumb]::before,
+  [data-picodash-dashstack-range-slider-thumb]::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--picodash-color-accent);
+    border-radius: inherit;
+    pointer-events: none;
+  }
 }
