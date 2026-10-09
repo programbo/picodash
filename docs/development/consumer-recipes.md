@@ -10,6 +10,10 @@ Copy `example/designer-model.ts` and `example/Designer.tsx` together into your a
 public package entrypoints. Their tests also run from installed tarballs outside this repository.
 The three-number design and two target IDs deliberately keep the example bounded.
 
+For a styled numeric control with units and achieved-value subtext, use the
+[NumberField target recipe](numeric-targets.md). It also explains the per-field versus record-wide
+draft choice and the limits of incomplete-text handling.
+
 ## 1. Render a derived SVG inside a Dashlet
 
 Supply your own pure, synchronous solver with this example interface:

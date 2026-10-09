@@ -792,3 +792,13 @@ CSS builds. This is DOM and package-consumption evidence, not rendered geometry 
 [Discovery tests](../../scripts/dogfood/dogfood.test.mjs) verify that `dogfood:locate` resolves only
 the committed recommendation and rejects unavailable or dirty snapshots. Snapshot `.2` includes the
 recipes and their source examples; the public runtime APIs are unchanged from `.1`.
+
+### Numeric target consumer recipe, 2026-10-09
+
+The [NumberField target recipe](../development/numeric-targets.md) documents the public unbound
+control adapter, unit formatting, accepted/achieved readout, and scalar versus record draft
+boundaries. [Its DOM test](../../packages/picodash/tests/dogfood/numeric-target.test.tsx) verifies
+incomplete text while editing, rejected numbers, null drafts, error association, read-only discard,
+disabled input, and recovery. The fixture passed against installed `.2` tarballs outside the
+repository with public typechecking and Vite/Next CSS builds. Snapshot `.3` adds this guide and
+copyable source; runtime APIs are unchanged. Control-local incomplete text is not Nexus persistence.

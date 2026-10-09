@@ -89,8 +89,9 @@ async function main() {
       join(root, 'docs/development/consumer-recipes.md'),
       join(output, 'consumer-recipes.md'),
     )
+    await cp(join(root, 'docs/development/numeric-targets.md'), join(output, 'numeric-targets.md'))
     await mkdir(join(output, 'example'))
-    for (const file of ['Controls.tsx', 'Designer.tsx', 'designer-model.ts']) {
+    for (const file of ['Controls.tsx', 'Designer.tsx', 'designer-model.ts', 'NumericTarget.tsx']) {
       await cp(join(root, 'packages/picodash/tests/dogfood', file), join(output, 'example', file))
     }
     await writeFile(

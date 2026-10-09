@@ -84,7 +84,13 @@ try {
         noEmit: true,
         types: ['vite-plus/client'],
       },
-      include: ['Controls.tsx', 'main.tsx', 'Designer.tsx', 'designer-model.ts'],
+      include: [
+        'Controls.tsx',
+        'main.tsx',
+        'Designer.tsx',
+        'designer-model.ts',
+        'NumericTarget.tsx',
+      ],
     }),
   )
   await writeFile(

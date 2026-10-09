@@ -110,6 +110,7 @@ async function main() {
       'install.mjs',
       'GUIDE.md',
       'consumer-recipes.md',
+      'numeric-targets.md',
       'example',
     ])
       await cp(join(bundle, file), join(vendor, file), { recursive: true })
