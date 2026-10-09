@@ -939,3 +939,8 @@ scales 1.06, and stays inside the right endpoint while the thumb scales 1.25. Li
 390px layouts were visually checked. The package release gate and artifact checks pass after
 merging main's dependency updates. The consumer's solver and delayed freshness indicator remain
 application-owned.
+
+Snapshot .11 (`f4063deff895ae7f33235266c0a34b394e6cc811`) passes the package release gate
+and isolated consumption check, including installed guides/compiled recipes, repeat/frozen install,
+.10 update/rollback, component interactions, and Vite/Next CSS builds. The production Lab is
+restored. Planetary-designer adoption remains Maz-owned.
