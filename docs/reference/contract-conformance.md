@@ -897,3 +897,14 @@ check, including installed guide/example byte equality, compiled installed recip
 frozen reinstall, .8 update/rollback, component interactions and Vite/Next CSS builds. The runtime
 UI is unchanged from .8; the production Lab was restored and its target/achieved rendering and
 linked editing were inspected without browser errors.
+
+### Panel-hosted short-height scroll preservation
+
+Maz's .9 consumer found that intrinsic Panel measurement could clear the outer Stack's scroll
+position after group expansion or keyboard focus. Geometry-only overflow checks did not prove
+reachability. Panel measurement now preserves descendant horizontal and vertical scroll offsets
+across its temporary intrinsic/minimum size probes. The existing two-Panel Style Lab journey
+constrains the actual Panel boundary, tabs within its overflowing Stack, refreshes geometry, and
+asserts that focus remains inside the visible scrollport. This regression failed before the fix
+and passes after it; all 195 DashPanel tests also pass. Phone-sized Chromium inspection remains
+separate from real touch-device and software-keyboard acceptance.

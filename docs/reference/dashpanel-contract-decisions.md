@@ -114,7 +114,10 @@ transient and is never written to Nexus.
 A free Panel keeps its preferred intrinsic height while it fits. When its header is dragged toward
 the boundary bottom, the Panel's resolved height reduces to the remaining space instead of moving
 the header back up. It never shrinks below the shell's measured minimum. For a root DashStack, that
-minimum includes the `start` and `end` pin bands; only the automatic band becomes a scrollport.
+minimum includes the `start` and `end` pin bands; normally only the automatic band becomes a
+scrollport. When the host cannot fit those natural pin heights, the Stack scrolls as a whole so
+all controls remain reachable. Intrinsic/minimum measurement preserves descendant scroll offsets,
+including scrolling performed by native keyboard focus, rather than returning content to the top.
 
 Contraction is a temporary boundary constraint, not a new preferred height. Releasing a Hybrid
 Panel into a bottom corner restores its intrinsic height, capped by the corner's available

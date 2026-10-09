@@ -929,6 +929,15 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       const transform = element.style.getPropertyValue('transform')
       const transformPriority = element.style.getPropertyPriority('transform')
       const layoutMotion = element.hasAttribute('data-picodash-dock-allocation-motion')
+      // Intrinsic measurement temporarily expands the shell. The browser can clamp
+      // descendant scroll offsets to zero even though the final geometry is unchanged.
+      // Preserve the user's position, including native focus scrolling, across both probes.
+      const scrolled: { node: Element; top: number; left: number }[] = []
+      for (const node of [element, ...element.querySelectorAll('*')]) {
+        const top = node.scrollTop
+        const left = node.scrollLeft
+        if (top !== 0 || left !== 0) scrolled.push({ node, top, left })
+      }
       let panelRect: DOMRect
       let minimumHeight: number
       try {
@@ -939,6 +948,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         if (layoutMotion) {
           if (transform) element.style.setProperty('transform', transform, transformPriority)
           else element.style.removeProperty('transform')
+        }
+        for (const { node, top, left } of scrolled) {
+          if (node.scrollTop !== top) node.scrollTop = top
+          if (node.scrollLeft !== left) node.scrollLeft = left
         }
       }
       const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)

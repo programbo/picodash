@@ -1384,6 +1384,42 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   expect(pinnedGeometry.endTop).toBeGreaterThanOrEqual(pinnedGeometry.automaticBottom - 1)
   expect(pinnedGeometry.endBottom).toBeLessThanOrEqual(pinnedGeometry.listBottom + 1)
   await assertStackOverflowFallback(basicsList.locator('xpath=..'))
+
+  // Exercise the actual Panel cap, not an explicit height on the Stack: intrinsic
+  // Panel measurement must not erase browser-driven scrolling of its descendants.
+  await styleBoundary.evaluate((element) => {
+    element.style.blockSize = '240px'
+    element.style.minBlockSize = '240px'
+  })
+  const shortStack = basicsList.locator('xpath=..')
+  await expect(shortStack).toHaveAttribute('data-picodash-stack-overflow')
+  const textControl = basicsList.getByRole('textbox', { name: 'TextDashlet', exact: true })
+  await textControl.focus()
+  await textControl.press('Tab')
+  // Force a legitimate geometry refresh after native focus scrolling has occurred.
+  await page.evaluate(() => window.dispatchEvent(new Event('resize')))
+  await page.evaluate(
+    () =>
+      new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      ),
+  )
+  const focusVisibility = await shortStack.evaluate((stack) => {
+    const active = stack.ownerDocument.activeElement
+    const viewport = stack.getBoundingClientRect()
+    const focused = active?.getBoundingClientRect()
+    return {
+      containsFocus: active !== null && stack.contains(active),
+      scrollTop: stack.scrollTop,
+      visible:
+        focused !== undefined &&
+        focused.top >= viewport.top - 1 &&
+        focused.bottom <= viewport.bottom + 1,
+    }
+  })
+  expect(focusVisibility.containsFocus).toBe(true)
+  expect(focusVisibility.scrollTop).toBeGreaterThan(0)
+  expect(focusVisibility.visible).toBe(true)
 })
 
 test('opens, cancels, and restores focus for the landed shared AlertDialog', async ({ page }) => {
