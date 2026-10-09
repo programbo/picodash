@@ -1,5 +1,6 @@
 'use client'
 
+import { DashGroupHostContext, type DashGroupPresentation } from './group-host.js'
 import { useItemAttention } from './item-attention.js'
 
 import {
@@ -271,6 +272,7 @@ type RegisteredNodeNativeProps = Omit<
 >
 
 export type DashGroupProps = RegisteredNodeNativeProps & {
+  readonly detachable?: boolean | 'floating' | 'hybrid'
   readonly glow?: boolean | CSSProperties['color']
   readonly id: string
   readonly label?: ReactNode
@@ -1411,6 +1413,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     'aria-label': ariaLabel,
     children,
     className,
+    detachable = false,
     collapsible: declaredCollapsible,
     defaultCollapsed = false,
     reorderable,
@@ -1424,6 +1427,14 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   const ancestry = useContext(DashGroupAncestryContext)
   if (ancestry.depth > 1) throw new TypeError('DashStack supports one subgroup level.')
   const subgroup = ancestry.depth === 1
+  const GroupHost = useContext(DashGroupHostContext)
+  if (detachable && (!GroupHost || subgroup || label === undefined))
+    throw new TypeError('Detachable groups require PicodashProvider and a labelled root group.')
+  const [presentation, present] = useState<DashGroupPresentation>({ location: 'inline' })
+  const groupRef = useRef<HTMLDivElement>(null)
+  const homeRef = useRef<HTMLDivElement>(null)
+  const actionsRef = useRef<HTMLDivElement>(null)
+  const structure = useContext(DashStackStructureContext)
   if (subgroup && (declaredCollapsible === true || defaultCollapsed || pin !== undefined))
     throw new TypeError('Subgroups cannot collapse or pin.')
   if (label === undefined && (declaredCollapsible === true || defaultCollapsed))
@@ -1460,18 +1471,14 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   const collapsed = collapsible ? (collapseOverride ?? defaultCollapsed) : false
   const [renderedCollapsed, setRenderedCollapsed] = useState(collapsed)
   const disclosureMotion = useRef<ReturnType<typeof createDisclosureFeedback> | null>(null)
-  useLayoutEffect(() => {
-    if (!contentRef.current) return
-    const presentation = createDisclosureFeedback(contentRef.current)
-    disclosureMotion.current = presentation
-    return () => {
-      presentation.dispose()
-      disclosureMotion.current = null
-    }
+  const setContent = useCallback((element: HTMLDivElement | null) => {
+    disclosureMotion.current?.dispose()
+    contentRef.current = element
+    disclosureMotion.current = element ? createDisclosureFeedback(element) : null
   }, [])
   useLayoutEffect(() => {
-    disclosureMotion.current?.play(renderedCollapsed)
-  }, [renderedCollapsed])
+    disclosureMotion.current?.play(presentation.location === 'inline' && renderedCollapsed)
+  }, [renderedCollapsed, presentation.location])
   useLayoutEffect(() => {
     if (renderedCollapsed === collapsed) return
     const content = contentRef.current
@@ -1482,6 +1489,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
         : (content?.ownerDocument?.activeElement ??
           (typeof document !== 'undefined' ? document.activeElement : null))
     if (
+      presentation.location === 'inline' &&
       !renderedCollapsed &&
       collapsed &&
       content &&
@@ -1506,15 +1514,19 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   )
 
   const parentOrdering = useContext(DashStackOrderingContext)
+  const contentVisible =
+    presentation.location === 'panel'
+      ? presentation.visible
+      : ancestry.visible && !renderedCollapsed
   const groupOrderingDeclarations = useMemo(
     () =>
       declarations.map((declaration) => ({
         id: String((declaration.props as { readonly id?: unknown }).id),
         name: declarationAccessibleName(declaration),
         pin: (declaration.props as { readonly pin?: 'start' | 'end' }).pin,
-        visible: ancestry.visible && !renderedCollapsed,
+        visible: contentVisible,
       })),
-    [declarations, renderedCollapsed, ancestry.visible],
+    [declarations, contentVisible],
   )
   const groupOrder = usePicodashNexusSelector(scopedNexus, (state) =>
     state.scope?.dashStack?.groupOrders.get(id),
@@ -1525,7 +1537,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     durableOrder: groupOrder,
     reorderable: reorderable ?? parentOrdering?.ordering.reorderable ?? true,
     groupId: id,
-    visible: ancestry.visible && !renderedCollapsed,
+    visible: contentVisible,
   })
   useStructureNode({
     id,
@@ -1535,10 +1547,11 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     fieldKeys: [],
     collapsible,
     collapsed,
+    presentation,
   })
   const childAncestry = useMemo(
-    () => ({ id, depth: ancestry.depth + 1, visible: ancestry.visible && !renderedCollapsed }),
-    [id, ancestry.depth, ancestry.visible, renderedCollapsed],
+    () => ({ id, depth: ancestry.depth + 1, visible: contentVisible }),
+    [id, ancestry.depth, contentVisible],
   )
   const groupReorderHandle = useOrderingHandle(id, labelText)
   void pin
@@ -1584,17 +1597,53 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
       )
   }
 
+  const groupContent = (
+    <div
+      ref={setContent}
+      id={contentId}
+      role="list"
+      aria-label={isTextLabel(label) ? undefined : ariaLabel}
+      aria-labelledby={isTextLabel(label) ? labelId : undefined}
+      data-picodash-dashgroup-list
+      data-picodash-dashstack-compact={compact || undefined}
+      data-collapsed={!contentVisible ? 'true' : 'false'}
+      aria-hidden={!contentVisible || undefined}
+      hidden={!contentVisible || undefined}
+      inert={!contentVisible || undefined}
+    >
+      <DashGroupAncestryContext.Provider value={childAncestry}>
+        <DashStackContentPolicyContext.Provider value={contentPolicy}>
+          <DashStackOrderingContext.Provider value={childOrdering}>
+            {orderedDeclarations.map((declaration, index) =>
+              createElement(
+                Fragment,
+                {
+                  key: declaration.key ?? declarationIdentity(declaration, `${id}-${index}`),
+                },
+                wrapDeclaration(declaration, 'group', `${id}-${index}`),
+              ),
+            )}
+          </DashStackOrderingContext.Provider>
+        </DashStackContentPolicyContext.Provider>
+      </DashGroupAncestryContext.Provider>
+    </div>
+  )
   return (
     <DashStackNodeLeafBoundary id={id} kind="group">
       <div
         {...props}
         style={groupStyle}
-        ref={ref}
+        ref={(element) => {
+          groupRef.current = element
+          if (typeof ref === 'function') ref(element)
+          else if (ref) ref.current = element
+        }}
         role="listitem"
         className={classNames('picodash-dashstack-item picodash-dashstack-group-item', className)}
         data-picodash-dashgroup={id}
         data-glow={emphasisColor(glow, 'glow') !== undefined || undefined}
         data-subgroup={subgroup || undefined}
+        data-detached={presentation.location === 'panel' || undefined}
         data-collapsible={collapsible || undefined}
         data-headerless={label === undefined || undefined}
         data-collapsed={renderedCollapsed ? 'true' : 'false'}
@@ -1608,6 +1657,9 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
           {label !== undefined ? (
             <DashHeader
               slots={{
+                trailing: detachable ? (
+                  <div ref={actionsRef} data-picodash-group-host-actions />
+                ) : undefined,
                 leading: collapsible ? (
                   <>
                     {groupReorderHandle}
@@ -1618,6 +1670,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
                       aria-expanded={!renderedCollapsed}
                       aria-controls={contentId}
                       type="button"
+                      disabled={presentation.location === 'panel' || undefined}
                       onClick={toggleCollapsed}
                     >
                       {renderedCollapsed ? '+' : '−'}
@@ -1636,35 +1689,57 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
           ) : (
             groupReorderHandle
           )}
-          <div
-            ref={contentRef}
-            id={contentId}
-            role="list"
-            aria-label={isTextLabel(label) ? undefined : ariaLabel}
-            aria-labelledby={isTextLabel(label) ? labelId : undefined}
-            data-picodash-dashgroup-list
-            data-picodash-dashstack-compact={compact || undefined}
-            data-collapsed={renderedCollapsed ? 'true' : 'false'}
-            aria-hidden={renderedCollapsed || undefined}
-            hidden={renderedCollapsed || undefined}
-            inert={renderedCollapsed || undefined}
-          >
-            <DashGroupAncestryContext.Provider value={childAncestry}>
-              <DashStackContentPolicyContext.Provider value={contentPolicy}>
-                <DashStackOrderingContext.Provider value={childOrdering}>
-                  {orderedDeclarations.map((declaration, index) =>
-                    createElement(
-                      Fragment,
-                      {
-                        key: declaration.key ?? declarationIdentity(declaration, `${id}-${index}`),
-                      },
-                      wrapDeclaration(declaration, 'group', `${id}-${index}`),
-                    ),
-                  )}
-                </DashStackOrderingContext.Provider>
-              </DashStackContentPolicyContext.Provider>
-            </DashGroupAncestryContext.Provider>
-          </div>
+          {detachable && GroupHost ? (
+            <>
+              <div ref={homeRef} data-picodash-group-home />
+              <GroupHost
+                id={id}
+                name={labelText}
+                label={label}
+                mode={detachable === 'floating' ? 'floating' : 'hybrid'}
+                scope={scopedNexus}
+                groupRef={groupRef}
+                homeRef={homeRef}
+                actionsRef={actionsRef}
+                contentRef={contentRef}
+                collapsed={collapsed}
+                present={present}
+                registerReveal={(reveal) => structure?.registerHost(id, reveal) ?? (() => {})}
+                reorder={{
+                  begin(event, header) {
+                    parentOrdering?.pointerDown(id, {
+                      handle: header,
+                      pointerId: event.pointerId,
+                      clientY: event.clientY,
+                      rowBounds: () =>
+                        [
+                          ...(groupRef.current?.parentElement?.querySelectorAll<HTMLElement>(
+                            ':scope > [data-picodash-dashgroup], :scope > [data-picodash-dashlet]',
+                          ) ?? []),
+                        ].map((node) => {
+                          const rect = reorderLayoutRect(node)
+                          return {
+                            id:
+                              node.getAttribute('data-picodash-dashgroup') ??
+                              node.getAttribute('data-picodash-dashlet') ??
+                              '',
+                            top: rect.top,
+                            bottom: rect.bottom,
+                          }
+                        }),
+                    })
+                  },
+                  move: (event) => parentOrdering?.pointerMove(event),
+                  end: (event) => parentOrdering?.pointerUp(event),
+                  cancel: () => parentOrdering?.cancel(),
+                }}
+              >
+                {groupContent}
+              </GroupHost>
+            </>
+          ) : (
+            groupContent
+          )}
         </div>
       </div>
     </DashStackNodeLeafBoundary>

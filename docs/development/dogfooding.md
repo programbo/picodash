@@ -37,6 +37,18 @@ For groups, TargetSlider, gestures and linked attention, see [linked controls](l
 For custom numeric controls, see [NumberField targets and achieved readouts](numeric-targets.md).
 For Any maximum and feasible slider intervals, see [open-ended ranges](open-ended-ranges.md).
 
+## Detachable groups (snapshot .24)
+
+Copy `example/Detachable.tsx` and its `Controls.tsx` model companion, create the Nexus once, and
+render `<Detachable nexus={nexus} />`. Inside `PicodashProvider`, a labelled root group can use
+`detachable` (Hybrid) or `detachable="floating"`. Use the right header action or pull the header
+sideways to detach; the Panel's Return action or a drag into its original Stack returns it.
+
+Controls, drafts, IDs and order stay intact. The home heading can reveal the detached Panel.
+Disclosure state and Panel position are remembered for the session. Fine-pointer desktop viewports
+of at least 768px support detachment; narrowing returns inline. Subgroups and headerless groups
+cannot detach. Detached layout is not persisted. The editor surface mounts after browser hydration.
+
 ## Authored Dashlet emphasis (snapshot .6)
 
 `band`, `glow`, and `tint` are independent visual props on every Dashlet. Bare props or `true`

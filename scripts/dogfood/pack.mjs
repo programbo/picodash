@@ -110,6 +110,7 @@ async function main() {
       'OpenCountRange.tsx',
       'Emphasis.tsx',
       'LinkedControls.tsx',
+      'Detachable.tsx',
     ]) {
       await cp(join(root, 'packages/picodash/tests/dogfood', file), join(output, 'example', file))
     }

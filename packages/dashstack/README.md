@@ -49,3 +49,7 @@ The retained ready-made candidates are Text, Number, Slider, Switch, Select, Seg
 Other existing root Dashlet exports remain evaluation prototypes and are excluded from the stable
 catalog. See the [M7 disposition ledger](../../docs/internal/m7-dashlet-curation.md); owner approval was
 recorded on 2026-09-17.
+
+For Picodash's desktop detachable groups, the explicit `@picodash/dashstack/integration` seam
+connects logical group structure to a host without adding a DashPanel dependency. Application
+usage is documented in [Detachable groups](../../docs/reference/picodash.md#detachable-groups).

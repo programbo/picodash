@@ -126,8 +126,8 @@ test('reorders the long control desk with glass drag surfaces and fixed pin lane
   await desk.scrollIntoViewIfNeeded()
   // Pinned groups and rows can move within their band, never into the automatic lane.
   for (const [band, label] of [
-    ['start', 'Pinned · Workspace'],
-    ['end', 'Pinned · Cadence'],
+    ['start', 'start-workspace pinned controls'],
+    ['end', 'end-cadence pinned controls'],
   ] as const) {
     const grip = desk.getByRole('button', { name: `Reorder ${label}`, exact: true })
     const prior = await ids(band)
@@ -174,5 +174,101 @@ test('reorders the long control desk with glass drag surfaces and fixed pin lane
   await name.press('ArrowDown')
   await name.press('Escape')
   await expect(desk.locator('[data-picodash-reorder-active]')).toHaveCount(0)
+  expect(errors).toEqual([])
+})
+
+test('detaches one retained group surface and returns it through keyboard, drag and responsive fallback', async ({
+  page,
+}) => {
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await page.goto('/lab')
+  const group = page.locator('[data-picodash-dashgroup="target-feedback"]')
+  const header = group.locator(':scope > [role="group"] > [data-slot="dash-header"]')
+  const detach = page.getByRole('button', { name: 'Detach group Target feedback', exact: true })
+  const panel = page.getByRole('complementary', { name: 'Target feedback', exact: true })
+  const editor = page.getByRole('textbox', { name: 'Target Bore', exact: true })
+  const original = await editor.elementHandle()
+  await editor.fill('7.')
+  await detach.focus()
+  await page.keyboard.press('Enter')
+  await expect(panel).toBeVisible()
+  await expect
+    .poll(() => panel.evaluate((node) => node.contains(document.activeElement)))
+    .toBe(true)
+  expect(await editor.evaluate((node, original) => node === original, original)).toBe(true)
+  const value = await editor.inputValue()
+  await page.getByRole('button', { name: 'Return Target feedback to stack', exact: true }).click()
+  await expect(panel).toHaveCount(0)
+  await expect(group.getByRole('button', { name: 'Collapse group Target feedback' })).toBeFocused()
+  expect(await editor.inputValue()).toBe(value)
+  expect(await editor.evaluate((node, original) => node === original, original)).toBe(true)
+  const band = group.locator('..')
+  const order = () =>
+    band
+      .locator(':scope > [role="listitem"]')
+      .evaluateAll((nodes) =>
+        nodes.map(
+          (node) =>
+            node.getAttribute('data-picodash-dashgroup') ??
+            node.getAttribute('data-picodash-dashlet'),
+        ),
+      )
+  const before = await order()
+  const pull = async () => {
+    await header.scrollIntoViewIfNeeded()
+    const box = (await header.boundingBox())!
+    const x = box.x + box.width / 2
+    const y = box.y + box.height / 2
+    await page.mouse.move(x, y)
+    await page.mouse.down()
+    await page.mouse.move(x + 8, y + 16, { steps: 4 })
+    await page.mouse.move(x + 64, y + 16, { steps: 4 })
+    await expect(panel).toBeVisible()
+    await expect(panel).toHaveAttribute('data-picodash-dragging', 'true')
+    await page.mouse.move(x + 320, y - 80, { steps: 6 })
+    return { x, y }
+  }
+  await pull()
+  await page.keyboard.press('Escape')
+  await page.mouse.up()
+  await expect(panel).toHaveCount(0)
+  expect(await order()).toEqual(before)
+  expect(await editor.evaluate((node, original) => node === original, original)).toBe(true)
+  await pull()
+  await page.mouse.up()
+  await expect(panel).not.toHaveAttribute('data-picodash-dragging')
+  expect(await order()).toEqual(before)
+  const settled = (await panel.boundingBox())!
+  expect(settled.x).toBeGreaterThan((await group.boundingBox())!.x + 150)
+  // Move a settled Panel over its own Stack. Only the empty home slot expands.
+  const ph = panel.locator('[data-slot="dash-header"]').first()
+  const pb = (await ph.boundingBox())!
+  const home = (await header.boundingBox())!
+  await page.mouse.move(pb.x + pb.width / 2, pb.y + pb.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(home.x + home.width / 2, home.y + home.height / 2, { steps: 8 })
+  await expect(group).toHaveAttribute('data-picodash-return-home', '')
+  await expect(page.locator('[data-picodash-group-home][data-return-preview]')).toBeVisible()
+  expect(await page.getByRole('textbox', { name: 'Target Bore', exact: true }).count()).toBe(1)
+  await page.mouse.up()
+  await expect(panel).toHaveCount(0)
+  // A remembered collapsed group opens in its Panel and returns collapsed.
+  await group.getByRole('button', { name: 'Collapse group Target feedback' }).click()
+  await detach.click()
+  await expect(panel.getByRole('textbox', { name: 'Target Bore', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Return Target feedback to stack', exact: true }).click()
+  await expect(group.getByRole('button', { name: 'Expand group Target feedback' })).toBeFocused()
+  await expect(editor).toBeHidden()
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await detach.click()
+  await expect(panel).toBeVisible()
+  await page.setViewportSize({ width: 600, height: 900 })
+  await expect(panel).toHaveCount(0)
+  await expect(detach).toBeDisabled()
+  await page.setViewportSize({ width: 1280, height: 900 })
+  await expect(detach).toBeEnabled()
+  await expect(panel).toHaveCount(0)
   expect(errors).toEqual([])
 })

@@ -58,3 +58,7 @@ cohesive browser seams.
 
 The canonical product name and pre-release cutover are defined by
 [ADR 0007](../adr/0007-dashstack-name-and-public-identity.md).
+
+`/integration` exposes the group-host protocol accepted in
+[ADR 0009](../adr/0009-detachable-groups.md). DashStack owns logical membership, visibility metadata,
+reveal and reorder cancellation; Picodash owns relocation and Panel coordination.

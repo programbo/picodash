@@ -43,3 +43,8 @@ without explicit authorization.
 The [consumer recipes](../development/consumer-recipes.md) distinguish public package APIs from
 application-owned helpers. Their executable fixtures live in `tests/dogfood` in the facade package;
 they must also pass through the isolated consumer check before changing the recommendation.
+
+Detachable group coordination is owned by Picodash under
+[ADR 0009](../adr/0009-detachable-groups.md). Use the documented DashStack and DashPanel
+`/integration` seams; preserve one editor tree and session-only detached layout. The public opt-in
+and lifecycle are in [Detachable groups](../reference/picodash.md#detachable-groups).

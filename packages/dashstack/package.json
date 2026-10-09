@@ -9,6 +9,7 @@
   "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
+    "./integration": "./dist/integration.mjs",
     "./catalog": "./dist/catalog.mjs",
     "./ui": "./dist/ui.mjs",
     "./charts": "./dist/charts.mjs",

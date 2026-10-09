@@ -52,6 +52,10 @@ export function DashPanelIdentityProvider({
   return <PanelIdentityContext.Provider value={scopeId}>{children}</PanelIdentityContext.Provider>
 }
 
+export function useDashPanelHostId() {
+  return useContext(PanelIdentityContext)
+}
+
 const unavailableByRuntime = new WeakMap<PanelRuntime, Map<string, DashPanelController>>()
 
 function unavailableController(runtime: PanelRuntime, scopeId: string): DashPanelController {

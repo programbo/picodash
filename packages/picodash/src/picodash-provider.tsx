@@ -1,5 +1,7 @@
 'use client'
 
+import { DashStackIntegrationProvider } from '@picodash/dashstack/integration'
+import { DetachableGroup } from './detachable-group.js'
 import type { ReactElement } from 'react'
 import type { PicodashFieldDefinitions } from '@picodash/nexus'
 import {
@@ -60,7 +62,9 @@ export function PicodashProvider<
       {...(props as DashPanelProviderProps<Fields, CustomTheme>)}
       dockPositions={resolvedDockPositions}
     >
-      {children}
+      <DashStackIntegrationProvider groupHost={DetachableGroup}>
+        {children}
+      </DashStackIntegrationProvider>
     </DashPanelProvider>
   )
 }

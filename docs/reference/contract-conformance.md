@@ -1218,3 +1218,21 @@ Snapshot .23 (`9ea29d052bcf459249cda5f4dec76e477b6c851d`) is clean and immutable
 consumer checks pass repeat/frozen installation, .22 update/rollback, installed recipe types,
 component interaction and Vite/Next CSS builds. The recommendation advances after those checks;
 consumer application adoption remains owned by Maz.
+
+## Detachable groups (2026-10-10)
+
+[ADR 0009](../adr/0009-detachable-groups.md) adds one session-only Panel per opted-in labelled root
+group. The primary integration owner is
+[`detachable-groups.test.tsx`](../../packages/picodash/tests/detachable-groups.test.tsx): retained
+editor/draft identity, immutable logical membership and values, remembered collapse, actual host
+visibility/reveal, responsive return, source teardown, Strict Mode, pins, independent hosts and the
+transition reducer. The three affected package release checks pass: DashStack 310 tests, DashPanel
+195 tests, Picodash 22 tests, plus declarations, builds and package artifact contracts.
+
+The detachable journey in [`reordering.spec.ts`](../../apps/lab/tests/reordering.spec.ts) proves
+native pointer capture handoff after vertical preview, Escape rollback, settled position, home-drop
+feedback/return, keyboard focus, retained DOM identity, disclosure and responsive fallback. Manual
+Lab inspection covers the relocated grid and both themes. Motion policy, Lab types and production
+build pass. Desktop fine-pointer support is intentional; mobile sheet detachment, cross-Stack
+transfer and nested detachable groups are outside this contract. See the public
+[usage and lifecycle](picodash.md#detachable-groups), including the post-hydration content mount.

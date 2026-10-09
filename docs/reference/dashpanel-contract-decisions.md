@@ -154,3 +154,12 @@ behavior; a theme cannot independently delay those semantics.
 - [ADR 0004: DashPanel launcher item identity](../adr/0004-dashpanel-launcher-item-identity.md)
 - [DashPanel target reference](dashpanel.md)
 - [Nexus contract decisions](nexus-contract-decisions.md)
+
+### Detachable group hosting (PANEL-TRANSFER-1)
+
+Accepted 2026-10-10 in [ADR 0009](../adr/0009-detachable-groups.md). `/integration` adds the explicit
+`DashPanelTransferBoundary` protocol and `useDashPanelHostId` for Picodash coordination. A transfer
+supplies a separate session layout scope, replaces Close with Return to stack, and can hand off a
+native pointer to normal Panel movement. A home return target takes precedence over snap/dock
+intent. Cancellation reports back to the coordinator. The standalone Panel surface, application
+value scope and ordinary durable-layout behavior are unchanged; DashPanel imports no DashStack code.

@@ -108,6 +108,7 @@ try {
         'OpenCountRange.tsx',
         'Emphasis.tsx',
         'LinkedControls.tsx',
+        'Detachable.tsx',
       ],
     }),
   )

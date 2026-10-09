@@ -2881,3 +2881,82 @@
     pointer-events: none;
   }
 }
+
+/* Detachable groups keep their one content surface in either host. */
+[data-picodash-group-home],
+[data-picodash-group-surface] {
+  min-inline-size: 0;
+  grid-column: 1 / -1;
+}
+[data-picodash-group-home]:not([data-return-preview]),
+[data-picodash-group-surface] {
+  display: contents;
+}
+[data-picodash-group-home][data-return-preview] {
+  border: var(--picodash-border-width-thin) dashed var(--picodash-color-accent);
+  border-radius: var(--picodash-radius-md);
+  background: color-mix(in oklab, var(--picodash-color-accent) 8%, transparent);
+}
+[data-picodash-return-target] {
+  outline: var(--picodash-border-width-thin) solid var(--picodash-color-accent);
+  outline-offset: 2px;
+}
+[data-picodash-return-home] > [role='group'] > [data-slot='dash-header'] {
+  color: var(--picodash-color-accent);
+}
+[data-picodash-group-host-actions] button {
+  color: var(--picodash-color-text-muted);
+  background: transparent;
+  border: 0;
+  border-radius: var(--picodash-radius-sm);
+  min-inline-size: var(--picodash-control-height-sm);
+  min-block-size: var(--picodash-control-height-sm);
+  cursor: pointer;
+}
+[data-picodash-group-host-actions] button:disabled {
+  opacity: var(--picodash-opacity-disabled);
+  cursor: default;
+}
+[data-picodash-group-host-actions] button:focus-visible {
+  outline: 2px solid var(--picodash-color-accent);
+}
+[data-detached] > [role='group'] > [data-slot='dash-header'] {
+  opacity: 0.8;
+}
+[data-picodash-detached-group] {
+  --_picodash-dashstack-reorder-track: 1rem;
+  --_picodash-dashstack-trailing-max-inline-size: 8rem;
+  min-inline-size: 0;
+}
+
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']:has([data-picodash-group-host-actions]) {
+  position: relative;
+  cursor: grab;
+}
+.picodash-dashstack-group-item
+  > [data-picodash-dashgroup]
+  > [data-slot='dash-header']:has([data-picodash-group-host-actions])
+  [data-slot='dash-header-title'] {
+  padding-inline-end: var(--picodash-control-height-sm);
+}
+[data-picodash-group-host-actions] {
+  position: absolute;
+  inset-inline-end: var(--picodash-space-1);
+  inset-block-start: 50%;
+  translate: 0 -50%;
+}
+[data-picodash-detached-group] > [data-picodash-group-surface] > [data-picodash-dashgroup-list] {
+  grid-template-columns: var(--_picodash-dashstack-reorder-track) minmax(
+      0,
+      min(30%, var(--picodash-dashlet-label-width))
+    ) minmax(0, 1fr) minmax(
+      min-content,
+      min(18%, var(--_picodash-dashstack-trailing-max-inline-size))
+    );
+}
+
+[data-slot='dash-header']:has([data-picodash-group-host-actions]) [data-picodash-group-disclosure] {
+  position: relative;
+}

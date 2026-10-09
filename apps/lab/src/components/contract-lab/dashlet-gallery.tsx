@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { PicodashProvider } from '@picodash/picodash'
 import { usePicodashNexusSelector } from '@picodash/nexus/react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import {
@@ -410,144 +411,81 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
 
   return (
     <PicodashThemeProvider theme={theme} density={density}>
-      <ContractLabDevBridgeConnector
-        nexus={nexus}
-        registrationId="dashlet-gallery"
-        label="Dashlet gallery"
-        disclosure={galleryBridgeDisclosure}
-        permissions={galleryBridgePermissions}
-      />
-      <main
-        data-dashlet-gallery
-        className="min-h-svh bg-(--picodash-color-canvas) px-3 py-5 text-(--picodash-color-text) sm:px-6 sm:py-8"
-      >
-        <div className="mx-auto max-w-80">
-          <header className="mb-5">
-            <Link
-              href="/lab/planetary"
-              className="mb-3 inline-block text-sm underline underline-offset-4"
-            >
-              Planetary Lab
-            </Link>
-            <div className="flex items-center justify-between gap-3">
-              <h1 className="text-xl font-semibold tracking-tight">Dashlet Lab</h1>
-              <Button variant="ghost" onPress={onOpenContracts}>
-                Contract tools
-              </Button>
-            </div>
-            <p className="mt-1 text-sm text-(--picodash-color-text-muted)">
-              Shared rows. Real controls.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                onPress={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      <PicodashProvider nexus={nexus} theme={theme} density={density}>
+        <ContractLabDevBridgeConnector
+          nexus={nexus}
+          registrationId="dashlet-gallery"
+          label="Dashlet gallery"
+          disclosure={galleryBridgeDisclosure}
+          permissions={galleryBridgePermissions}
+        />
+        <main
+          data-dashlet-gallery
+          className="min-h-svh bg-(--picodash-color-canvas) px-3 py-5 text-(--picodash-color-text) sm:px-6 sm:py-8"
+        >
+          <div className="mx-auto max-w-80">
+            <header className="mb-5">
+              <Link
+                href="/lab/planetary"
+                className="mb-3 inline-block text-sm underline underline-offset-4"
               >
-                {theme === 'dark' ? 'Light theme' : 'Dark theme'}
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={density === 'compact'}
-                onPress={() => setDensity(density === 'regular' ? 'compact' : 'regular')}
-              >
-                Compact
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={readOnly}
-                onPress={() => setReadOnly(!readOnly)}
-              >
-                Read-only
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={disabled}
-                onPress={() => setDisabled(!disabled)}
-              >
-                Disabled
-              </Button>
-              <Button
-                variant="outline"
-                aria-pressed={reorderable}
-                onPress={() => setReorderable(!reorderable)}
-              >
-                Reorder
-              </Button>
-            </div>
-          </header>
-          <div className="rounded-xl bg-(--picodash-color-surface) py-2">
-            <DashStack
-              nexus={nexus}
-              id="gallery-controls"
-              aria-label="Dashlet gallery"
-              reorderable={reorderable}
-            >
-              {samples
-                .filter((sample) => !temporalSamples.has(sample.name))
-                .map((sample) =>
-                  sample.render({
-                    id: sample.name,
-                    label: sample.name.replace('Dashlet', ''),
-                    layout: 'inline',
-                    readOnly,
-                    disabled,
-                  }),
-                )}
-              <DashGroup
-                id="target-feedback"
-                label="Target feedback"
-                readOnly={readOnly}
-                disabled={disabled}
-              >
-                <DashGroup id="target-values" label="Requested and achieved">
-                  <SliderDashlet
-                    id="endpoint-detents"
-                    label="Detents"
-                    field={nexus.fields.detents}
-                    min={2}
-                    max={10}
-                    step={0.1}
-                    startDetent={{ value: 0, label: 'Off' }}
-                    endDetent={{ value: 12, label: 'Any' }}
-                  />
-                  <RangeDashlet
-                    id="range-detents"
-                    label="Count range"
-                    field={nexus.fields.countRange}
-                    min={2}
-                    max={12}
-                    step={1}
-                    endDetent={{ value: 13, label: 'Any' }}
-                    formatValue={(value) =>
-                      `${value.start}–${value.end === 13 ? 'Any' : value.end}`
-                    }
-                  />
-                  <GalleryTarget id="target-bore" label="Bore" nexus={nexus} />
-                  <TargetNumberDashlet
-                    id="target-reduction"
-                    label="Reduction"
-                    field={nexus.fields.target}
-                    step={0.01}
-                    unit=":1"
-                    result={{ status: 'ready', value: 5 }}
-                  />
-                  <NumberDashlet
-                    id="target-number"
-                    label="Linked target"
-                    field={nexus.fields.target}
-                    step={0.01}
-                  />
-                </DashGroup>
-              </DashGroup>
-              <DashGroup
-                id="date-time"
-                label="Date & time"
-                labelColor={theme === 'dark' ? '#e9b95b' : '#886000'}
-                readOnly={readOnly}
-                disabled={disabled}
+                Planetary Lab
+              </Link>
+              <div className="flex items-center justify-between gap-3">
+                <h1 className="text-xl font-semibold tracking-tight">Dashlet Lab</h1>
+                <Button variant="ghost" onPress={onOpenContracts}>
+                  Contract tools
+                </Button>
+              </div>
+              <p className="mt-1 text-sm text-(--picodash-color-text-muted)">
+                Shared rows. Real controls.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Button
+                  variant="outline"
+                  onPress={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                >
+                  {theme === 'dark' ? 'Light theme' : 'Dark theme'}
+                </Button>
+                <Button
+                  variant="outline"
+                  aria-pressed={density === 'compact'}
+                  onPress={() => setDensity(density === 'regular' ? 'compact' : 'regular')}
+                >
+                  Compact
+                </Button>
+                <Button
+                  variant="outline"
+                  aria-pressed={readOnly}
+                  onPress={() => setReadOnly(!readOnly)}
+                >
+                  Read-only
+                </Button>
+                <Button
+                  variant="outline"
+                  aria-pressed={disabled}
+                  onPress={() => setDisabled(!disabled)}
+                >
+                  Disabled
+                </Button>
+                <Button
+                  variant="outline"
+                  aria-pressed={reorderable}
+                  onPress={() => setReorderable(!reorderable)}
+                >
+                  Reorder
+                </Button>
+              </div>
+            </header>
+            <div className="rounded-xl bg-(--picodash-color-surface) py-2">
+              <DashStack
+                nexus={nexus}
+                id="gallery-controls"
+                aria-label="Dashlet gallery"
+                reorderable={reorderable}
               >
                 {samples
-                  .filter((sample) => temporalSamples.has(sample.name))
+                  .filter((sample) => !temporalSamples.has(sample.name))
                   .map((sample) =>
                     sample.render({
                       id: sample.name,
@@ -557,39 +495,106 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
                       disabled,
                     }),
                   )}
-              </DashGroup>
-              <DashGroup
-                id="additional"
-                label="More examples"
-                reorderable={false}
-                pin="end"
-                readOnly={readOnly}
-                disabled={disabled}
-              >
-                {samples.map((sample) => sample.additional)}
-                <Dashlet id="emphasis-band" label="Band" band>
-                  <span>Theme default</span>
-                </Dashlet>
-                <Dashlet id="emphasis-glow" label="Glow" glow>
-                  <span>Theme default</span>
-                </Dashlet>
-                <Dashlet id="emphasis-tint" label="Tint" tint>
-                  <span>Theme default</span>
-                </Dashlet>
-                <TextDashlet
-                  id="emphasis-combined"
-                  label="Combined"
-                  field={nexus.fields.text}
-                  band="#e7a63c"
-                  glow="#e7a63c"
-                  tint="#e7a63c"
-                />
-              </DashGroup>
-            </DashStack>
-            <GalleryCharts nexus={nexus} />
+                <DashGroup
+                  id="target-feedback"
+                  detachable
+                  label="Target feedback"
+                  readOnly={readOnly}
+                  disabled={disabled}
+                >
+                  <DashGroup id="target-values" label="Requested and achieved">
+                    <SliderDashlet
+                      id="endpoint-detents"
+                      label="Detents"
+                      field={nexus.fields.detents}
+                      min={2}
+                      max={10}
+                      step={0.1}
+                      startDetent={{ value: 0, label: 'Off' }}
+                      endDetent={{ value: 12, label: 'Any' }}
+                    />
+                    <RangeDashlet
+                      id="range-detents"
+                      label="Count range"
+                      field={nexus.fields.countRange}
+                      min={2}
+                      max={12}
+                      step={1}
+                      endDetent={{ value: 13, label: 'Any' }}
+                      formatValue={(value) =>
+                        `${value.start}–${value.end === 13 ? 'Any' : value.end}`
+                      }
+                    />
+                    <GalleryTarget id="target-bore" label="Bore" nexus={nexus} />
+                    <TargetNumberDashlet
+                      id="target-reduction"
+                      label="Reduction"
+                      field={nexus.fields.target}
+                      step={0.01}
+                      unit=":1"
+                      result={{ status: 'ready', value: 5 }}
+                    />
+                    <NumberDashlet
+                      id="target-number"
+                      label="Linked target"
+                      field={nexus.fields.target}
+                      step={0.01}
+                    />
+                  </DashGroup>
+                </DashGroup>
+                <DashGroup
+                  id="date-time"
+                  detachable
+                  label="Date & time"
+                  labelColor={theme === 'dark' ? '#e9b95b' : '#886000'}
+                  readOnly={readOnly}
+                  disabled={disabled}
+                >
+                  {samples
+                    .filter((sample) => temporalSamples.has(sample.name))
+                    .map((sample) =>
+                      sample.render({
+                        id: sample.name,
+                        label: sample.name.replace('Dashlet', ''),
+                        layout: 'inline',
+                        readOnly,
+                        disabled,
+                      }),
+                    )}
+                </DashGroup>
+                <DashGroup
+                  id="additional"
+                  label="More examples"
+                  reorderable={false}
+                  pin="end"
+                  readOnly={readOnly}
+                  disabled={disabled}
+                >
+                  {samples.map((sample) => sample.additional)}
+                  <Dashlet id="emphasis-band" label="Band" band>
+                    <span>Theme default</span>
+                  </Dashlet>
+                  <Dashlet id="emphasis-glow" label="Glow" glow>
+                    <span>Theme default</span>
+                  </Dashlet>
+                  <Dashlet id="emphasis-tint" label="Tint" tint>
+                    <span>Theme default</span>
+                  </Dashlet>
+                  <TextDashlet
+                    id="emphasis-combined"
+                    label="Combined"
+                    field={nexus.fields.text}
+                    band="#e7a63c"
+                    glow="#e7a63c"
+                    tint="#e7a63c"
+                  />
+                </DashGroup>
+              </DashStack>
+              <GalleryCharts nexus={nexus} />
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
+      </PicodashProvider>
     </PicodashThemeProvider>
   )
 }

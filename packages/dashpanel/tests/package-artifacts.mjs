@@ -58,7 +58,11 @@ async function main() {
   const integration = await import(
     `${pathToFileURL(path.join(packageRoot, 'dist/integration.mjs')).href}?artifact-check`
   )
-  assert.deepEqual(Object.keys(integration).sort(), ['DashPanelIntegrationProvider'])
+  assert.deepEqual(Object.keys(integration).sort(), [
+    'DashPanelIntegrationProvider',
+    'DashPanelTransferBoundary',
+    'useDashPanelHostId',
+  ])
   for (const retired of ['PicodashPanel', 'PicodashProvider', 'Button', 'AlertDialog'])
     assert.equal(retired in runtime, false, `retired export remains: ${retired}`)
 

@@ -2323,3 +2323,17 @@ See [the open-count recipe](../development/open-ended-ranges.md) for nullable ap
 TargetSlider reserves a second text row only for visible mark captions. Dot-only references share
 the achieved-value row. TargetNumber's Actual output has a transparent background and a single
 bottom border; units and the field caption keep their existing alignment.
+
+## Detachable group integration
+
+[ADR 0009](../adr/0009-detachable-groups.md) adds `DashGroup.detachable?: boolean | 'floating' |
+'hybrid'`. It requires a labelled root group and an installed integration host. Applications use
+`PicodashProvider`; standalone DashStack does not implement Panel placement. See the
+[Picodash behavior and example](picodash.md#detachable-groups).
+
+The explicit `@picodash/dashstack/integration` entrypoint exports `DashStackIntegrationProvider`
+and the group-host protocol types. The host receives retained content, home/action refs, logical
+identity, a presentation update callback, reveal registration, and a bounded reorder controller.
+It must preserve one content tree and cancel any provisional reorder before moving the surface.
+DashStack remains independent of DashPanel. `DashStackNode.presentation` reports a group's actual
+host, while `parentId`, `children`, `depth` and committed order continue to describe logical ancestry.

@@ -40,6 +40,7 @@ const packageExportContracts = {
   'packages/dashpanel/package.json': ['.', './integration', './package.json', './style.css'],
   'packages/dashstack/package.json': [
     '.',
+    './integration',
     './catalog',
     './charts',
     './package.json',

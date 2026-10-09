@@ -24,6 +24,7 @@ assert.deepEqual(manifest.dependencies, {
   '@picodash/dashpanel': 'workspace:*',
   '@picodash/nexus': 'workspace:*',
   '@picodash/ui': 'workspace:*',
+  motion: 'catalog:',
 })
 assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })
 assert.deepEqual(manifest.sideEffects, ['**/*.css'])

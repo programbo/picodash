@@ -15,6 +15,7 @@ const manifest = JSON.parse(await readFile(path.join(packageRoot, 'package.json'
 assert.equal(manifest.name, '@picodash/dashstack')
 assert.deepEqual(manifest.exports, {
   '.': './dist/index.mjs',
+  './integration': './dist/integration.mjs',
   './catalog': './dist/catalog.mjs',
   './ui': './dist/ui.mjs',
   './charts': './dist/charts.mjs',
@@ -38,6 +39,8 @@ assert.deepEqual(manifest.peerDependenciesMeta, { '@tanstack/charts': { optional
 for (const file of [
   'dist/index.mjs',
   'dist/index.d.mts',
+  'dist/integration.mjs',
+  'dist/integration.d.mts',
   'dist/catalog.mjs',
   'dist/catalog.d.mts',
   'dist/ui.mjs',
@@ -56,6 +59,8 @@ for (const file of ['index.mjs', 'index.d.mts', 'ui.d.mts', 'catalog.mjs', 'styl
 const runtime = await import(
   `${pathToFileURL(path.join(packageRoot, 'dist/index.mjs')).href}?dashstack-artifact`
 )
+const integration = await import(pathToFileURL(path.join(packageRoot, 'dist/integration.mjs')).href)
+assert.deepEqual(Object.keys(integration), ['DashStackIntegrationProvider'])
 const React = await import('react')
 const { renderToString } = await import('react-dom/server')
 const { createPicodashNexus } = await import('@picodash/nexus')

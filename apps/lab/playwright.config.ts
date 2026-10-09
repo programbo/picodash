@@ -22,7 +22,7 @@ export default defineConfig({
   webServer: {
     command: `LAB_PORT=${labPort} node scripts/dev.mjs`,
     url: `${labURL}/lab`,
-    reuseExistingServer: false,
+    reuseExistingServer: process.env.LAB_REUSE_SERVER === '1',
     gracefulShutdown: { signal: 'SIGTERM', timeout: 5_000 },
     timeout: 60_000,
   },

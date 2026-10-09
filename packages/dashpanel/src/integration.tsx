@@ -22,3 +22,12 @@ export function DashPanelIntegrationProvider({
     </DashPanelDefaultActionItemsContext.Provider>
   )
 }
+
+export { DashPanelTransferBoundary } from './transfer.js'
+export type {
+  DashPanelTransfer,
+  DashPanelTransferDriver,
+  DashPanelTransferPoint,
+} from './transfer.js'
+
+export { useDashPanelHostId } from './runtime/panel-controller.js'

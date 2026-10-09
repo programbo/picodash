@@ -1129,3 +1129,11 @@ action ownership without an explicit contract revision.
 - [Component catalog target reference](catalog.md)
 - [Contract conformance](contract-conformance.md)
 - [Roadmap](../ROADMAP.md)
+
+### Integration transfer seam
+
+`@picodash/dashpanel/integration` additionally exposes `DashPanelTransferBoundary`,
+`useDashPanelHostId`, and the `DashPanelTransfer`, `DashPanelTransferDriver` and
+`DashPanelTransferPoint` types. This is a bounded host-coordination contract used by Picodash's
+[detachable groups](picodash.md#detachable-groups), not an alternate application placement API.
+See [PANEL-TRANSFER-1](dashpanel-contract-decisions.md#detachable-group-hosting-panel-transfer-1).

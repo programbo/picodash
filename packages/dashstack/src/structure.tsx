@@ -1,6 +1,7 @@
 'use client'
 
 import { createContext, useContext, useLayoutEffect, useSyncExternalStore } from 'react'
+import type { DashGroupPresentation } from './group-host.js'
 import type { PicodashFieldDefinitions, ScopedNexus } from '@picodash/nexus'
 
 export type DashStackNode = Readonly<{
@@ -12,6 +13,7 @@ export type DashStackNode = Readonly<{
   fieldKeys: readonly string[]
   visible: boolean
   collapsible: boolean
+  presentation?: DashGroupPresentation
   collapsed: boolean
 }>
 export type DashStackStructure = Readonly<{
@@ -29,6 +31,7 @@ const empty: DashStackStructure = Object.freeze({
 function createStructure() {
   let rootIds: readonly string[] = []
   const records = new Map<string, NodeRecord>()
+  const hosts = new Map<string, () => void>()
   const focusTargets = new Map<string, () => boolean>()
   const listeners = new Set<() => void>()
   let snapshot = empty
@@ -43,13 +46,24 @@ function createStructure() {
       nodes.push(
         Object.freeze({
           ...record,
+          ...(record.presentation
+            ? { presentation: Object.freeze({ ...record.presentation }) }
+            : {}),
           children: Object.freeze(children),
           fieldKeys: Object.freeze([...record.fieldKeys]),
           depth,
           visible,
         }),
       )
-      for (const child of children) visit(child, id, depth + 1, visible && !record.collapsed)
+      for (const child of children)
+        visit(
+          child,
+          id,
+          depth + 1,
+          record.presentation?.location === 'panel'
+            ? record.presentation.visible
+            : visible && !record.collapsed,
+        )
     }
     for (const id of rootIds) visit(id, null, 0, true)
     const next = { rootIds: rootIds.filter((id) => records.get(id)?.parentId === null), nodes }
@@ -59,6 +73,15 @@ function createStructure() {
   }
   return {
     getSnapshot: () => snapshot,
+    revealHost(id: string) {
+      hosts.get(id)?.()
+    },
+    registerHost(id: string, reveal: () => void) {
+      hosts.set(id, reveal)
+      return () => {
+        if (hosts.get(id) === reveal) hosts.delete(id)
+      }
+    },
     focus(id: string) {
       return focusTargets.get(id)?.() ?? false
     },
@@ -177,7 +200,8 @@ export async function revealDashlet<Fields extends PicodashFieldDefinitions>(
   while (parentId !== null) {
     const parent = snapshot.nodes.find((node) => node.id === parentId)
     if (!parent) return { ok: false, reason: 'not-found' }
-    if (parent.collapsible && parent.collapsed) updates.push([parent.id, false])
+    if (parent.presentation?.location === 'panel') registry.revealHost(parent.id)
+    else if (parent.collapsible && parent.collapsed) updates.push([parent.id, false])
     parentId = parent.parentId
   }
   if (updates.length && !scope.updateDashStackCollapseOverrides(updates).ok)

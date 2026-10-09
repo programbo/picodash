@@ -91,7 +91,9 @@ API.
 
 The alpha `PicodashProvider` delegates the public `DashPanelProvider` with the same Nexus, theme,
 overlay, boundary, and density behavior. It does not create a second canonical Nexus, Panel runtime,
-Stack registry, theme resolver, persistence channel, or transient integration coordinator.
+Stack registry, theme resolver or persistence channel. ADR 0009 adds a bounded transient group-host
+coordinator with a separate metadata-only session layout scope; application values still have one
+canonical Nexus.
 
 Automatic integrated behavior uses narrow integration contracts owned by the affected foundation.
 For example, Picodash contributes DashStack actions to default Panel menus through a DashPanel-owned
@@ -100,8 +102,8 @@ through accepted foundation contracts, the owning foundation contract is revised
 implements a workaround.
 
 Apart from `PicodashProvider`, initial composition remains explicit JSX. No schema-generated
-Dashboard, automatic Panel/Stack creation, component registry, or facade-only component factory is
-accepted.
+Dashboard, component registry or facade-only component factory is accepted. The explicit
+`DashGroup.detachable` opt-in creates its single transient Panel host under ADR 0009.
 
 ## Provider contract
 
@@ -483,3 +485,51 @@ evidence above.
 - [DashStack target reference](dashstack.md)
 - [Component catalog target reference](catalog.md)
 - [Roadmap](../ROADMAP.md)
+
+## Detachable groups
+
+> Contract: Accepted ([ADR 0009](../adr/0009-detachable-groups.md))
+> Implementation: Implemented; verification is owned by the detachable-group conformance entry.
+
+Inside `PicodashProvider`, add `detachable` to a labelled root `DashGroup`:
+
+```tsx
+<PicodashProvider nexus={nexus}>
+  <DashStack id="settings">
+    <DashGroup id="geometry" label="Geometry" detachable>
+      <NumberDashlet id="width-control" label="Width" field={nexus.fields.width} />
+    </DashGroup>
+  </DashStack>
+</PicodashProvider>
+```
+
+`detachable` and `detachable="hybrid"` use a Hybrid Panel. `detachable="floating"` limits the
+host to floating placement. The value is not an array of placement modes. Subgroups and headerless
+groups reject this opt-in. Reordering and pinning do not determine whether a group can detach.
+
+The header's right action detaches the group and focuses a control in the Panel. The left disclosure
+still collapses inline content. Header title/whitespace can be dragged vertically to reorder or
+pulled sideways by 48 CSS pixels to detach. A provisional reorder is cancelled before transfer;
+Escape cancels the pull. After releasing a detached Panel, dragging its header into the original
+Stack highlights the return target and opens an empty preview slot. Dropping returns the group to
+its logical home, with its previous collapsed/expanded state. No other Stack accepts it.
+
+The Panel's Return to stack action offers the same return without dragging. The retained home
+heading has a Show panel action that reveals, expands and activates its host. Minimizing a Panel
+keeps it detached. The source heading and subsequent inline controls retain their own tab sequence;
+Panel controls live at the Panel portal. Return restores focus to the home disclosure or action.
+
+The first action-based placement is beside the heading, constrained by the Provider boundary.
+Subsequent detach actions reuse session placement. Detachment is available with a fine pointer at
+viewport widths of at least 768px. Narrowing the viewport returns inline; widening does not reopen
+a Panel. Removing the group removes its Panel. Hiding its original Panel does not return the group.
+
+The same React content surface moves between hosts. Local input drafts, field bindings, IDs,
+Stack order, ancestry and the application Nexus remain intact. There is no duplicate editor.
+`useDashStackStructure` exposes group `presentation` with `location: 'inline'` or
+`{ location: 'panel', hostId, visible }`; descendant visibility follows the actual host.
+`revealDashlet` reveals the detached host without rewriting the remembered inline collapse state.
+Hosting layout is session-only and is excluded from the application's Nexus document/persistence.
+
+A detachable group's editor content mounts after hydration because its stable portal container
+requires a browser DOM. Ordinary inline groups retain their existing server-rendered behavior.

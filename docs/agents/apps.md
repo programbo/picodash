@@ -39,3 +39,7 @@ Use Contract Lab for browser-only product seams and the real Dev Bridge consumer
 E2E for public journeys. Do not use either suite to duplicate package-level state or protocol
 matrices. Keep framework-specific advice out of package examples unless the package has an accepted
 host contract.
+
+To exercise an already-running Lab on its allocated port, set `LAB_PORT` and
+`LAB_REUSE_SERVER=1` when running `bun run --cwd apps/lab test:e2e`. The default still starts and
+owns its server; reuse is an explicit local verification option, never a second server allocation.

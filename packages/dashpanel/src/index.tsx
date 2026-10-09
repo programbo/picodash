@@ -3,6 +3,7 @@
 import {
   forwardRef,
   useId,
+  useContext,
   useEffect,
   useLayoutEffect,
   useImperativeHandle,
@@ -17,6 +18,7 @@ import {
   type PointerEvent as ReactPointerEvent,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react'
+import { DashPanelTransferContext, type DashPanelTransferPoint } from './transfer.js'
 import { createPortal } from 'react-dom'
 import { animate } from 'motion/mini'
 import type { PicodashFieldDefinitions, RootNexus } from '@picodash/nexus'
@@ -754,7 +756,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const defaultActionItems = useDashPanelDefaultActionItems()
   const runtimeState = useDashPanelRuntimeState(id)
   const scoped = root.scope(id)
-  const durableLayout = usePicodashNexusSelector(scoped, (state) => state.scope?.dashPanel)
+  const transfer = useContext(DashPanelTransferContext)
+  const layoutNexus = transfer?.layoutNexus ?? scoped
+  const durableLayout = usePicodashNexusSelector(layoutNexus, (state) => state.scope?.dashPanel)
   const resolvedDefaultLayout = useMemo(
     () => normalizeDashPanelDefaultLayout(defaultLayout),
     [defaultLayout],
@@ -1448,7 +1452,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     tracksBoundaryReference,
   ])
 
-  const beginMove = (mode: 'pointer' | 'keyboard', event?: ReactPointerEvent<HTMLElement>) => {
+  const beginMove = (
+    mode: 'pointer' | 'keyboard',
+    event?: DashPanelTransferPoint & { currentTarget: HTMLElement },
+  ) => {
     revalidateLayoutObservationRef.current()
     asideRef.current?.setAttribute('data-picodash-dragging', 'true')
     const preferred = durableLayout?.preferredPosition ?? resolvedDefaultLayout.preferredPosition
@@ -1525,8 +1532,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   }
   cancelObservedMoveRef.current = () => {
     const session = moveSession.current
-    if (session?.mode === 'pointer' && session.pointerId !== undefined)
+    if (session?.mode === 'pointer' && session.pointerId !== undefined) {
       session.captureTarget?.releasePointerCapture?.(session.pointerId)
+      transfer?.pointer('cancel', {
+        pointerId: session.pointerId,
+        clientX: session.startClient?.x ?? 0,
+        clientY: session.startClient?.y ?? 0,
+      })
+    }
     cancelMove()
   }
 
@@ -1666,19 +1679,22 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       setDockIntent(null)
       return
     }
+    const returnTarget = transfer?.pointer('move', event) ?? false
     const movableMode = requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating'
-    const nextSnapIntent = resolveDashPanelSnapDragIntent({
-      activeTarget: session.activeSnapTarget,
-      boundary: currentGeometry.boundary,
-      detachDistance: resolvedPlacementOptions.detachDistance,
-      mode: movableMode,
-      position: next,
-      size: currentGeometry.size,
-      snapOffset: resolvedPlacementOptions.snapOffset,
-      snapProximity: resolvedPlacementOptions.snapProximity,
-    })
+    const nextSnapIntent: DashPanelSnapDragIntent = returnTarget
+      ? { kind: 'free', position: next }
+      : resolveDashPanelSnapDragIntent({
+          activeTarget: session.activeSnapTarget,
+          boundary: currentGeometry.boundary,
+          detachDistance: resolvedPlacementOptions.detachDistance,
+          mode: movableMode,
+          position: next,
+          size: currentGeometry.size,
+          snapOffset: resolvedPlacementOptions.snapOffset,
+          snapProximity: resolvedPlacementOptions.snapProximity,
+        })
     const unresolvedDockIntent =
-      movableMode === 'hybrid'
+      !returnTarget && movableMode === 'hybrid'
         ? resolveDashPanelHybridDockIntent({
             boundary: currentGeometry.boundary,
             isOccupied: (position) => runtime.isDockPositionOccupied(id, position),
@@ -1745,7 +1761,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     const session = moveSession.current
     if (!session || session.mode !== 'pointer' || session.pointerId !== event.pointerId) return
     session.captureTarget?.releasePointerCapture?.(event.pointerId)
-    commitMove()
+    if (transfer?.pointer('drop', event)) cancelMove()
+    else commitMove()
   }
 
   const onMovePointerCancel = (event?: ReactPointerEvent<HTMLElement>) => {
@@ -1753,8 +1770,41 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (!session || session.mode !== 'pointer') return
     if (event && session.pointerId !== event.pointerId) return
     if (event) session.captureTarget?.releasePointerCapture?.(event.pointerId)
+    transfer?.pointer('cancel', {
+      pointerId: session.pointerId ?? -1,
+      clientX: session.startClient?.x ?? 0,
+      clientY: session.startClient?.y ?? 0,
+    })
     cancelMove()
   }
+
+  useLayoutEffect(() =>
+    transfer?.register({
+      place(left, top) {
+        const geometry = measureGeometry()
+        if (geometry)
+          layoutNexus.setDashPanelLayout({
+            placement: {
+              mode: requestedPlacementMode === 'floating' ? 'floating' : 'hybrid',
+              disposition: { kind: 'free' },
+            },
+            preferredPosition: { x: left - geometry.boundary.left, y: top - geometry.boundary.top },
+          })
+      },
+      begin(point) {
+        const element = asideRef.current
+        if (!element || moveSession.current) return
+        beginMove('pointer', {
+          pointerId: point.pointerId,
+          clientX: point.clientX,
+          clientY: point.clientY,
+          currentTarget: element,
+        })
+        element.setPointerCapture?.(point.pointerId)
+      },
+      cancel: () => onMovePointerCancel(),
+    }),
+  )
 
   const nativeMoveHandlersRef = useRef({
     move: onMovePointerMove,
@@ -1784,10 +1834,18 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       nativeMoveHandlersRef.current.up(event as unknown as ReactPointerEvent<HTMLElement>)
     const cancel = (event: PointerEvent) =>
       nativeMoveHandlersRef.current.cancel(event as unknown as ReactPointerEvent<HTMLElement>)
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        nativeMoveHandlersRef.current.cancel()
+      }
+    }
+    ownerWindow.addEventListener('keydown', escape)
     ownerWindow.addEventListener('pointermove', move)
     ownerWindow.addEventListener('pointerup', up)
     ownerWindow.addEventListener('pointercancel', cancel)
     return () => {
+      ownerWindow.removeEventListener('keydown', escape)
       ownerWindow.removeEventListener('pointermove', move)
       ownerWindow.removeEventListener('pointerup', up)
       ownerWindow.removeEventListener('pointercancel', cancel)
@@ -1942,7 +2000,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       placement: resolvedPlacement,
       dockPositions: resolvedDockPositions,
       presentation: resolvedPresentation,
-      nexus: scoped,
+      nexus: layoutNexus,
       currentPosition,
       freeMovePosition,
       preferredPosition: settledPreferredPosition,
@@ -1956,7 +2014,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       next.release()
       if (registration.current === next) registration.current = null
     }
-  }, [id, runtime, scoped])
+  }, [id, runtime, scoped, layoutNexus])
   useEffect(() => {
     registration.current?.update({
       collapsible,
@@ -1966,7 +2024,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       placement: resolvedPlacement,
       dockPositions: resolvedDockPositions,
       presentation: resolvedPresentation,
-      nexus: scoped,
+      nexus: layoutNexus,
       currentPosition,
       freeMovePosition,
       preferredPosition: settledPreferredPosition,
@@ -1981,6 +2039,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     resolvedDockPositions,
     resolvedPresentation,
     scoped,
+    layoutNexus,
     currentPosition,
     freeMovePosition,
     settledPreferredPosition,
@@ -2731,7 +2790,17 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                         {actionMenuChildren}
                       </ActionMenu>
                     ) : undefined,
-                    trailing: showCloseButton ? (
+                    trailing: transfer ? (
+                      <Button
+                        aria-label={transfer.returnLabel}
+                        iconOnly
+                        variant="ghost"
+                        size="sm"
+                        onPress={transfer.returnHome}
+                      >
+                        <span aria-hidden="true">↩</span>
+                      </Button>
+                    ) : showCloseButton ? (
                       <div data-picodash-panel-actions>
                         <Button
                           aria-label={`Close panel ${panelName}`}
