@@ -22,6 +22,12 @@ readouts, visualizations, previews, and actions. This page describes the aspirat
 DashStack owns Stack, group, Dashlet, binding, and reorder composition inside an application-owned
 layout. It does not require DashPanel or `PicodashProvider`.
 
+## Proposed additions
+
+[TargetSliderDashlet](../proposals/target-slider-dashlet.md) is a Draft proposal for an editable
+requested target with a separate application-supplied achieved marker. It is Planned, has no public
+export, and does not change the accepted Slider contract or current package inventory.
+
 ## Standalone composition
 
 The Contract Lab's **Value binding** preset (`interaction`) provides the bounded M4 example:
