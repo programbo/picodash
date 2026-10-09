@@ -33,6 +33,7 @@ try {
           '@types/react': catalog['@types/react'],
           '@types/react-dom': catalog['@types/react-dom'],
           jsdom: catalog.jsdom,
+          '@testing-library/react': catalog['@testing-library/react'],
           '@types/node': catalog['@types/node'],
         },
       },
@@ -83,7 +84,7 @@ try {
         noEmit: true,
         types: ['vite-plus/client'],
       },
-      include: ['Controls.tsx', 'main.tsx'],
+      include: ['Controls.tsx', 'main.tsx', 'Designer.tsx', 'designer-model.ts'],
     }),
   )
   await writeFile(

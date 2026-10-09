@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { locateSnapshot } from './locate.mjs'
 import { consumerManifest, readSnapshot } from './install.mjs'
 import { distributionManifest, names, sha256, validVersion } from './pack.mjs'
 
@@ -92,4 +93,31 @@ test('versions are immutable prerelease directory names', () => {
   assert.equal(validVersion('0.1.0-dogfood.1'), true)
   for (const version of ['../unsafe', '1.0.0', '0.1.0-dogfood.0', undefined])
     assert.equal(validVersion(version), false)
+})
+
+test('discovery uses the pinned clean version and never falls back to a trial', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'picodash-discovery-'))
+  try {
+    await mkdir(join(root, 'docs/development'), { recursive: true })
+    await writeFile(
+      join(root, 'docs/development/recommended-snapshot.json'),
+      JSON.stringify({ version: '0.1.0-dogfood.1' }),
+    )
+    await assert.rejects(locateSnapshot(root), /unavailable/)
+    const bundle = join(root, 'output/dogfood/0.1.0-dogfood.1')
+    await mkdir(bundle, { recursive: true })
+    const manifest = snapshot()
+    for (const [index, pkg] of manifest.packages.entries())
+      await writeFile(join(bundle, pkg.file), names[index])
+    await writeFile(join(bundle, 'snapshot.json'), JSON.stringify(manifest))
+    {
+      const result = await locateSnapshot(root)
+      assert.equal(result.installer, join(bundle, 'install.mjs'))
+      assert.equal(result.sourceCommit, manifest.sourceCommit)
+    }
+    await writeFile(join(bundle, 'snapshot.json'), JSON.stringify({ ...manifest, dirty: true }))
+    await assert.rejects(locateSnapshot(root), /clean source/)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })

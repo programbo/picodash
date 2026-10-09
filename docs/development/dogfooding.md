@@ -9,6 +9,31 @@ These are development previews, not a promise of stable APIs or saved-data compa
 previous snapshot while evaluating an update. Dev Bridge is private development tooling and is not
 included. The experimental charts entry is not part of the starter example.
 
+## Find the recommended snapshot
+
+The recommended release is pinned in `docs/development/recommended-snapshot.json`, not selected
+by sorting generated directories. From this Picodash checkout, run:
+
+```sh
+bun run dogfood:locate
+```
+
+It verifies the pinned bundle's hashes and clean-source marker, then prints the exact version,
+source commit, source checkout, bundle directory, installer, and canonical documentation paths.
+It fails if the recommendation is unavailable; it never substitutes a `.9001`-style trial bundle.
+On John's machine the source checkout is:
+
+```text
+/Users/john/.codex/worktrees/918b3f3e-fbd3-443a-b926-2c30c6bd42fa/picodash
+```
+
+A copied bundle already identifies itself in `snapshot.json`. Its source commit is provenance;
+its source checkout path is not needed after installation. The repository recommendation can move
+forward without changing an older immutable bundle.
+
+For custom displays, shared UI/agent priority policy, compound invalid drafts, documents, and
+persistence boundaries, continue with [the application recipes](consumer-recipes.md).
+
 ## Install a snapshot
 
 Requirements: Bun 1.3.14 or later, Node 22.12 or later, and a standalone React 19+ application.
@@ -26,7 +51,7 @@ configuration is required to use the packaged styles.
 3. Run the snapshot's installer, supplying the application directory:
 
    ```sh
-   bun /path/to/0.1.0-dogfood.1/install.mjs /path/to/my-app
+   bun /path/to/0.1.0-dogfood.2/install.mjs /path/to/my-app
    ```
 
 4. Import the stylesheet once from your application's entry or global layout:
@@ -92,7 +117,7 @@ with these standalone imports too. Advanced APIs may be available only from thei
 Run the installer from a **new** snapshot against the same application directory:
 
 ```sh
-bun /path/to/0.1.0-dogfood.2/install.mjs /path/to/my-app
+bun /path/to/0.1.0-dogfood.3/install.mjs /path/to/my-app
 ```
 
 It moves all five dependencies and overrides together. Restart the application dev server, run
@@ -102,7 +127,7 @@ previous vendor directory in place until you are satisfied.
 To roll back, run the previous snapshot's installer. The app already retains a copy:
 
 ```sh
-bun /path/to/my-app/vendor/picodash/0.1.0-dogfood.1/install.mjs /path/to/my-app
+bun /path/to/my-app/vendor/picodash/0.1.0-dogfood.2/install.mjs /path/to/my-app
 ```
 
 Then restart and check the app again. A package rollback does not reverse application source edits
@@ -139,8 +164,8 @@ From the Picodash repository, with dependencies installed and source changes com
 
 ```sh
 bun run dogfood:test
-bun run dogfood:pack 0.1.0-dogfood.2
-bun run dogfood:check output/dogfood/0.1.0-dogfood.2
+bun run dogfood:pack 0.1.0-dogfood.3
+bun run dogfood:check output/dogfood/0.1.0-dogfood.3
 ```
 
 Choose an unused version. `dogfood:pack` runs package release checks and builds, stages only the
@@ -151,7 +176,7 @@ exact bundle for reproducibility. Generated bundles are ignored by Git in the Pi
 
 `dogfood:check` installs the bundle in a temporary project outside the monorepo, repeats the install,
 checks public TypeScript consumption, operates the packed switch and selector in a DOM test, and
-builds the application with Vite and Next.js, including the combined CSS. It removes its temporary project.
+builds the application with Vite and Next.js, including the combined CSS. It also exercises the compound-design and priority recipes. It removes its temporary project.
 Pass a second bundle directory to additionally exercise switching versions and rolling back from
 the vendored installer.
 This verifies package consumption; it does not certify every framework, browser, or Picodash API.
@@ -160,3 +185,8 @@ For an explicitly uncommitted local trial, append `--allow-dirty` to `dogfood:pa
 records that status. Use a new version and clean source for a bundle you intend to share.
 Registry publication, automated release channels, and workspace consumers can follow after this
 feedback loop has been exercised.
+
+After validating a new clean bundle, update `docs/development/recommended-snapshot.json` in a
+scoped documentation commit. `dogfood:locate` is the consumer discovery command; trial builds do
+not change the recommendation automatically. The pinned version must remain available at its
+recorded output location, or the command reports it unavailable.

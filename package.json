@@ -72,7 +72,8 @@
     "prepare": "vp config",
     "dogfood:pack": "bun run release:check && node scripts/dogfood/pack.mjs",
     "dogfood:test": "node --test scripts/dogfood/dogfood.test.mjs",
-    "dogfood:check": "node scripts/dogfood/smoke.mjs"
+    "dogfood:check": "node scripts/dogfood/smoke.mjs",
+    "dogfood:locate": "node scripts/dogfood/locate.mjs"
   },
   "devDependencies": {
     "@testing-library/react": "catalog:",

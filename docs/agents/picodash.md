@@ -38,3 +38,8 @@ Read [the dogfooding guide](../development/dogfooding.md) before changing snapsh
 `bun run dogfood:check <bundle-directory>` verifies consumption outside the monorepo.
 Keep Dev Bridge private, preserve source manifests, and do not publish snapshots to a registry
 without explicit authorization.
+
+`bun run dogfood:locate` resolves the committed recommendation and verifies its clean bundle.
+The [consumer recipes](../development/consumer-recipes.md) distinguish public package APIs from
+application-owned helpers. Their executable fixtures live in `tests/dogfood` in the facade package;
+they must also pass through the isolated consumer check before changing the recommendation.

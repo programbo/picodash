@@ -774,3 +774,21 @@ Package release checks and these consumer checks passed with Bun 1.4.0, React 19
 and Next.js 16.3.4. Interaction evidence is a DOM component test; these packaging checks do not
 claim new rendered-browser evidence or stable support for every package API. Registry publication
 and workspace consumer installation remain outside this delivery path.
+
+### Application consumer recipes, 2026-10-09
+
+The [application recipes](../development/consumer-recipes.md) use public package entrypoints and
+application-owned helpers for a derived SVG, a fixed two-target priority group, and a compound
+requested-design record. They do not add a planetary solver, general headless order resolver, or
+external agent transport.
+
+[The consumer tests](../../packages/picodash/tests/dogfood/designer.test.tsx) verify member-attributed
+invalid drafts, preservation of accepted inputs, external-write staleness, committed UI/headless
+priority agreement, canceled and no-op reordering, atomic root document restoration, persistence
+reload, and failed-write recovery. These tests passed in the isolated tarball consumer alongside
+repeat installation, version switching/rollback, frozen reinstallation, public types, and Vite/Next
+CSS builds. This is DOM and package-consumption evidence, not rendered geometry or remote-agent proof.
+
+[Discovery tests](../../scripts/dogfood/dogfood.test.mjs) verify that `dogfood:locate` resolves only
+the committed recommendation and rejects unavailable or dirty snapshots. Snapshot `.2` includes the
+recipes and their source examples; the public runtime APIs are unchanged from `.1`.

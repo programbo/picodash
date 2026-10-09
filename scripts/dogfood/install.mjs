@@ -105,7 +105,13 @@ async function main() {
   for (const pkg of snapshot.packages)
     if (!sameDirectory) await cp(join(bundle, pkg.file), join(vendor, pkg.file))
   if (!sameDirectory) {
-    for (const file of ['snapshot.json', 'install.mjs', 'GUIDE.md', 'example'])
+    for (const file of [
+      'snapshot.json',
+      'install.mjs',
+      'GUIDE.md',
+      'consumer-recipes.md',
+      'example',
+    ])
       await cp(join(bundle, file), join(vendor, file), { recursive: true })
   }
   await writeFile(manifestPath, JSON.stringify(next, null, 2) + '\n')

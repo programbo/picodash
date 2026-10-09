@@ -85,11 +85,14 @@ async function main() {
     }
     await cp(join(root, 'scripts/dogfood/install.mjs'), join(output, 'install.mjs'))
     await cp(join(root, 'docs/development/dogfooding.md'), join(output, 'GUIDE.md'))
-    await mkdir(join(output, 'example'))
     await cp(
-      join(root, 'packages/picodash/tests/dogfood/Controls.tsx'),
-      join(output, 'example/Controls.tsx'),
+      join(root, 'docs/development/consumer-recipes.md'),
+      join(output, 'consumer-recipes.md'),
     )
+    await mkdir(join(output, 'example'))
+    for (const file of ['Controls.tsx', 'Designer.tsx', 'designer-model.ts']) {
+      await cp(join(root, 'packages/picodash/tests/dogfood', file), join(output, 'example', file))
+    }
     await writeFile(
       join(output, 'snapshot.json'),
       JSON.stringify(
