@@ -1111,3 +1111,8 @@ Ring/Sun/Carrier: clicking Sun in a read-only Ring group leaves Ring selected wi
 intact and no write/error; editable pointer and arrow-key selection still reaches Carrier. Dark
 regular and light 390px compact captures were inspected alongside disabled controls. Reduced motion
 reports a 0s indicator transition. The owned browser session was closed and its process exited.
+
+Snapshot .19 (`67fddcf6f1a2f2aceb05cc9bc45209d730842c98`) passes the package release gate,
+including all 303 DashStack tests, and the isolated consumer checks: repeat/frozen installation,
+.18 update/rollback, installed recipe types, interactions, and Vite/Next CSS builds. The Lab
+production build passes with the same selection styling.
