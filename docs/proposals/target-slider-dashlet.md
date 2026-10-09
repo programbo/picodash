@@ -3,7 +3,7 @@
 > Contract: Draft
 > Implementation: Planned
 > Evidence: None for this component. Existing public layout and binding contracts are linked below.
-> Source: John's design handoff through Mara, 2026-10-09.
+> Source: John's design handoff through Mara, 2026-10-09; bore-domain clarification relayed by Maz the same day.
 > Name: `TargetSliderDashlet` is approved. “MaraSlider 🦊” is a workshop nickname, not an export.
 
 `TargetSliderDashlet` lets a user edit a requested numeric target while seeing the outcome selected
@@ -12,17 +12,19 @@ always be achieved exactly.
 
 This proposal records the agreed intent and identifies unresolved behavior before implementation.
 It does not add an export, change an accepted contract, or describe a capability available in the
-current dogfood packages. The direct-manipulation design is still being explored.
+current dogfood packages, including `0.1.0-dogfood.6`. The direct-manipulation design is still being
+explored.
 
 ## Meaning and ownership
 
-| Term                    | Meaning                                                                                              | Owner                                    |
-| ----------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------- |
-| Target                  | The requested numeric value, edited by the user or another application control.                      | Application/Nexus field                  |
-| Available options       | Numeric outcomes supplied by the application for this control's current context. They may be sparse. | Application                              |
-| Achieved value          | The selected result after all relevant constraints and priority ordering.                            | Application solver                       |
-| Scale                   | The finite numeric interval mapped onto the track.                                                   | Consumer configuration                   |
-| Allowed target interval | An optional continuous interval that limits edits, distinct from the available outcomes.             | Consumer policy, enforced by the control |
+| Term                    | Meaning                                                                                                                                    | Owner                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- |
+| Target                  | The requested numeric value, edited by the user or another application control.                                                            | Application/Nexus field                  |
+| Feasible domain         | Outcomes the solver can produce: discrete values, continuous intervals, isolated points, or a combination. Not enumerated by this control. | Application solver                       |
+| Marks                   | Optional authored reference ticks. They need not enumerate or describe the feasible domain.                                                | Consumer presentation                    |
+| Achieved value          | The selected result after all relevant constraints and priority ordering.                                                                  | Application solver                       |
+| Scale                   | The finite numeric interval mapped onto the track.                                                                                         | Consumer configuration                   |
+| Allowed target interval | An optional continuous interval that limits edits, distinct from the feasible domain.                                                      | Consumer policy, enforced by the control |
 
 Picodash renders the supplied information and handles input. It does not solve the domain, choose
 the nearest option, infer priorities from row order, or copy the achieved value into the target.
@@ -31,24 +33,28 @@ because reduction has higher priority. The control must display the supplied 1.4
 
 Numeric fields and direct manipulators can edit the same target field. They do not maintain
 separate synchronized target stores. Hover, focus, gesture coordinates, and marker geometry remain
-transient presentation state. Achieved value and options do not require new persisted Nexus fields.
+transient presentation state. Achieved value and marks do not require new persisted Nexus fields.
 
 ## Agreed anatomy and behavior
 
 The editable thumb sits **above** the track and follows the requested target. It slides independently
-of the available-option ticks and retains normal keyboard and accessible numeric-edit semantics.
-“Freely sliding” means no snapping to outcomes; numeric precision and step still need a decision.
+of the authored marks and retains normal keyboard and accessible numeric-edit semantics.
+“Freely sliding” means no snapping to marks or feasible outcomes. A finite positive `step` controls
+target-edit precision; its default still needs a decision.
 
 A distinct read-only marker sits **below** the track at the achieved value. It carries the achieved
-readout and moves between supplied outcomes. It is not a second thumb or an input. Its movement
+readout and displays the supplied finite number, whether or not it coincides with a mark. It is not
+a second thumb or an input. Its movement
 never writes the target. There is no transition through intermediate values that could imply an
 achievable result unless a later motion decision explicitly permits a purely visual treatment.
 
-Small unlabelled ticks show available options without crowding the track. Their values must also be
-available accessibly. Ticks are not individual tab stops and do not implicitly become selectable
-options. Sparse ticks do not constrain where the target can be placed.
+Optional marks show authored numeric reference points without crowding the track. Their values and
+any supplied labels must also be available accessibly. Marks are not individual tab stops and do not
+become selectable options. Omitting `marks` or supplying `[]` renders no authored ticks and says
+nothing about whether outcomes are available. Marks constrain neither the target nor the achieved
+value; the control never requires exhaustive outcome membership.
 
-Changes to options or the achieved result preserve the target. Fixed scale with an allowed target
+Changes to marks or the achieved result preserve the target. Fixed scale with an allowed target
 interval and a scale normalized to current feasible bounds remain presentation choices. Neither
 choice permits silently clamping or replacing canonical state.
 
@@ -73,20 +79,51 @@ Slider row that reserves the final column for a separate output; that is intenti
 
 Follow the existing [bound and unbound control layers](../reference/dashstack.md#component-specific-ready-made-props):
 
-| Layer                                                       | Proposed inputs                                                                        | Authority                                               |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------- |
-| `TargetSliderDashlet` at the DashStack root                 | One numeric `field`; available options; achieved result; scale and presentation props. | Target comes exclusively from the binding.              |
-| A corresponding controlled `/ui` primitive, name to confirm | Numeric target and change callback; the same result/options and presentation props.    | Consumer supplies controlled state; no Nexus knowledge. |
+| Layer                                                       | Proposed inputs                                                                           | Authority                                               |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| `TargetSliderDashlet` at the DashStack root                 | One numeric `field`; `achieved`; optional `marks`; scale and presentation props.          | Target comes exclusively from the binding.              |
+| A corresponding controlled `/ui` primitive, name to confirm | Numeric target and change callback; the same `achieved`, `marks`, and presentation props. | Consumer supplies controlled state; no Nexus knowledge. |
 
 Do not add both `field` and a competing controlled target prop to the ready-made Dashlet.
-Concrete prop names, exported types, defaults, and whether the unbound primitive ships in the same
-slice remain proposed. No change to the facade or catalog inventory is implied yet.
+The prop names below are the proposed direction. Exported types, defaults, and whether the unbound
+primitive ships in the same slice remain proposed. No change to the facade or catalog inventory
+is implied yet.
 
-The smallest candidate data model is a finite numeric target, a readonly array of distinct finite
-numeric options, and a finite achieved number or `null`. This is a proposal, not accepted validation
-behavior. Unit formatting must be shared by target, achieved readout, accessible text, and option
-values. Options may need greater precision than the editable target's step; they must not be rounded
-onto that step or silently deduplicated by formatted text.
+| Proposed prop                                             | Meaning                                                                                                                                  |
+| --------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `achieved: number \| null`                                | Required consumer-supplied result. A finite number places the read-only marker; `null` means unavailable. Zero is a result, not absence. |
+| `marks?: readonly { value: number; label?: ReactNode }[]` | Optional reference points, matching the ordinary Slider's authored mark shape. No `options` prop or outcome-membership check.            |
+| `min`, `max`                                              | Finite track scale; never inferred from marks. Defaults remain to be decided.                                                            |
+| `step`                                                    | Finite positive target-edit precision. It neither quantizes the achieved value nor generates marks.                                      |
+| `allowedRange?`                                           | Candidate continuous target-edit restriction, separate from solver feasibility; adoption follows D2.                                     |
+
+The smallest candidate data model is a finite numeric target, a finite achieved number or `null`,
+and optional finite marks. The application owns feasibility; the first version needs no feasible-domain
+prop. Unit formatting must be shared by target, achieved readout, accessible text, and mark values.
+Achieved values and marks may have greater precision than the target's step; they must not be
+rounded onto that step or silently deduplicated by formatted text. An achieved value outside the
+track scale is a presentation mismatch, not an excuse to snap to a mark or fabricate an edge value;
+its exact readout remains visible, with the marker/warning treatment to settle under D2.
+
+### Bore example: a continuous interval plus isolated zero
+
+Suppose the application permits a finished bore of `0` (no bore) or any diameter in
+`[minimumBore, maximumBore]`. The target remains editable throughout `[0, maximumBore]`, including
+requested diameters in `(0, minimumBore)`. Do not use `allowedRange` to remove that target interval:
+it expresses requests the solver may be unable to achieve, not invalid edits by definition.
+
+For `minimumBore = 2`, `maximumBore = 8`, and target `step = 0.01`, the application may supply:
+
+| Target | Supplied `achieved` | Optional `marks`                             | Required display                                                                |
+| ------ | ------------------- | -------------------------------------------- | ------------------------------------------------------------------------------- |
+| `0.15` | `0`                 | `[{ value: 0 }, { value: 2 }, { value: 8 }]` | Target at 0.15 and achieved marker at zero.                                     |
+| `2.37` | `2.37`              | The same three marks                         | Both values at 2.37 in their distinct upper/lower roles, despite no mark there. |
+| `2.37` | `2.37`              | Omitted or `[]`                              | The same target/result behavior, with no authored ticks.                        |
+
+These are supplied solver results, not a nearest-value rule. Picodash does not choose zero for small
+bore requests, skip the gap itself, or enumerate every hundredth of a millimetre. A separate numeric
+editor can bind the same target field. The application can explain “No bore, or at least 2 mm”
+through the existing description; optional marks are not a complete feasibility legend.
 
 ## Decisions to resolve
 
@@ -98,23 +135,24 @@ actual values using a declared numeric rule, not their formatted strings. If for
 unequal numbers look equal, retain distinguishing precision or avoid an “exact match” claim.
 Whether exact equality is sufficient or a consumer-supplied tolerance is needed remains open.
 
-An empty options array and an unavailable achieved result need visible text, not a marker fabricated
-at zero or at the target. Recommend keeping a valid target editable when an input domain still
-exists, with “No available outcomes” or “Achieved value unavailable” as appropriate. A marker cannot
-be placed for `null`. Whether empty options always require a null achieved value is unresolved.
+An unavailable achieved result needs visible text, not a marker fabricated at zero or at the target.
+Recommend keeping a valid target editable when an input domain still exists, with “Achieved value
+unavailable.” A marker cannot be placed for `null`. Empty or omitted marks do not make a result
+unavailable; a non-null achieved value need not be a member of marks or lie on the target step grid.
 
-Confirm whether a non-null achieved value must be a member of options, and how stale or pending
-solver results are represented. Recommend one coherent consumer-provided result snapshot, rather
-than inferring freshness from render timing. A result outside the options must not be silently
-snapped to a listed option. A last-valid result, if supported, must be identified as such.
+How stale or pending solver results are represented remains open. Recommend one coherent
+consumer-provided result snapshot rather than inferring freshness from render timing. `null` alone
+must not be interpreted as proof of no feasible outcomes rather than a pending result. A last-valid
+result, if supported, must be identified as such.
 
 ### D2. Scale, constraints, and changes during a gesture
 
-**Recommended:** separate the full scale, the allowed target interval, and the set of available
-outcomes. Existing Slider `allowedRange` restricts pointer and keyboard edits to one continuous
-interval; it does not mean “only the ticks.” Merely changing the feasible options must not introduce
-an input restriction. Decide whether TargetSlider adopts that prop unchanged or needs an explicitly
-visual feasible-region prop.
+**Recommended:** separate the full scale, the allowed target interval, authored marks, and the
+application-owned feasible domain. Existing Slider `allowedRange` restricts pointer and keyboard
+edits to one continuous interval; it does not mean “only the ticks.” Changing marks, achieved value,
+or solver feasibility must not introduce an input restriction. Decide whether TargetSlider adopts
+that prop unchanged. A visual feasible-region prop would be a separate future proposal, not a
+prerequisite for displaying continuous achieved values.
 
 Changing `min`/`max` remaps coordinates; it does not normalize the stored physical target into a
 percentage. A canonical target outside the new scale or allowed interval needs an honest exact
@@ -123,12 +161,13 @@ readout and a presentation warning, consistent with the
 An edge indicator, an unavailable editor, and explicit replacement interaction remain choices to
 settle. No ordinary in-range thumb may falsely imply that an out-of-range target equals the edge.
 
-Zero, one, and many outcomes must be considered separately. Normalizing to the current feasible
-bounds cannot produce an invalid zero-width or reversed scale when there are fewer than two
-outcomes. Decide the fallback scale or unavailable-editor presentation explicitly.
+Consumer-supplied scale changes must remain valid even when the solver can produce zero or one
+outcome. Deriving scale bounds in the application cannot produce an invalid zero-width or reversed
+scale. The control must never derive bounds from the first and last marks. Decide the fallback
+scale or unavailable-editor presentation explicitly.
 
-If scale, constraints, target, or options change while dragging, gesture handling needs explicit
-states and cancellation rules. Recommend options/result-only updates leave the gesture intact,
+If scale, constraints, target, or marks change while dragging, gesture handling needs explicit
+states and cancellation rules. Recommend marks/result-only updates leave the gesture intact,
 while coordinate-changing scale updates end the gesture without an extra target write. Confirm
 this against live remapping before implementation. An external target write must follow the
 existing binding conflict policy rather than being overwritten by a stale drag.
@@ -165,9 +204,10 @@ upper readout is a candidate; the achieved readout stays below. Labels must rema
 markers coincide or approach either end. Position and text must distinguish the roles without
 relying on color.
 
-For available options, recommend a short accessible description plus an on-demand textual list
-with one disclosure control when the set is long. Decorative ticks can then be hidden from the
-accessibility tree without hiding their values. Confirm this against compactness and touch needs;
+For authored marks, recommend a short accessible description plus an on-demand textual list
+with one disclosure control when the set is long. Describe these as reference marks, not an
+exhaustive list of feasible outcomes. Decorative ticks can then be hidden from the accessibility
+tree without hiding their values. Confirm this against compactness and touch needs;
 announcing the full list on every arrow key would be excessive. Define whether result changes are
 announced on settled edits or via a deliberate status action, rather than creating a live-region
 announcement for every pointer frame.
@@ -178,9 +218,9 @@ behavior. Use real selection/deletion when testing empty input: the
 
 ### D5. Dense ticks and marker motion
 
-**Recommended:** place ticks at actual numeric positions, not evenly spaced option indices. When
-options are dense enough to overlap, any visual thinning must be deterministic, keep the complete
-accessible option list, and never change the available outcomes or achieved value. Decide whether
+**Recommended:** place ticks at actual numeric positions, not evenly spaced mark indices. When
+authored marks are dense enough to overlap, any visual thinning must be deterministic, keep the
+complete accessible mark list, and never change target editing or the achieved value. Decide whether
 thinning is allowed or whether ticks simply merge visually in the first version.
 
 Keep the achieved readout associated with its marker when values jump, and avoid overlap with the
@@ -192,19 +232,22 @@ solution or delay target feedback. Exact shape, contrast, and motion remain visu
 
 | Scenario                                                  | Required invariant or decision to prove                                                   |
 | --------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Target 1.5; options 1.0, 1.4, 1.6; achieved 1.4           | Upper target stays at 1.5; lower marker shows supplied 1.4; no nearest-match calculation. |
+| Target 1.5; marks 1.0, 1.4, 1.6; achieved 1.4             | Upper target stays at 1.5; lower marker shows supplied 1.4; no nearest-match calculation. |
 | Target equals achieved                                    | Both roles and values remain identifiable; equality rule follows D1.                      |
-| Options change but target does not                        | Ticks/result may move; zero target writes.                                                |
-| Target lies between sparse options                        | Pointer and keyboard can retain it at the configured precision.                           |
-| Empty options or unavailable result                       | Explicit unavailable presentation; no fabricated marker or target replacement.            |
-| Achieved is absent from options, pending, or stale        | Apply the explicit D1 policy; do not conceal inconsistent information.                    |
+| Marks change but target does not                          | Ticks may move; target and achieved values remain unchanged; zero target writes.          |
+| Target lies between sparse marks                          | Pointer and keyboard can retain it at the configured precision.                           |
+| Marks omitted or empty; achieved 2.37                     | Show achieved 2.37 with no ticks; do not infer unavailable outcomes.                      |
+| Target 0.15; achieved 0; bore minimum 2                   | Preserve target in the solver's gap; display zero as a real achieved result.              |
+| Target and achieved 2.37; marks only 0, 2, 8              | Display both roles at 2.37; no membership check or snapping.                              |
+| Target step 0.1; achieved 2.37                            | Preserve achieved precision independently of the target grid and marks.                   |
+| Achieved is null, pending, or stale                       | Null has no marker; follow D1's explicit pending/stale policy; never infer it from marks. |
 | Scale shrinks past the target or collapses to one outcome | Preserve the exact target; follow D2's warning/fallback policy.                           |
 | Bounds or external target change during drag              | Follow D2's interruption/conflict rule; no stale-coordinate write.                        |
 | Read-only, disabled, rejected draft, or stale draft       | Preserve existing binding and shell policies with target/achieved attribution.            |
 | Narrow, compact, zoomed, coarse-pointer, or reordered row | Keep readable labels, usable targets, unclipped focus, and the combined inline span.      |
 
 Type tests should prove the binding and controlled APIs cannot introduce competing target
-owners. Pure/component tests should prove no writes on result/options updates, event parity,
+owners. Pure/component tests should prove no writes on result/marks updates, event parity,
 mismatch and draft handling, and accessible relationships. Contract Lab browser checks should prove
 real pointer/touch geometry, keyboard focus, exact-match legibility, dense ticks, and responsive
 layout. Screen-reader behavior needs direct evaluation before claiming accessibility verification.
