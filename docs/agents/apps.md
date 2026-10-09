@@ -15,8 +15,9 @@ read the testing instructions and every product reference exercised by the journ
 - Applications own routing, transport, authentication, authorization, exposure policy, and which
   Panels and Dashlets are mounted.
 
-The root `bunfig.toml` keeps dependency storage local to the checkout so Turbopack can resolve
-packages within its configured filesystem root, even when a user enables Bun global storage.
+Keep `install.globalStore = false` in the root `bunfig.toml`. Turbopack rejects dependency
+symlinks that point outside its repository filesystem root. After a Next.js upgrade, remove
+stale generated `.next` directories if a build cannot resolve its internal PostCSS transform.
 
 ## Ports and lifecycle
 

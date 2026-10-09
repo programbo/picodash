@@ -12,6 +12,15 @@ by proving related invariants together and using E2E only for behavior that requ
 An empty evidence cell means “not yet reconciled,” not “untested prototype.” Prototype tests may be
 linked only after their assertions are confirmed to prove the target behavior.
 
+## Dependency tooling evidence
+
+The October 2026 dependency consolidation moves the workspace to Vite+ 1.0 and Vitest 5.0.1.
+The existing owning suites pass all 1,037 package tests without added compatibility settings.
+`vp check`, recursive package/application builds, package release checks, agent artifact checks,
+and the high-severity audit pass. Runtime and package contracts are unchanged; the DashPanel
+portal test changes only to match the updated formatter. Browser conformance remains owned by
+the existing Contract Lab and website CI suites.
+
 ## Evidence rules
 
 1. One contract area has one primary owner.
