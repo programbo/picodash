@@ -1012,3 +1012,7 @@ decoration on the gallery's reorderable Number row exercised the hovered-handle 
 computed band width 2px, outer-edge offset 0px, and no overlap with the handle. The existing
 non-reorderable band examples use the same shared selector. Screenshots were inspected; no
 consumer application state was changed.
+
+Snapshot .15 (`6980d7b4ecd4ed53dac974062532736a2aa0a482`) passes the package release gate and
+isolated consumer checks: repeat/frozen installs, .14 update/rollback, installed recipe types,
+component interaction and Vite/Next CSS builds. The production Lab uses the verified band CSS.
