@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { fireEvent, getByLabelText, getByRole } from '@testing-library/react'
+import { fireEvent, getByLabelText, getByRole, queryAllByRole } from '@testing-library/react'
 import { describe, expect, it } from 'vite-plus/test'
 import { createWebStoragePersistenceDriver } from '@picodash/nexus/web-storage'
 import { DesignerRecipe } from './Designer.js'
@@ -68,8 +68,9 @@ describe('external designer consumer recipes', () => {
       expect(draft?.conflict?.kind).toBe('stale-draft')
       expect(draft?.draft).toMatchObject({ module: 'invalid' })
       expect(getByRole(app.element, 'img').getAttribute('aria-label')).toBe('ratio first; 100 mm')
+      expect(queryAllByRole(app.element, 'button', { name: /discard/i })).toHaveLength(1)
       act(() => {
-        fireEvent.click(getByRole(app.element, 'button', { name: 'Discard draft' }))
+        fireEvent.click(getByRole(app.element, 'button', { name: 'Discard changes' }))
       })
       expect(app.nexus.scope(scopeId).getState().interaction.bindings.size).toBe(0)
     } finally {
@@ -135,6 +136,27 @@ describe('external designer consumer recipes', () => {
       unsubscribe()
       expect(selectDesign(target.getState(), solve)).toEqual(selectDesign(source.getState(), solve))
       expect(Object.keys(target.getState().values)).toEqual(['design'])
+    } finally {
+      source.destroy()
+      target.destroy()
+    }
+  })
+
+  it('restores an explicitly saved default priority into an already reordered target', () => {
+    const source = createDesigner(solve)
+    const target = createDesigner(solve)
+    try {
+      setPriority(target, 'module')
+      target.setValue(target.fields.design, { ...defaultDesign, diameter: 120 })
+      const exported = source.documents.executeExport(source.documents.createExportPlan())
+      if (!exported.ok) throw new Error('Export failed')
+      const analysis = target.documents.analyzeImport(exported.document, {
+        createMissingScopes: true,
+      })
+      if (!analysis.ok) throw new Error('Import analysis failed')
+      expect(target.documents.executeImport(analysis.plan).ok).toBe(true)
+      expect(selectDesign(target.getState(), solve)).toEqual(selectDesign(source.getState(), solve))
+      expect(selectDesign(target.getState(), solve).priority).toBe('ratio')
     } finally {
       source.destroy()
       target.destroy()

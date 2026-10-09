@@ -802,3 +802,24 @@ incomplete text while editing, rejected numbers, null drafts, error association,
 disabled input, and recovery. The fixture passed against installed `.2` tarballs outside the
 repository with public typechecking and Vite/Next CSS builds. Snapshot `.3` adds this guide and
 copyable source; runtime APIs are unchanged. Control-local incomplete text is not Nexus persistence.
+
+### Consumer feedback corrections, 2026-10-09
+
+The dogfooding guide's Tailwind host adapter was compiled with Tailwind 4.3.3 and checked in Chrome
+using the public theme provider's rendered markup and packaged UI CSS. Inline aliases produced
+dark canvas/text `rgb(16, 18, 22)` / `rgb(198, 204, 220)` and nested light canvas/text
+`rgb(237, 240, 245)` / `rgb(52, 61, 80)`. A plain-alias counterexample produced a transparent canvas.
+
+Designer and numeric examples now rely on the shell-owned discard action. Their owning consumer
+tests require exactly one discard button and operate it. The default-priority import test now
+restores an explicitly saved default source into an already reordered target, rather than testing
+only fresh targets. Factories explicitly seed this application's business priority while preserving
+hydrated order; general Nexus overlay semantics and runtime packages are unchanged.
+
+A separate Chrome session verified native select-all/Backspace/Tab clearing in the standalone `.2`
+consumer from accepted `1.5` and rejected `4`: empty input, missing-value error, one discard action,
+and unchanged actual solution. The installed agent-browser empty-fill helper instead restored prior
+text on blur in both Picodash and isolated React Aria. This is recorded as an automation-path caveat,
+not a proven NumberField defect. All owned probe browser sessions were closed. The corrected
+examples also passed the isolated `.2` consumer check, including types and Vite/Next CSS builds.
+Snapshot `.4` bundles these corrections without changing public runtime code.

@@ -77,16 +77,19 @@ function fields(solve: Solver) {
   }
 }
 export function createDesigner(solve: Solver) {
-  return createPicodashNexus({
+  const nexus = createPicodashNexus({
     valueOwner: 'nexus',
     nexusId: 'designer-recipe',
     schemaVersion: 1,
     fields: fields(solve),
     export: { documents: { defaultFieldPolicy: 'include' } },
   })
+  // Priority is required application data, including the default in a headless export.
+  nexus.setDashStackGroupOrder(scopeId, targetsId, targetIds)
+  return nexus
 }
 export function createPersistentDesigner(solve: Solver, driver: PicodashPersistenceDriver) {
-  return createPicodashNexus({
+  const nexus = createPicodashNexus({
     valueOwner: 'nexus',
     nexusId: 'designer-recipe',
     schemaVersion: 1,
@@ -98,6 +101,10 @@ export function createPersistentDesigner(solve: Solver, driver: PicodashPersiste
       values: { defaultFieldPolicy: 'include' },
     },
   })
+  // Hydration runs during creation. Preserve an existing saved priority.
+  if (!nexus.getState().scopes.get(scopeId)?.dashStack?.groupOrders.has(targetsId))
+    nexus.setDashStackGroupOrder(scopeId, targetsId, targetIds)
+  return nexus
 }
 export type Designer = ReturnType<typeof createDesigner>
 export type DesignerSnapshot = ReturnType<Designer['getState']>

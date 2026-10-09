@@ -79,15 +79,6 @@ export function ModuleTarget({
             <small id={readoutId}>
               Accepted {binding.value} mm · Achieved {achievedModule(binding.value)} mm
             </small>
-            {binding.dirty && (
-              <button
-                type="button"
-                disabled={context.disabled}
-                onClick={() => binding.discardInput()}
-              >
-                Discard draft
-              </button>
-            )}
           </div>
         )
       }}

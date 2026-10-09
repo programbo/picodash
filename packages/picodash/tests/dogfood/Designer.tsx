@@ -86,11 +86,6 @@ export function DesignRecordEditor({ id, nexus }: { id: string; nexus: Designer 
               </label>
             )
           })}
-          {binding.dirty && (
-            <button type="button" disabled={disabled} onClick={() => binding.discardInput()}>
-              Discard draft
-            </button>
-          )}
         </>
       )}
     </Dashlet>

@@ -5,7 +5,7 @@ Use `NumberField` from `@picodash/dashstack/ui` inside a bound `Dashlet` when a 
 supplies Picodash's numeric-input appearance, density, unit formatting, keyboard operation, and
 accessibility wiring. It does not read or write Nexus itself.
 
-This recipe works with the public APIs in dogfood `.2`. Snapshot `.3` adds the copyable
+This recipe works with the public APIs in dogfood `.2`. Snapshot `.4` includes the corrected copyable
 `example/NumericTarget.tsx`; no runtime API upgrade is required. In the source checkout the tested
 example is `packages/picodash/tests/dogfood/NumericTarget.tsx`.
 
@@ -70,8 +70,12 @@ return (
 The complete example also combines the existing description, issue-region ID, and readout ID into
 `aria-describedby`. It uses the shell's issue region rather than duplicating error messages.
 A scalar field's validation issues belong to this one input. The disabled/read-only values come
-from the resolved context, so parent policies apply too. Read-only still permits the example's
-**Discard draft** action; disabled blocks it.
+from the resolved context, so parent policies apply too. Dashlet already renders
+**Discard changes** for each dirty input binding and supplies eligible stale-overwrite confirmation.
+Read-only permits that shell-owned discard action; disabled blocks it. Do not add a second discard
+button inside the custom control. `binding.discardInput()` is available for a distinct application
+workflow that intentionally discards the draft, not as missing default feedback UI. These recipes
+need no additional discard control.
 
 `NumberField` accepts a numeric `value` and calls `onChange(number | null)`. A cleared edit emits
 `null`; pass it to `setInput` instead of ignoring it. The validator rejects it as missing, Nexus
@@ -124,6 +128,29 @@ spreading only `binding.value` for each record-member change if other raw member
 The [compound-record recipe](consumer-recipes.md#3-keep-compound-invalid-drafts-apart-from-accepted-values)
 shows preservation of raw members and canonical issue paths. Programmatic writes run Nexus
 validation and do not manufacture UI drafts; an existing rejected draft may become stale.
+
+## Verify native clearing in browser automation
+
+The `agent-browser` 0.33.0 empty `fill` helper produced a blank DOM input but no empty-value
+callback in both the isolated React Aria control and Picodash. Tab then restored the previous text.
+That sequence did not represent a successful user clear. In the same browser, focus the textbox,
+select all of its text, press Backspace, then Tab: the recipe retains an empty rejected draft.
+Verify the selection and resulting validation, rather than treating an empty DOM value while focused
+as proof of a committed clear. This was also verified in the standalone consumer from both accepted
+`1.5` and rejected `4`; its actual solution stayed unchanged. No NumberField runtime patch was needed.
+
+For the confirmed automation sequence, first focus the textbox identified by a fresh snapshot,
+then select its contents through the focused native input before sending Backspace and Tab:
+
+```sh
+agent-browser --session <your-session> focus <textbox-ref>
+agent-browser --session <your-session> eval 'const input = document.activeElement; if (!(input instanceof HTMLInputElement)) throw new Error("Expected focused input"); input.select(); ({ start: input.selectionStart, end: input.selectionEnd, length: input.value.length })'
+agent-browser --session <your-session> press Backspace
+agent-browser --session <your-session> press Tab
+```
+
+Check that the returned selection covers the complete input before deleting. This exercises native
+deletion rather than assigning an empty DOM value.
 
 ## Verified behavior
 

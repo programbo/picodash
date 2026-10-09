@@ -1,9 +1,9 @@
 # Build an application with Picodash
 
 These recipes extend the installation guide with public calls available in the dogfood packages.
-Snapshot `0.1.0-dogfood.2` includes the executable examples described here. The public APIs used
-were also present in `.1`; `.2` adds discovery, documentation, and consumer examples, not a new
-planetary solver or agent transport.
+Snapshot `0.1.0-dogfood.4` includes the corrected executable examples described here. The public
+APIs used were also present in `.2`; existing consumers can copy the updated examples without a
+runtime package upgrade. These recipes add no planetary solver or agent transport.
 
 **Functions imported from `./designer-model.js` are application example code, not Picodash exports.**
 Copy `example/designer-model.ts` and `example/Designer.tsx` together into your app. They use only
@@ -122,10 +122,12 @@ const result = nexus.setDashStackGroupOrder('designer', 'targets', ['tooth-size'
 
 The example's `setPriority(nexus, 'module')` first checks effective priority. It returns `null` when
 no change is needed; otherwise it returns the Nexus transaction result above. Thus requesting the
-default priority on a fresh Nexus does not create an unnecessary saved override. Never mutate the
+default priority again does not cause another write. The recipe factory explicitly seeds this
+fixed group's default order because priority is required application data in exported designs. Never mutate the
 snapshot's Maps or mirror priority in another persisted field. `removeDashStackGroupOrder` restores
 declaration-default ordering for that group; root siblings use `setDashStackRootOrder` and
-`removeDashStackRootOrder` instead.
+`removeDashStackRootOrder` instead. For this business-priority recipe, reset with
+`setPriority(nexus, 'ratio')` so exported documents retain an explicit default order.
 
 Priority only ranks feasible candidates in this recipe. Feasibility must remain independent of
 priority, and default inputs must have a solution. Validation checks both rankings. If reordering
@@ -161,8 +163,10 @@ last accepted **input state**, not a separately stored historic geometry result.
 priority may select a different solution from those same accepted inputs.
 
 A successful external write can mark an existing dirty draft stale; it does not silently erase or
-apply it. The example offers `binding.discardInput()`. Dashlet also owns its supported stale-input
-confirmation behavior. Do not implement overwrite by copying an arbitrary stale record directly
+apply it. Dashlet already renders **Discard changes** for a dirty binding and owns its supported
+stale-input confirmation behavior. The editor must not duplicate these shell actions. Use
+`binding.discardInput()` only for an intentional additional application workflow; the normal editor
+needs no extra discard button. Do not implement overwrite by copying an arbitrary stale record directly
 into `setValue` and bypassing that workflow.
 
 If each property needs independent binding drafts or field-level disclosure, declare several Nexus
@@ -198,6 +202,21 @@ plans belong to their root, are single-use, and can become stale before executio
 creation creates durable metadata, not mounted Dashlets. Foreign identities and renamed scopes or
 fields require explicit mapping/permission options, not silent acceptance. The recipe uses the
 same identity and schema on export and import.
+
+Imports overlay the content present in the document. An absent scope is not an instruction
+to erase the target's existing priority. A document from a fresh headless root that never stored
+`designer` metadata could therefore leave a previously reordered target module-first. Present
+scope records replace their mapped target records; omission inside a present record is not the same
+as omitting that scope entirely.
+
+This example's factories explicitly seed `['reduction', 'tooth-size']` for the fixed priority group,
+including in a headless root. The persistent factory seeds only when that order is absent after
+hydration, preserving existing saved priority. This is an application choice because priority is
+business data; it is not a rule to save every presentation-only Stack default. The consumer test
+exports a default source into an already reordered target and checks that it returns to ratio-first.
+Old documents that omitted the designer scope still need an explicit import policy, such as
+preserving the target order or mapping that absence to the application's default. Do not silently assume replace
+semantics or clear unrelated scopes.
 
 A successful root import commits values and metadata together. The consumer test observes one
 notification and the same resulting selection on a fresh, unmounted root. Calling `setValue` and

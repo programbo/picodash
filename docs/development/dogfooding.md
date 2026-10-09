@@ -52,7 +52,7 @@ configuration is required to use the packaged styles.
 3. Run the snapshot's installer, supplying the application directory:
 
    ```sh
-   bun /path/to/0.1.0-dogfood.3/install.mjs /path/to/my-app
+   bun /path/to/0.1.0-dogfood.4/install.mjs /path/to/my-app
    ```
 
 4. Import the stylesheet once from your application's entry or global layout:
@@ -113,12 +113,71 @@ package: `@picodash/nexus` for state, `@picodash/dashstack` for controls, or
 The example uses the facade without requiring a floating panel. The aggregate stylesheet works
 with these standalone imports too. Advanced APIs may be available only from their owning package.
 
+## Match a Tailwind v4 host layout to the theme
+
+Picodash ships its own control styles. If your application already uses Tailwind v4, map public
+Picodash tokens into host utilities with **`@theme inline`** in your global stylesheet:
+
+```css
+@import 'tailwindcss';
+@import '@picodash/picodash/style.css';
+
+@theme inline {
+  --color-pico-canvas: var(--picodash-color-canvas);
+  --color-pico-surface: var(--picodash-color-surface);
+  --color-pico-text: var(--picodash-color-text);
+  --color-pico-border: var(--picodash-color-border);
+}
+```
+
+Put the elements using those utilities **inside** the provider:
+
+```tsx
+import type { ReactNode } from 'react'
+import { PicodashThemeProvider, type PicodashTheme, type PicodashDensity } from '@picodash/ui'
+
+export function HostLayout({
+  children,
+  theme = 'system',
+  density = 'regular',
+}: {
+  children: ReactNode
+  theme?: PicodashTheme
+  density?: PicodashDensity
+}) {
+  return (
+    <PicodashThemeProvider theme={theme} density={density}>
+      <main className="min-h-dvh bg-pico-canvas p-4 text-pico-text">
+        <section className="rounded-lg border border-pico-border bg-pico-surface p-4">
+          {children}
+        </section>
+      </main>
+    </PicodashThemeProvider>
+  )
+}
+```
+
+The provider places token values on its DOM carrier, not on `:root` or `body`. It uses
+`display: contents`, so the child `main` owns the full-height background. A parent outside that
+carrier cannot inherit its tokens. Pass the same theme preference to host and control composition;
+adding a host `.dark` class alone does not change Picodash's provider state.
+
+`@theme inline` makes `bg-pico-canvas` reference `var(--picodash-color-canvas)` on the consuming
+element. Plain `@theme` instead introduces an alias that can resolve at the root, where the scoped
+Picodash token is unavailable or has the wrong value. That can produce a white/transparent host
+background beside dark controls. See Tailwind's
+[guidance on referencing other variables](https://tailwindcss.com/docs/theme#referencing-other-variables).
+
+You can also use `bg-(--picodash-color-canvas)` and `text-(--picodash-color-text)` directly inside
+the provider without aliases. Tailwind remains optional for Picodash itself. Verify light, dark,
+and nested-provider layouts; computed colors should follow the nearest provider.
+
 ## Update or roll back
 
 Run the installer from a **new** snapshot against the same application directory:
 
 ```sh
-bun /path/to/0.1.0-dogfood.4/install.mjs /path/to/my-app
+bun /path/to/0.1.0-dogfood.5/install.mjs /path/to/my-app
 ```
 
 It moves all five dependencies and overrides together. Restart the application dev server, run
@@ -128,7 +187,7 @@ previous vendor directory in place until you are satisfied.
 To roll back, run the previous snapshot's installer. The app already retains a copy:
 
 ```sh
-bun /path/to/my-app/vendor/picodash/0.1.0-dogfood.3/install.mjs /path/to/my-app
+bun /path/to/my-app/vendor/picodash/0.1.0-dogfood.4/install.mjs /path/to/my-app
 ```
 
 Then restart and check the app again. A package rollback does not reverse application source edits
@@ -165,8 +224,8 @@ From the Picodash repository, with dependencies installed and source changes com
 
 ```sh
 bun run dogfood:test
-bun run dogfood:pack 0.1.0-dogfood.4
-bun run dogfood:check output/dogfood/0.1.0-dogfood.4
+bun run dogfood:pack 0.1.0-dogfood.5
+bun run dogfood:check output/dogfood/0.1.0-dogfood.5
 ```
 
 Choose an unused version. `dogfood:pack` runs package release checks and builds, stages only the

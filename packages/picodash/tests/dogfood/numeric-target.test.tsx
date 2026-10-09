@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
-import { fireEvent, getByRole } from '@testing-library/react'
+import { fireEvent, getByRole, queryAllByRole } from '@testing-library/react'
 import { expect, it } from 'vite-plus/test'
 import { createNumericTarget, NumericTargetRecipe } from './NumericTarget.js'
 
@@ -41,8 +41,9 @@ it('keeps numeric drafts separate from the accepted readout and forwards edit po
     render(false, true)
     expect(input.readOnly).toBe(true)
     expect(input.value).toBe('')
+    expect(queryAllByRole(element, 'button', { name: /discard/i })).toHaveLength(1)
     act(() => {
-      fireEvent.click(getByRole(element, 'button', { name: 'Discard draft' }))
+      fireEvent.click(getByRole(element, 'button', { name: 'Discard changes' }))
     })
     expect(input.value).toContain('1.5')
     render(true)
