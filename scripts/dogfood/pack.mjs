@@ -101,6 +101,7 @@ async function main() {
       'designer-model.ts',
       'NumericTarget.tsx',
       'OpenCountRange.tsx',
+      'Emphasis.tsx',
     ]) {
       await cp(join(root, 'packages/picodash/tests/dogfood', file), join(output, 'example', file))
     }

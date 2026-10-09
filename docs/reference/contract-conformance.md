@@ -838,3 +838,24 @@ rejection. It passed with public typechecking in the isolated `.2` tarball consu
 repeat/frozen installation and Vite/Next CSS builds. This is DOM and package-consumption evidence,
 not screen-reader or engineering-solver validation. Snapshot `.5` adds the guide and copyable
 example without changing runtime packages or the existing consumer application.
+
+### Authored Dashlet emphasis, 2026-10-09
+
+`band`, `glow`, and `tint` are independent boolean-or-CSS-color shell props, with three inherited
+theme defaults falling back to the current accent. They have no status meaning or Nexus writes.
+[The owning test](../../packages/dashstack/tests/emphasis.test.tsx) covers defaults, custom colors,
+true-to-false updates, native wrapper preservation, unchanged canonical values, focus retention,
+and validation draft/error relationships. Public type fixtures reject numeric emphasis amounts.
+[The consumer fixture](../../packages/picodash/tests/dogfood/emphasis.test.tsx) exercises the facade
+and bound control through installed packages.
+
+Chrome inspection of the rebuilt Lab verified the three individual treatments and their combined
+ready-made TextDashlet in dark/regular and light/compact modes. At 360px there was no page overflow.
+The combined row retained its 2px focus outline and inset glow while another row was hovered. A
+consumer-inherited band token resolved to `rgb(180, 70, 150)`; RTL placed the 3px band 2px from the
+right edge. Theme-default bands resolved to dark `rgb(0, 133, 255)` and light `rgb(8, 104, 206)`.
+The mechanical design scan reported no findings. Forced-colors suppression is stylesheet behavior,
+not a screen-reader or forced-colors browser certification. The Lab examples are under More examples.
+
+Snapshot `.6` is the first runtime release of these props. Older `.2`–`.5` snapshots remain immutable
+and require an upgrade for this feature. No application consumer was upgraded by this change.

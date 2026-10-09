@@ -5,6 +5,21 @@ import { describe, expect, it } from 'vite-plus/test'
 const stylesheetPath = fileURLToPath(new URL('../src/style.css', import.meta.url))
 
 describe('DashStack stylesheet contract', () => {
+  it('keeps decorative emphasis behind content and independent of hover and system focus', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    expect(css).toMatch(
+      /\[data-picodash-dashlet-shell\]\[data-band\]::before\s*\{[^}]*inset-inline-start:\s*2px;[^}]*pointer-events:\s*none;/s,
+    )
+    expect(css).toMatch(/\[data-picodash-dashlet-shell\]:hover\s*\{[^}]*background-color:/s)
+    expect(css).toMatch(
+      /@media \(forced-colors: active\)\s*\{[^]*?\[data-picodash-dashlet-shell\]\[data-band\]::before\s*\{[^}]*display:\s*none;/s,
+    )
+    expect(css).toMatch(/\[data-picodash-dashlet-shell\]\[data-glow\]\s*\{\s*box-shadow:\s*none;/s)
+    expect(css).toMatch(
+      /\[data-picodash-dashlet-shell\]\[data-tint\]\s*\{\s*background-image:\s*none;/s,
+    )
+  })
+
   it('restores the original dense inspector rows with the accepted product tokens', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
     expect(css).toContain('--picodash-dashlet-label-width: 10rem')

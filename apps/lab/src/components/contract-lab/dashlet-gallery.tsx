@@ -10,6 +10,7 @@ import {
 } from '@picodash/ui'
 import {
   DashStack,
+  Dashlet,
   DashGroup,
   SearchDashlet,
   TextDashlet,
@@ -505,6 +506,23 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
                 disabled={disabled}
               >
                 {samples.map((sample) => sample.additional)}
+                <Dashlet id="emphasis-band" label="Band" band>
+                  <span>Theme default</span>
+                </Dashlet>
+                <Dashlet id="emphasis-glow" label="Glow" glow>
+                  <span>Theme default</span>
+                </Dashlet>
+                <Dashlet id="emphasis-tint" label="Tint" tint>
+                  <span>Theme default</span>
+                </Dashlet>
+                <TextDashlet
+                  id="emphasis-combined"
+                  label="Combined"
+                  field={nexus.fields.text}
+                  band="#e7a63c"
+                  glow="#e7a63c"
+                  tint="#e7a63c"
+                />
               </DashGroup>
             </DashStack>
             <GalleryCharts nexus={nexus} />

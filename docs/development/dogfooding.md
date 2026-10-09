@@ -36,6 +36,30 @@ persistence boundaries, continue with [the application recipes](consumer-recipes
 For custom numeric controls, see [NumberField targets and achieved readouts](numeric-targets.md).
 For Any maximum and feasible slider intervals, see [open-ended ranges](open-ended-ranges.md).
 
+## Authored Dashlet emphasis (snapshot .6)
+
+`band`, `glow`, and `tint` are independent visual props on every Dashlet. Bare props or `true`
+use theme defaults, `false` or omission turns them off, and a CSS color string supplies an override.
+They imply no status, validation meaning, or automatic label. `example/Emphasis.tsx` is a compiled
+facade example; copy its `Controls.tsx` companion for the sample model factory.
+
+```tsx
+<SwitchDashlet
+  id="enabled"
+  label="Enabled"
+  field={nexus.fields.enabled}
+  band
+  glow={linkedHovered || linkedFocused}
+  tint="var(--attention-color)"
+/>
+```
+
+Themes may define `--picodash-dashlet-band-color`, `--picodash-dashlet-glow-color`, and
+`--picodash-dashlet-tint-color`. Each falls back to the current accent. Focus and validation remain
+independent. Supply text or another non-color cue for essential meaning. Forced-colors mode hides
+these decorative treatments. Unlike the earlier recipes, these props require a runtime upgrade
+from `.2`–`.5` to `.6` or later; installing only this example is not sufficient.
+
 ## Install a snapshot
 
 Requirements: Bun 1.3.14 or later, Node 22.12 or later, and a standalone React 19+ application.
@@ -53,7 +77,7 @@ configuration is required to use the packaged styles.
 3. Run the snapshot's installer, supplying the application directory:
 
    ```sh
-   bun /path/to/0.1.0-dogfood.5/install.mjs /path/to/my-app
+   bun /path/to/0.1.0-dogfood.6/install.mjs /path/to/my-app
    ```
 
 4. Import the stylesheet once from your application's entry or global layout:
@@ -178,7 +202,7 @@ and nested-provider layouts; computed colors should follow the nearest provider.
 Run the installer from a **new** snapshot against the same application directory:
 
 ```sh
-bun /path/to/0.1.0-dogfood.6/install.mjs /path/to/my-app
+bun /path/to/0.1.0-dogfood.7/install.mjs /path/to/my-app
 ```
 
 It moves all five dependencies and overrides together. Restart the application dev server, run
@@ -188,7 +212,7 @@ previous vendor directory in place until you are satisfied.
 To roll back, run the previous snapshot's installer. The app already retains a copy:
 
 ```sh
-bun /path/to/my-app/vendor/picodash/0.1.0-dogfood.5/install.mjs /path/to/my-app
+bun /path/to/my-app/vendor/picodash/0.1.0-dogfood.6/install.mjs /path/to/my-app
 ```
 
 Then restart and check the app again. A package rollback does not reverse application source edits
@@ -225,8 +249,8 @@ From the Picodash repository, with dependencies installed and source changes com
 
 ```sh
 bun run dogfood:test
-bun run dogfood:pack 0.1.0-dogfood.6
-bun run dogfood:check output/dogfood/0.1.0-dogfood.6
+bun run dogfood:pack 0.1.0-dogfood.7
+bun run dogfood:check output/dogfood/0.1.0-dogfood.7
 ```
 
 Choose an unused version. `dogfood:pack` runs package release checks and builds, stages only the

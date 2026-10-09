@@ -270,6 +270,9 @@ export type DashGroupProps = RegisteredNodeNativeProps & {
 }
 
 type DashletBaseProps = RegisteredNodeNativeProps & {
+  readonly band?: boolean | CSSProperties['color']
+  readonly glow?: boolean | CSSProperties['color']
+  readonly tint?: boolean | CSSProperties['color']
   readonly id: string
   readonly label?: ReactNode
   readonly 'aria-label'?: string
@@ -1115,6 +1118,17 @@ function DashletHelp({
   )
 }
 
+function emphasisColor(
+  value: boolean | CSSProperties['color'],
+  treatment: 'band' | 'glow' | 'tint',
+) {
+  if (value === undefined || value === false) return undefined
+  if (value === true)
+    return `var(--picodash-dashlet-${treatment}-color, var(--picodash-color-accent))`
+  if (typeof value !== 'string') throw new TypeError(`${treatment} must be a boolean or CSS color.`)
+  return value
+}
+
 const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashletProps<any, any>>(
   function Dashlet(props: any, ref) {
     const {
@@ -1123,6 +1137,9 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       'aria-label': ariaLabel,
       description,
       help,
+      band,
+      glow,
+      tint,
       layout: declaredLayout,
       disabled: declaredDisabled = false,
       readOnly: declaredReadOnly = false,
@@ -1137,6 +1154,12 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       ...nativeProps
     } = props
     requireAccessibleLabel(label, ariaLabel, 'Dashlet')
+    const emphasisStyle: CSSProperties &
+      Record<`--_picodash-dashlet-${'band' | 'glow' | 'tint'}`, string | undefined> = {
+      '--_picodash-dashlet-band': emphasisColor(band, 'band'),
+      '--_picodash-dashlet-glow': emphasisColor(glow, 'glow'),
+      '--_picodash-dashlet-tint': emphasisColor(tint, 'tint'),
+    }
     const inheritedPolicy = useContext(DashStackContentPolicyContext)
     const disabled = inheritedPolicy.disabled || declaredDisabled
     const readOnly = inheritedPolicy.readOnly || declaredReadOnly
@@ -1260,6 +1283,10 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
               data-layout={layout}
               data-read-only={readOnly ? 'true' : 'false'}
               data-picodash-dashlet-shell
+              data-band={emphasisStyle['--_picodash-dashlet-band'] !== undefined || undefined}
+              data-glow={emphasisStyle['--_picodash-dashlet-glow'] !== undefined || undefined}
+              data-tint={emphasisStyle['--_picodash-dashlet-tint'] !== undefined || undefined}
+              style={emphasisStyle}
             >
               {label !== undefined || help !== undefined ? (
                 <span id={help === undefined ? labelId : undefined} data-picodash-dashlet-label>

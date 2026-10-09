@@ -340,6 +340,9 @@ type DashletBaseProps = RegisteredNodeNativeProps & {
   'aria-label'?: string
   description?: ReactNode
   help?: ReactNode
+  band?: boolean | CSSProperties['color']
+  glow?: boolean | CSSProperties['color']
+  tint?: boolean | CSSProperties['color']
   layout?: DashletLayout
   pin?: DashletPin
   disabled?: boolean
@@ -578,6 +581,44 @@ identity.
 `inline` places the label and content in one row. `block` places content below the label while
 retaining the shared affordance inset. Block is reserved for content that needs the extra space. The shell,
 not its children, owns the reorder rail and standard error region.
+
+#### Authored visual emphasis
+
+> Contract: Accepted, 2026-10-09
+> Implementation: Implemented
+> Evidence: `packages/dashstack/tests/emphasis.test.tsx` covers prop composition, live updates,
+> focus preservation, unchanged canonical values, and retained validation drafts.
+
+All Dashlets, including ready-made and compound Dashlets, accept independent `band`, `glow`, and
+`tint` props of type `boolean | CSSProperties['color']`. Omission or `false` disables a treatment;
+a bare prop or `true` uses its theme default; a CSS color string overrides that default. Strings
+follow browser CSS color rules, including custom properties; Picodash does not parse or sanitize
+CSS color syntax. Other runtime value types are configuration errors.
+
+`band` paints a prominent stripe at the logical start edge, `glow` paints an inset shadow, and
+`tint` overlays a low-opacity color behind row content. They can combine, do not change row geometry,
+and do not intercept input. Hover remains independent, focus retains its outline, and validation
+retains its existing issue relationships. Treatments never assign status, modify Nexus, add ARIA
+state, or automatically show icons or labels. Authors choose their colors and meaning. Essential
+meaning also needs an accessible text or non-color cue; `description` is suitable for required
+information, while `help` is supplementary. In forced-colors mode these decorative treatments are
+suppressed; system focus and authored descriptions remain available.
+
+```tsx
+<NumberDashlet
+  id="module"
+  label="Module"
+  field={nexus.fields.module}
+  band="var(--module-color)"
+  glow={linkedHovered || linkedFocused}
+  tint={needsAttention ? 'var(--attention-color)' : false}
+/>
+```
+
+Linked hover and linked focus belong to the application and should remain independent, so a pointer
+leaving the diagram does not clear its keyboard-focus cue. This example defines one possible meaning,
+not a built-in association or status protocol. Ready-made Dashlets use the same shell implementation.
+The supported props and tokens first ship in dogfood `.6`; `.2`–`.5` do not support them.
 
 #### Row focus
 
@@ -1878,12 +1919,26 @@ Stack and Dashlet tokens use `--picodash-stack-*` or `--picodash-dashlet-*`; pri
 `--_picodash-*`. The shared `--picodash-shadow-panel` prototype name is replaced by
 `--picodash-shadow-elevated` because dragged Stack nodes consume the same generic role as Panels.
 
-DashStack initially owns exactly two public product tokens:
+DashStack owns these public product tokens:
 
 | Variable                              | Purpose                                              | Syntax     | Regular default |
 | ------------------------------------- | ---------------------------------------------------- | ---------- | --------------- |
 | `--picodash-dashlet-label-width`      | Preferred label track width cap in inline layout.    | `<length>` | `10rem`         |
 | `--picodash-dashlet-field-min-height` | Minimum field visualization and state-region height. | `<length>` | `6rem`          |
+
+The three optional emphasis defaults are inherited CSS color tokens:
+
+| Variable                        | Treatment               | Default when unset             |
+| ------------------------------- | ----------------------- | ------------------------------ |
+| `--picodash-dashlet-band-color` | Logical start-edge band | `var(--picodash-color-accent)` |
+| `--picodash-dashlet-glow-color` | Inner glow              | `var(--picodash-color-accent)` |
+| `--picodash-dashlet-tint-color` | Background tint         | `var(--picodash-color-accent)` |
+
+Set these in a theme selector or on an ancestor; a Dashlet color string overrides only that
+instance. Defaults resolve at the consuming shell, so inherited tokens and nested theme accents
+work without a separate theme provider or a Nexus field. Geometry and compositing strengths remain
+package-owned. The theme's default color is the source color, with the glow and tint applying their
+own reduced opacity. `false` suppresses a treatment even when its theme token is defined.
 
 The label token is a preferred track width rather than a truncation boundary; long labels wrap.
 The field token replaces the prototype's generic `--picodash-field-surface-min-height` name.

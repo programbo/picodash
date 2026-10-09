@@ -91,6 +91,7 @@ try {
         'designer-model.ts',
         'NumericTarget.tsx',
         'OpenCountRange.tsx',
+        'Emphasis.tsx',
       ],
     }),
   )

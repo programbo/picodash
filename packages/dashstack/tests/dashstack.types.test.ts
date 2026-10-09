@@ -25,6 +25,16 @@ type Fields = { value: { defaultValue: number } }
 
 describe('@picodash/dashstack public types', () => {
   it('exposes only the shell props and shared identity types', () => {
+    void createElement(Dashlet, {
+      id: 'authored',
+      label: 'Authored',
+      band: true,
+      glow: '#ffcc00',
+      tint: 'var(--brand)',
+    })
+    void createElement(Dashlet, { id: 'off', label: 'Off', band: false, glow: false, tint: false })
+    // @ts-expect-error emphasis accepts booleans or CSS colors, not numeric amounts.
+    void createElement(Dashlet, { id: 'invalid-emphasis', label: 'Invalid', band: 0.5 })
     const root: DashStackProps = {
       id: 'settings',
       nexus,
