@@ -48,7 +48,7 @@ function Controls() {
               { value: 2, label: 'Minimum bore' },
             ]}
             result={{ status: 'ready', value: 2.4 }}
-            formatValue={(value) => `${value} mm`}
+            unit="mm"
           />
         </DashGroup>
       </DashGroup>
@@ -110,7 +110,7 @@ The `result` prop is one of:
 
 ```ts
 { status: 'ready', value: 2.4 }
-{ status: 'pending', lastValue: 2.4 } // Optional, visibly labelled Previous.
+{ status: 'pending', lastValue: 2.4 } // Optional last completed value; visible labels stay stable.
 { status: 'no-fit', message: 'Increase the hub diameter.' }
 { status: 'error', message: 'The solver could not run.' }
 ```
@@ -236,3 +236,90 @@ This is an ordinary Panel, without modal focus containment or a backdrop. Drawer
 presentations and skinny toolbar/pop-out Dashlets are not implemented in this snapshot. Import
 `@picodash/dashpanel/style.css` as well as the Stack and UI styles. The complete compiled
 `ResponsiveDesigner` example is included in `LinkedControls.tsx` in the dogfood bundle.
+
+## Compare a numeric target and actual
+
+Dogfood.11 adds `TargetNumberDashlet` and the unbound `TargetNumber` from
+`@picodash/dashstack/ui`. The editable target is on the left and the read-only actual
+is on the right. Both labels sit below their fields, aligned to the start edge.
+`targetLabel` defaults to `"Target"`; `actualLabel` defaults to `"Actual"`.
+
+```tsx
+<TargetNumberDashlet
+  id="reduction"
+  label="Reduction"
+  field={nexus.fields.reduction}
+  step={0.01}
+  unit=":1"
+  result={{ status: 'ready', value: solver.reduction }}
+  targetLabel="Target"
+  actualLabel="Actual"
+/>
+```
+
+`unit` is a display-only string suffix, so `:1` never enters the numeric field value.
+It also works on `NumberField`, `NumberDashlet`, `TargetSlider`, and `TargetSliderDashlet`.
+For localized numeric units, existing `formatOptions` still works. Do not supply both an
+Intl unit formatter and the same `unit` suffix or the unit will appear twice. On TargetNumber,
+`formatValue` formats only the actual number; `unit` supplies its suffix. On TargetSlider,
+`formatValue` retains its existing role as the complete achieved readout, so add any unit there
+or omit `formatValue` to use the new suffix automatically.
+
+`TargetNumberResult` and `TargetSliderResult` accept the same ready, pending, no-fit, and error
+variants. Pending with `lastValue` retains the last number without changing a visible label;
+pending without one displays an em dash. Neither control stores a hidden previous solver result.
+TargetNumber keeps the actual field in place for every state. TargetSlider reserves one short
+result-message line, so pending, no-fit and error do not move the next Dashlet. Detailed result
+messages remain available through accessible status text. Applications may instead keep the last
+completed `ready` snapshot on each control and own freshness in one `aria-busy` workspace with a
+delayed updating indicator. Picodash does not add a solver timer.
+
+## Keep numeric intent when slider capacity changes
+
+The TargetSlider input now follows its thumb above the track. Its position clamps at both track
+edges, and its lift/scale has reserved space. Pointer motion remains direct; reduced motion turns
+off the feedback transitions. The editable field stays mounted through scale and result changes.
+
+For application-owned dynamic capacity, compose a Dashlet with unbound TargetSlider. `value`
+positions the thumb; `inputValue` preserves numeric intent even when the latest capacity is smaller.
+New edits should go through the application's constraint policy. Do not overwrite the stored intent
+just because the presentation capacity changed.
+
+```tsx
+import { Dashlet, type SingleFieldDashletRenderContext } from '@picodash/dashstack'
+import { TargetSlider } from '@picodash/dashstack/ui'
+
+;<Dashlet id="bore" label="Bore" field={nexus.fields.bore}>
+  {({ binding, labelId, disabled, readOnly }: SingleFieldDashletRenderContext<number>) => (
+    <TargetSlider
+      id={binding.controlId}
+      aria-labelledby={labelId}
+      value={Math.max(0, Math.min(capacity, binding.value))}
+      inputValue={
+        binding.dirty
+          ? typeof binding.draftValue === 'number'
+            ? binding.draftValue
+            : null
+          : binding.value
+      }
+      onChange={(next) =>
+        binding.setInput(next === null ? null : Math.max(0, Math.min(capacity, next)))
+      }
+      createGesture={(options) => binding.createNumericGesture(options)}
+      min={0}
+      max={capacity}
+      step={0.001}
+      unit="mm"
+      result={result}
+      disabled={disabled}
+      readOnly={readOnly}
+    />
+  )}
+</Dashlet>
+```
+
+This example assumes positive capacity and values on the `0.001` grid. For zero capacity, render a
+read-only numeric comparison instead of inventing a nonzero scale. If the application permits other
+steps, supply a representable thumb value through its own constraint policy. `createGesture`
+preserves Escape rollback and external-write ownership; ordinary text entry uses the binding draft.
+The installed `LinkedControls.tsx` recipe includes this composition as `CapacityTarget`.

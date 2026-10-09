@@ -2174,7 +2174,7 @@ numeric field with independent finite `min < max`, positive `step` (default `0.0
 the combined control root; the achieved marker and readout have a separate readonly role. `result`
 is `{status:'ready',value:number}`, `{status:'pending',lastValue?:number}`, `{status:'no-fit',message?:string}`,
 or `{status:'error',message:string}`. No-fit/error have no numeric marker. Pending lastValue is
-labelled Previous. Achieved values are independent of marks/target steps. Animation changes only
+retained without a visible label change. Achieved values are independent of marks/target steps. Animation changes only
 paint; readouts update immediately and reduced motion snaps. Unrepresentable canonical values are
 shown honestly without a fabricated endpoint thumb.
 
@@ -2185,3 +2185,18 @@ validation, and external changes. Numeric text entry keeps its existing binding 
 
 See [the complete adoption recipes](../development/linked-controls.md) for lifecycle events,
 headless/React parity, result freshness, source-attributed attention and deliberate navigation.
+
+### Target comparison presentation (2026-10-09)
+
+`TargetNumberDashlet` binds one numeric target and accepts the application-owned
+`TargetNumberResult`, which has the same variants as `TargetSliderResult`. Unbound `TargetNumber`
+is exported from `/ui`. Target and Actual render side by side with customizable `targetLabel` and
+`actualLabel` strings below, start-aligned. The actual is an output, not another editable field.
+A display-only `unit` suffix appears in both fields. NumberField and NumberDashlet also accept it.
+
+TargetSlider accepts the same optional `unit` for its editable target label. That field follows the
+thumb above the track, stays inside its edges, and lifts/scales with thumb feedback. Its numeric
+input remains mounted and supports the existing independent `inputValue` composition. Pending
+results retain `lastValue` without visible word changes; no-fit/error do not add layout height.
+Result freshness remains application-owned. See the linked-controls guide for the two formatting
+roles and the dynamic-capacity recipe.

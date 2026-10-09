@@ -115,6 +115,8 @@ export type {
   NumericGestureCancelReason,
 } from '@picodash/nexus'
 
+export { TargetNumberDashlet } from '@picodash/dashstack'
+export type { TargetNumberDashletProps, TargetNumberResult } from '@picodash/dashstack'
 export { TargetSliderDashlet } from '@picodash/dashstack'
 export type { TargetSliderDashletProps, TargetSliderResult } from '@picodash/dashstack'
 

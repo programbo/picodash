@@ -34,6 +34,8 @@ import {
   SegmentedControl,
   Slider,
   TargetSlider,
+  TargetNumber,
+  type TargetNumberProps,
   type TargetSliderProps,
   Switch,
   TextField,
@@ -150,9 +152,9 @@ export const TextDashlet = forwardRef(TextDashletInner) as {
 
 export type NumberDashletProps<F extends ScalarField<number> = ExactField<number>> = Shell &
   WritableScalarFieldProps<F, number> &
-  Pick<NumberFieldProps, 'min' | 'max' | 'step' | 'placeholder' | 'formatOptions'>
+  Pick<NumberFieldProps, 'min' | 'max' | 'step' | 'placeholder' | 'formatOptions' | 'unit'>
 function NumberDashletInner<F extends ScalarField<number>>(
-  { field, min, max, step, placeholder, formatOptions, ...props }: NumberDashletProps<F>,
+  { field, min, max, step, placeholder, formatOptions, unit, ...props }: NumberDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
 ) {
   validateBounds(min, max)
@@ -189,6 +191,7 @@ function NumberDashletInner<F extends ScalarField<number>>(
                 step={step}
                 formatOptions={formatOptions}
                 placeholder={placeholder}
+                unit={unit}
                 disabled={context.disabled}
                 readOnly={context.readOnly}
                 aria-labelledby={context.labelId}
@@ -542,7 +545,15 @@ export type TargetSliderDashletProps<F extends ScalarField<number> = ExactField<
   WritableScalarFieldProps<F, number> &
   Pick<
     TargetSliderProps,
-    'min' | 'max' | 'step' | 'marks' | 'allowedRange' | 'formatOptions' | 'formatValue' | 'result'
+    | 'min'
+    | 'max'
+    | 'step'
+    | 'marks'
+    | 'allowedRange'
+    | 'formatOptions'
+    | 'formatValue'
+    | 'result'
+    | 'unit'
   >
 function TargetSliderDashletInner<F extends ScalarField<number>>(
   {
@@ -555,6 +566,7 @@ function TargetSliderDashletInner<F extends ScalarField<number>>(
     formatOptions,
     formatValue,
     result,
+    unit,
     ...props
   }: TargetSliderDashletProps<F>,
   ref: ForwardedRef<HTMLDivElement>,
@@ -595,6 +607,7 @@ function TargetSliderDashletInner<F extends ScalarField<number>>(
             marks={marks}
             allowedRange={allowedRange}
             result={result}
+            unit={unit}
             formatOptions={formatOptions}
             formatValue={formatValue}
             disabled={context.disabled}
@@ -613,4 +626,102 @@ export const TargetSliderDashlet = forwardRef(TargetSliderDashletInner) as {
     props: TargetSliderDashletProps<F> & RefAttributes<HTMLDivElement>,
   ): ReactElement | null
   (props: TargetSliderDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
+}
+
+export type TargetNumberDashletProps<F extends ScalarField<number> = ExactField<number>> = Shell &
+  WritableScalarFieldProps<F, number> &
+  Pick<
+    TargetNumberProps,
+    | 'min'
+    | 'max'
+    | 'step'
+    | 'placeholder'
+    | 'formatOptions'
+    | 'formatValue'
+    | 'result'
+    | 'unit'
+    | 'targetLabel'
+    | 'actualLabel'
+  >
+function TargetNumberDashletInner<F extends ScalarField<number>>(
+  {
+    field,
+    min,
+    max,
+    step,
+    placeholder,
+    formatOptions,
+    formatValue,
+    result,
+    unit,
+    targetLabel,
+    actualLabel,
+    ...props
+  }: TargetNumberDashletProps<F>,
+  ref: ForwardedRef<HTMLDivElement>,
+) {
+  validateBounds(min, max)
+  validateStep(step)
+  return (
+    <Dashlet {...props} ref={ref} field={asDashletBindingField(field)}>
+      {(context: SingleFieldDashletRenderContext<number>) => {
+        const binding = context.binding
+        if (typeof binding.value !== 'number' || !Number.isFinite(binding.value))
+          return (
+            <>
+              <output id={binding.controlId} aria-labelledby={context.labelId}>
+                {JSON.stringify(binding.value)}
+              </output>
+              <PresentationWarning
+                context={context}
+                incompatible
+                message="The current target is not a finite number."
+              />
+            </>
+          )
+        const mismatch = !isNumberCompatible(binding.value, min, max, step)
+        return (
+          <>
+            <TargetNumber
+              id={binding.controlId}
+              value={
+                binding.dirty
+                  ? typeof binding.draftValue === 'number'
+                    ? binding.draftValue
+                    : Number.NaN
+                  : binding.value
+              }
+              onChange={(value) => binding.setInput(value)}
+              min={mismatch ? undefined : min}
+              max={mismatch ? undefined : max}
+              step={mismatch ? undefined : step}
+              placeholder={placeholder}
+              formatOptions={formatOptions}
+              formatValue={formatValue}
+              result={result}
+              unit={unit}
+              targetLabel={targetLabel}
+              actualLabel={actualLabel}
+              disabled={context.disabled}
+              readOnly={context.readOnly || mismatch}
+              aria-labelledby={context.labelId}
+              aria-describedby={describedBy(context, mismatch, binding)}
+              {...bindingAria(binding)}
+            />
+            <PresentationWarning
+              context={context}
+              incompatible={mismatch}
+              message="The current target is outside the configured interval or step."
+            />
+          </>
+        )
+      }}
+    </Dashlet>
+  )
+}
+export const TargetNumberDashlet = forwardRef(TargetNumberDashletInner) as {
+  <F extends ScalarField<number>>(
+    props: TargetNumberDashletProps<F> & RefAttributes<HTMLDivElement>,
+  ): ReactElement | null
+  (props: TargetNumberDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null
 }

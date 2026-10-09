@@ -7,10 +7,11 @@ import {
   DashStack,
   SliderDashlet,
   TargetSliderDashlet,
+  TargetNumberDashlet,
   getDashStackStructure,
   revealDashlet,
 } from '../src/index.js'
-import { TargetSlider } from '../src/ui.js'
+import { TargetNumber, TargetSlider } from '../src/ui.js'
 
 afterEach(cleanup)
 const make = () =>
@@ -92,7 +93,7 @@ describe('target versus achieved', () => {
   it('distinguishes previous, no-fit, error, and real values outside the scale', () => {
     const props = { value: 4, min: 0, max: 10, onChange: vi.fn(), 'aria-label': 'Bore' }
     const view = render(<TargetSlider {...props} result={{ status: 'pending', lastValue: 0 }} />)
-    expect(screen.getByLabelText('Achieved').textContent).toBe('Previous 0')
+    expect(screen.getByLabelText('Achieved').textContent).toBe('0')
     view.rerender(<TargetSlider {...props} result={{ status: 'no-fit' }} />)
     expect(screen.queryByLabelText('Achieved')).toBeNull()
     expect(screen.getByText('No feasible result')).toBeTruthy()
@@ -104,6 +105,39 @@ describe('target versus achieved', () => {
       <TargetSlider {...props} result={{ status: 'error', message: 'Solver unavailable' }} />,
     )
     expect(screen.getByText('Solver unavailable')).toBeTruthy()
+  })
+  it('preserves numeric intent and an in-progress text draft as result and capacity change', () => {
+    const change = vi.fn()
+    const view = render(
+      <TargetSlider
+        aria-label="Bore"
+        value={5}
+        inputValue={8}
+        max={5}
+        unit="mm"
+        onChange={change}
+        result={{ status: 'ready', value: 4 }}
+      />,
+    )
+    const input = screen.getByRole('textbox', { name: 'Target Bore' })
+    expect(input.getAttribute('value')).toBe('8')
+    expect(screen.getByRole('slider', { name: 'Target Bore' }).getAttribute('value')).toBe('5')
+    fireEvent.change(input, { target: { value: '-' } })
+    view.rerender(
+      <TargetSlider
+        aria-label="Bore"
+        value={4}
+        inputValue={8}
+        max={4}
+        unit="mm"
+        onChange={change}
+        result={{ status: 'pending', lastValue: 4 }}
+      />,
+    )
+    expect(screen.getByRole('textbox', { name: 'Target Bore' })).toBe(input)
+    expect((input as HTMLInputElement).value).toBe('-')
+    expect(change).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('Achieved').textContent).toBe('4 mm')
   })
   it('reveals a collapsed ancestor and focuses the numeric target without private selectors', async () => {
     const nexus = make(),
@@ -190,5 +224,88 @@ describe('slider gesture lifecycle', () => {
     fireEvent.keyDown(slider, { key: 'ArrowRight' })
     fireEvent.click(screen.getByRole('button', { name: 'Collapse group Group' }))
     expect(nexus.getState().values.value).toBe(7)
+  })
+})
+
+describe('TargetNumber', () => {
+  it('edits only the target, uses display-only units, and labels both fields', async () => {
+    const nexus = make()
+    const view = render(
+      <DashStack nexus={nexus} id="numbers">
+        <TargetNumberDashlet
+          id="ratio"
+          label="Reduction"
+          field={nexus.fields.value}
+          step={0.01}
+          unit=":1"
+          result={{ status: 'ready', value: 5 }}
+        />
+      </DashStack>,
+    )
+    const input = screen.getByRole('textbox', { name: 'Target Reduction' })
+    const actual = screen.getByLabelText('Actual Reduction')
+    expect(actual.tagName).toBe('OUTPUT')
+    expect(actual.textContent).toBe('5:1')
+    fireEvent.change(input, { target: { value: '3.5' } })
+    fireEvent.blur(input)
+    expect(nexus.getState().values.value).toBe(3.5)
+    expect(actual.textContent).toBe('5:1')
+    view.rerender(
+      <DashStack nexus={nexus} id="numbers">
+        <TargetNumberDashlet
+          id="ratio"
+          label="Reduction"
+          field={nexus.fields.value}
+          unit=":1"
+          readOnly
+          targetLabel="Requested"
+          actualLabel="Result"
+          result={{ status: 'pending', lastValue: 5 }}
+        />
+      </DashStack>,
+    )
+    expect(
+      screen.getByRole('textbox', { name: 'Requested Reduction' }).hasAttribute('readonly'),
+    ).toBe(true)
+    expect(screen.getByLabelText('Result Reduction').textContent).toBe('5:1')
+    expect(screen.getByText('Requested').id).toBeTruthy()
+    cleanup()
+    nexus.destroy()
+  })
+  it('keeps one result slot through pending, no fit, error and zero', () => {
+    const props = { value: 2, onChange: vi.fn(), unit: 'mm', 'aria-label': 'Bore' }
+    const view = render(<TargetNumber {...props} result={{ status: 'ready', value: 0 }} />)
+    const output = screen.getByLabelText('Actual Bore')
+    expect(output.textContent).toBe('0mm')
+    for (const result of [
+      { status: 'pending', lastValue: 0 },
+      { status: 'pending' },
+      { status: 'no-fit' },
+      { status: 'error', message: 'Unavailable' },
+    ] as const) {
+      view.rerender(<TargetNumber {...props} result={result} />)
+      expect(screen.getByLabelText('Actual Bore')).toBe(output)
+      expect(output.textContent).toBe('lastValue' in result ? '0mm' : '—')
+    }
+    expect(props.onChange).not.toHaveBeenCalled()
+  })
+  it('preserves canonical values outside the configured interval without silent clamping', () => {
+    const nexus = make()
+    render(
+      <DashStack nexus={nexus} id="numbers">
+        <TargetNumberDashlet
+          id="target"
+          label="Bore"
+          field={nexus.fields.value}
+          max={1}
+          result={{ status: 'ready', value: 0 }}
+        />
+      </DashStack>,
+    )
+    expect(screen.getByRole('textbox', { name: 'Target Bore' }).getAttribute('value')).toBe('2')
+    expect(screen.getByRole('note').textContent).toContain('outside')
+    expect(nexus.getState().values.value).toBe(2)
+    cleanup()
+    nexus.destroy()
   })
 })

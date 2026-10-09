@@ -224,6 +224,42 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
       '--_picodash-achieved-position',
       '0%',
     )
+    // The editable label follows the thumb but stays within the physical track at both ends.
+    const targetControl = target.locator('xpath=ancestor::*[@data-picodash-target-track]')
+    for (const value of [0, 5, 10]) {
+      await target.fill(String(value))
+      await target.press('Tab')
+      const geometry = await targetControl.evaluate((root) => {
+        const track = root
+          .querySelector('.picodash-dashstack-slider-track')!
+          .getBoundingClientRect()
+        const label = root
+          .querySelector('[data-picodash-target-label-slot] > div')!
+          .getBoundingClientRect()
+        return {
+          track: { left: track.left, right: track.right },
+          label: { left: label.left, right: label.right },
+        }
+      })
+      expect(geometry.label.left).toBeGreaterThanOrEqual(geometry.track.left - 1)
+      expect(geometry.label.right).toBeLessThanOrEqual(geometry.track.right + 1)
+      if (value === 5)
+        expect(
+          Math.abs(
+            (geometry.label.left + geometry.label.right) / 2 -
+              (geometry.track.left + geometry.track.right) / 2,
+          ),
+        ).toBeLessThan(1)
+    }
+    const targetNumber = phone.getByRole('textbox', { name: 'Target Reduction', exact: true })
+    const actualNumber = phone.getByRole('status', { name: 'Actual Reduction', exact: true })
+    const left = (await targetNumber.boundingBox())!
+    const right = (await actualNumber.boundingBox())!
+    expect(left.x + left.width).toBeLessThan(right.x)
+    expect(Math.abs(left.y - right.y)).toBeLessThan(2)
+    const labels = phone.locator('[data-picodash-target-field-label]')
+    expect((await labels.first().boundingBox())!.y).toBeGreaterThan(left.y + left.height)
+    await expect(actualNumber).toHaveText('5:1')
     await phone.emulateMedia({ reducedMotion: 'no-preference' })
     await phone.getByRole('button', { name: 'Read-only', exact: true }).click()
     await expect(target).toHaveAttribute('readonly', '')

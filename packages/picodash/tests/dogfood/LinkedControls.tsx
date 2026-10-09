@@ -4,6 +4,8 @@ import {
   DashStack,
   DashGroup,
   TargetSliderDashlet,
+  TargetNumberDashlet,
+  Dashlet,
   NumberDashlet,
   useDashStackGroupOrder,
   useDashStackStructure,
@@ -11,6 +13,7 @@ import {
   subscribeDashStackStructure,
   revealDashlet,
   type TargetSliderResult,
+  type SingleFieldDashletRenderContext,
 } from '@picodash/dashstack'
 import { TargetSlider } from '@picodash/dashstack/ui'
 import { DashPanel, DashPanelProvider, type DashPanelDefaultLayout } from '@picodash/dashpanel'
@@ -50,11 +53,22 @@ export function LinkedControls({
             max={10}
             step={0.01}
             result={result}
+            unit="mm"
             marks={[
               { value: 0, label: 'Solid' },
               { value: 2, label: 'Minimum bore' },
             ]}
             formatValue={(value) => `${value} mm`}
+          />
+          <TargetNumberDashlet
+            id="comparison"
+            label="Bore comparison"
+            field={nexus.fields.bore}
+            step={0.01}
+            unit="mm"
+            result={result}
+            targetLabel="Requested"
+            actualLabel="Result"
           />
           <NumberDashlet id="linked" label="Linked target" field={nexus.fields.bore} step={0.01} />
         </DashGroup>
@@ -105,7 +119,16 @@ export function negativeTypes(nexus: ReturnType<typeof createTargets>) {
   )
   // @ts-expect-error ready state requires a value
   const missing: TargetSliderResult = { status: 'ready' }
-  void [bad, missing, TargetSlider]
+  const badNumber = (
+    <TargetNumberDashlet
+      id="bad-number"
+      label="Bad"
+      // @ts-expect-error number targets cannot bind string fields
+      field={nexus.fields.title}
+      result={{ status: 'ready', value: 0 }}
+    />
+  )
+  void [bad, badNumber, missing, TargetSlider]
 }
 
 // A Panel and its primary Stack share the existing designer scope.
@@ -135,5 +158,48 @@ export function ResponsiveDesigner({
         </DashStack>
       </DashPanel>
     </DashPanelProvider>
+  )
+}
+
+// Preserve old numeric intent when a new geometry has a smaller available bore.
+export function CapacityTarget({
+  id,
+  nexus,
+  capacity,
+  result,
+}: {
+  id: string
+  nexus: ReturnType<typeof createTargets>
+  capacity: number
+  result: TargetSliderResult
+}) {
+  return (
+    <Dashlet id={id} label="Available bore" field={nexus.fields.bore}>
+      {({ binding, labelId, disabled, readOnly }: SingleFieldDashletRenderContext<number>) => (
+        <TargetSlider
+          id={binding.controlId}
+          aria-labelledby={labelId}
+          value={Math.max(0, Math.min(capacity, binding.value))}
+          inputValue={
+            binding.dirty
+              ? typeof binding.draftValue === 'number'
+                ? binding.draftValue
+                : null
+              : binding.value
+          }
+          onChange={(next) =>
+            binding.setInput(next === null ? null : Math.max(0, Math.min(capacity, next)))
+          }
+          createGesture={(options) => binding.createNumericGesture(options)}
+          min={0}
+          max={capacity}
+          step={0.001}
+          unit="mm"
+          result={result}
+          disabled={disabled}
+          readOnly={readOnly}
+        />
+      )}
+    </Dashlet>
   )
 }

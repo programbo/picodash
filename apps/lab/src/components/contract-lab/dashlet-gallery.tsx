@@ -19,6 +19,7 @@ import {
   SwitchDashlet,
   SliderDashlet,
   TargetSliderDashlet,
+  TargetNumberDashlet,
   DisplayDashlet,
   StatusDashlet,
   ColorDashlet,
@@ -499,6 +500,14 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
               >
                 <DashGroup id="target-values" label="Requested and achieved">
                   <GalleryTarget id="target-bore" label="Bore" nexus={nexus} />
+                  <TargetNumberDashlet
+                    id="target-reduction"
+                    label="Reduction"
+                    field={nexus.fields.target}
+                    step={0.01}
+                    unit=":1"
+                    result={{ status: 'ready', value: 5 }}
+                  />
                   <NumberDashlet
                     id="target-number"
                     label="Linked target"
@@ -567,6 +576,7 @@ function GalleryTarget({ id, label, nexus }: { id: string; label: string; nexus:
   const achieved = target <= 1 ? 0 : Math.max(2, Math.round(target * 2) / 2)
   return (
     <TargetSliderDashlet
+      unit="mm"
       id={id}
       label={label}
       field={nexus.fields.target}

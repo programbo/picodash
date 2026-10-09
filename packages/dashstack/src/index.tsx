@@ -133,6 +133,7 @@ import {
   SegmentedDashlet,
   SliderDashlet,
   TargetSliderDashlet,
+  TargetNumberDashlet,
   SwitchDashlet,
   TextDashlet,
 } from './ready-made.js'
@@ -162,6 +163,7 @@ export type {
   SliderDashletMark,
   SliderDashletProps,
   TargetSliderDashletProps,
+  TargetNumberDashletProps,
   SwitchDashletProps,
   TextDashletProps,
 } from './ready-made.js'
@@ -2027,6 +2029,7 @@ for (const component of [
   NumberDashlet,
   SliderDashlet,
   TargetSliderDashlet,
+  TargetNumberDashlet,
   SwitchDashlet,
   SelectDashlet,
   SegmentedDashlet,
@@ -2076,6 +2079,7 @@ export {
   SegmentedDashlet,
   SliderDashlet,
   TargetSliderDashlet,
+  TargetNumberDashlet,
   SwitchDashlet,
   TextDashlet,
 }
@@ -2083,4 +2087,5 @@ export {
 export { getDashStackStructure, subscribeDashStackStructure, revealDashlet } from './structure.js'
 export type { DashletRevealResult } from './structure.js'
 
+export type { TargetNumberResult } from './target-number.js'
 export type { TargetSliderResult } from './target-slider.js'

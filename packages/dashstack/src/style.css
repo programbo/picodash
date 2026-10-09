@@ -2222,10 +2222,6 @@
   display: grid;
   gap: var(--picodash-space-1);
 }
-.picodash-dashstack-target-slider > .picodash-dashstack-field {
-  justify-self: end;
-  inline-size: min(100%, 10ch);
-}
 .picodash-dashstack-target-slider .picodash-dashstack-slider {
   grid-template-columns: minmax(0, 1fr);
 }
@@ -2257,9 +2253,6 @@
   white-space: nowrap;
   font-size: var(--picodash-font-size-sm);
   font-variant-numeric: tabular-nums;
-}
-.picodash-dashstack-target-slider[data-result='pending'] [data-picodash-achieved-marker] {
-  opacity: 0.6;
 }
 .picodash-dashstack-target-slider [data-picodash-dashstack-slider-marks] {
   inset-block-start: calc(100% + var(--picodash-space-4) + var(--picodash-font-size-sm));
@@ -2319,4 +2312,131 @@
   inline-size: var(--picodash-border-width-thin);
   block-size: calc(var(--picodash-space-1) + var(--picodash-space-0-5));
   background: var(--picodash-color-text-muted);
+}
+
+/* Units share the field chrome, but never enter the editable numeric value. */
+[data-picodash-number-shell][data-unit] {
+  display: flex;
+  align-items: center;
+  gap: var(--picodash-space-1);
+  border: var(--picodash-border-width-thin) solid var(--picodash-color-control-border);
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-surface-muted);
+  padding-inline-end: var(--picodash-space-1-5);
+}
+[data-picodash-number-shell][data-unit] > input {
+  min-inline-size: 0;
+  border: 0;
+  background: transparent;
+  text-align: end;
+  padding-inline-end: 0;
+}
+[data-picodash-number-unit] {
+  flex: none;
+  white-space: nowrap;
+  color: var(--picodash-color-text-muted);
+}
+.picodash-dashstack-target-number {
+  min-inline-size: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--picodash-space-2);
+}
+[data-picodash-target-number-field] {
+  min-inline-size: 0;
+}
+[data-picodash-target-field-label] {
+  display: block;
+  margin-block-start: var(--picodash-space-1);
+  text-align: start;
+  font-size: var(--picodash-font-size-sm);
+  color: var(--picodash-color-text-muted);
+  overflow-wrap: anywhere;
+}
+[data-picodash-target-actual] {
+  display: flex;
+  align-items: center;
+  justify-content: end;
+  gap: var(--picodash-space-1);
+  font-variant-numeric: tabular-nums;
+}
+[data-picodash-target-actual] > :first-child {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.picodash-dashstack-target-number[data-disabled] [data-picodash-target-actual] {
+  opacity: var(--picodash-opacity-disabled);
+}
+.picodash-dashstack-target-slider [data-picodash-target-track] {
+  position: relative;
+  margin-inline: var(--picodash-space-1);
+  padding-block-start: calc(var(--picodash-control-height-md) + var(--picodash-space-3));
+}
+.picodash-dashstack-target-slider .picodash-dashstack-slider-track {
+  margin-inline: 0;
+}
+[data-picodash-target-label-slot] {
+  position: absolute;
+  inset-block-start: var(--picodash-space-2);
+  inline-size: min(100%, var(--_picodash-target-label-width));
+  inset-inline-start: clamp(
+    0px,
+    calc(var(--_picodash-target-position) - var(--_picodash-target-label-width) / 2),
+    max(0px, calc(100% - var(--_picodash-target-label-width)))
+  );
+  display: flex;
+  justify-content: center;
+  z-index: 1;
+}
+/* Reserve the scaled width so even an endpoint label remains inside the track. */
+[data-picodash-target-label-slot] > .picodash-dashstack-field {
+  inline-size: calc(100% / 1.06);
+  transform-origin: center bottom;
+  transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+[data-picodash-target-label-slot] input {
+  text-align: end;
+}
+[data-picodash-target-track]:has(
+    [data-picodash-dashstack-slider-thumb]:is([data-dragging], [data-focus-visible])
+  )
+  > [data-picodash-target-label-slot]
+  > .picodash-dashstack-field {
+  transform: translateY(calc(-1 * var(--picodash-space-1))) scale(1.06);
+}
+.picodash-dashstack-target-slider [data-picodash-dashstack-slider-thumb]::before {
+  transform-origin: center bottom;
+  transition: transform var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+.picodash-dashstack-target-slider
+  .picodash-dashstack-slider:not([data-disabled])
+  [data-picodash-dashstack-slider-thumb]:is([data-dragging], [data-focus-visible])::before {
+  transform: scale(1.25);
+}
+@media (hover: hover) and (pointer: fine) {
+  [data-picodash-target-track]:has([data-picodash-dashstack-slider-thumb][data-hovered])
+    > [data-picodash-target-label-slot]
+    > .picodash-dashstack-field {
+    transform: translateY(calc(-1 * var(--picodash-space-1))) scale(1.06);
+  }
+  .picodash-dashstack-target-slider
+    .picodash-dashstack-slider:not([data-disabled])
+    [data-picodash-dashstack-slider-thumb][data-hovered]::before {
+    transform: scale(1.25);
+  }
+}
+[data-picodash-target-result-message] {
+  min-block-size: 1lh;
+  font-size: var(--picodash-font-size-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-target-label-slot] > .picodash-dashstack-field,
+  .picodash-dashstack-target-slider [data-picodash-dashstack-slider-thumb]::before {
+    transition: none;
+  }
 }

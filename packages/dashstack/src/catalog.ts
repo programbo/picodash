@@ -89,6 +89,12 @@ const stableReadyMade = [
     ['edit', 'read'],
     ['number'],
   ],
+  [
+    'TargetNumberDashlet',
+    'Edits a numeric target beside an application-supplied actual result.',
+    ['edit', 'read'],
+    ['number'],
+  ],
   ['SwitchDashlet', 'Binds a boolean field to a switch control.', ['edit'], ['boolean']],
   ['SelectDashlet', 'Binds one choice field to a select control.', ['edit'], ['string-or-number']],
   [

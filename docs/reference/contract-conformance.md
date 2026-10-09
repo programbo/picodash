@@ -922,3 +922,20 @@ Snapshot .10 (`af789e8bcf0465f41905b4d5597fa11b337d7056`) contains this correcti
 gate and isolated consumer checks pass, including installed guides/examples, repeat/frozen
 installation, .9 update/rollback, component interactions and Vite/Next CSS builds. Maz owns
 independent adoption and verification in the planetary designer.
+
+### Target comparison controls, 2026-10-09
+
+TargetNumber adds editable Target and read-only Actual columns with configurable labels below and
+a shared display-only suffix. TargetSlider places its editable unit-bearing input above the thumb;
+its label is centered where possible, clamped inside track edges, and lifted during interaction.
+Pending readouts keep their wording and result space stable. Dynamic-capacity compositions retain
+independent numeric intent through `inputValue` and the existing numeric gesture factory.
+
+Owning evidence: `packages/dashstack/tests/target-slider.test.tsx` covers binding edits, independent
+actual results, zero/pending/no-fit/error, custom names, read-only policy, draft retention and honest
+out-of-range values. The existing phone gallery journey checks endpoint/midpoint containment and
+side-by-side field/label geometry. Desktop pointer inspection confirms the target label lifts 4px,
+scales 1.06, and stays inside the right endpoint while the thumb scales 1.25. Light/compact and
+390px layouts were visually checked. The package release gate and artifact checks pass after
+merging main's dependency updates. The consumer's solver and delayed freshness indicator remain
+application-owned.

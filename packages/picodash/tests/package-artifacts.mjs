@@ -83,6 +83,7 @@ assert.deepEqual(
     'SelectDashlet',
     'SliderDashlet',
     'TargetSliderDashlet',
+    'TargetNumberDashlet',
     'StatusDashlet',
     'SwitchDashlet',
     'TextDashlet',

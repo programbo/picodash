@@ -95,6 +95,7 @@ assert.deepEqual(
     'SelectDashlet',
     'SliderDashlet',
     'TargetSliderDashlet',
+    'TargetNumberDashlet',
     'StatusDashlet',
     'SwitchDashlet',
     'TextDashlet',
@@ -125,6 +126,7 @@ const stableDashletNames = [
   'NumberDashlet',
   'SliderDashlet',
   'TargetSliderDashlet',
+  'TargetNumberDashlet',
   'SwitchDashlet',
   'SelectDashlet',
   'SegmentedDashlet',
@@ -138,7 +140,7 @@ const actionNames = [
   'DashStackResetValuesItem',
   'DashStackResetStackItem',
 ]
-assert.equal(catalogEntries.length, 17)
+assert.equal(catalogEntries.length, 18)
 assert.deepEqual(
   catalogEntries.map((entry) => entry.id),
   [
@@ -257,6 +259,7 @@ assert.deepEqual(
     'Select',
     'Slider',
     'TargetSlider',
+    'TargetNumber',
     'Status',
     'Switch',
     'TextField',

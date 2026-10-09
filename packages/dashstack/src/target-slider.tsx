@@ -8,15 +8,14 @@ import { DashGroupAncestryContext } from './structure.js'
 import { validateSliderOptions } from './slider-options.js'
 import { isNumberCompatible } from './number-compatibility.js'
 
-export type TargetSliderResult =
-  | { readonly status: 'ready'; readonly value: number }
-  | { readonly status: 'pending'; readonly lastValue?: number }
-  | { readonly status: 'no-fit'; readonly message?: string }
-  | { readonly status: 'error'; readonly message: string }
+import { targetResultValue, targetResultMessage, type TargetResult } from './target-result.js'
+
+export type TargetSliderResult = TargetResult
 export type TargetSliderProps = Omit<SliderProps, 'fillOrigin' | 'onChange'> & {
   readonly result: TargetSliderResult
   readonly onChange: (value: number | null) => void
   readonly inputValue?: number | null
+  readonly unit?: string
   readonly formatValue?: (value: number) => ReactNode
 }
 
@@ -70,6 +69,7 @@ export function TargetSlider({
   result,
   value,
   inputValue,
+  unit,
   formatValue,
   onChange,
   min = 0,
@@ -84,14 +84,7 @@ export function TargetSlider({
   if (marks?.some((mark) => !Number.isFinite(mark.value) || mark.value < min || mark.value > max))
     throw new TypeError('marks must be finite and within the scale.')
   validateSliderOptions(min, max, step, { allowedRange: props.allowedRange })
-  const achieved =
-    result.status === 'ready'
-      ? result.value
-      : result.status === 'pending'
-        ? result.lastValue
-        : undefined
-  if (achieved !== undefined && !Number.isFinite(achieved))
-    throw new TypeError('Achieved values must be finite.')
+  const achieved = targetResultValue(result)
   const prefix = useId(),
     marksId = useId()
   const lower = props.allowedRange?.min ?? min,
@@ -103,42 +96,53 @@ export function TargetSlider({
   const readout =
     achieved === undefined ? null : (
       <>
-        {result.status === 'pending' ? 'Previous ' : ''}
         {formatted(achieved)}
+        {!formatValue && unit ? ` ${unit}` : ''}
       </>
     )
-  const status =
-    result.status === 'pending'
-      ? 'Calculating'
-      : result.status === 'no-fit'
-        ? (result.message ?? 'No feasible result')
-        : result.status === 'error'
-          ? result.message
-          : ''
+  const status = targetResultMessage(result)
+  const position = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
+  const input = inputValue === null ? Number.NaN : (inputValue ?? value)
+  const labelChars = Math.max(8, String(Number(input.toFixed(6))).length + (unit?.length ?? 0) + 3)
   const description =
     [props['aria-describedby'], marks?.length ? marksId : undefined].filter(Boolean).join(' ') ||
     undefined
   const label = props['aria-labelledby'] ? `${prefix} ${props['aria-labelledby']}` : undefined
   return (
-    <div className="picodash-dashstack-target-slider" data-result={result.status}>
+    <div
+      className="picodash-dashstack-target-slider"
+      data-result={result.status}
+      aria-busy={result.status === 'pending'}
+    >
       <span id={prefix} className="picodash-visually-hidden">
         Target
       </span>
-      <NumberField
-        id={props.id}
-        value={inputValue === null ? Number.NaN : (inputValue ?? value)}
-        onChange={onChange}
-        step={step}
-        formatOptions={props.formatOptions}
-        disabled={props.disabled}
-        readOnly={props.readOnly}
-        aria-label={label ? undefined : `Target ${props['aria-label'] ?? 'value'}`}
-        aria-labelledby={label}
-        aria-describedby={description}
-        aria-invalid={props['aria-invalid']}
-        aria-errormessage={props['aria-errormessage']}
-      />
-      <div data-picodash-target-track>
+      <div
+        data-picodash-target-track
+        style={
+          {
+            '--_picodash-target-position': `${position}%`,
+            '--_picodash-target-label-width': `${labelChars}ch`,
+          } as React.CSSProperties
+        }
+      >
+        <div data-picodash-target-label-slot>
+          <NumberField
+            id={props.id}
+            value={input}
+            unit={unit}
+            onChange={onChange}
+            step={step}
+            formatOptions={props.formatOptions}
+            disabled={props.disabled}
+            readOnly={props.readOnly}
+            aria-label={label ? undefined : `Target ${props['aria-label'] ?? 'value'}`}
+            aria-labelledby={label}
+            aria-describedby={description}
+            aria-invalid={props['aria-invalid']}
+            aria-errormessage={props['aria-errormessage']}
+          />
+        </div>
         <SliderTrackAccessoryContext.Provider
           value={
             achieved !== undefined && !achievedOutside ? (
@@ -188,16 +192,25 @@ export function TargetSlider({
         </p>
       ) : null}
       {achieved !== undefined ? (
-        <output
-          aria-label="Achieved"
-          aria-live="off"
-          className={achievedOutside ? undefined : 'picodash-visually-hidden'}
-        >
+        <output aria-label="Achieved" aria-live="off" className="picodash-visually-hidden">
           {readout}
           {achievedOutside ? ' · outside scale' : ''}
         </output>
       ) : null}
-      {status ? <span role="status">{status}</span> : null}
+      <span role="status" className="picodash-visually-hidden">
+        {status}
+      </span>
+      <span data-picodash-target-result-message title={status || undefined}>
+        {result.status === 'no-fit' ? (
+          'No match'
+        ) : result.status === 'error' ? (
+          'Unavailable'
+        ) : achievedOutside ? (
+          <>{readout} · outside scale</>
+        ) : (
+          ''
+        )}
+      </span>
       {marks?.length ? (
         <span id={marksId} className="picodash-visually-hidden">
           Reference marks:{' '}

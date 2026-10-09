@@ -105,6 +105,7 @@ export type NumberFieldProps = DashStackControlProps & {
   readonly max?: number
   readonly step?: number
   readonly placeholder?: string
+  readonly unit?: string
   readonly formatOptions?: Intl.NumberFormatOptions
 }
 
@@ -144,6 +145,7 @@ export function NumberField({
   max,
   step,
   placeholder,
+  unit,
   formatOptions,
   ...props
 }: NumberFieldProps) {
@@ -205,7 +207,7 @@ export function NumberField({
       aria-invalid={props['aria-invalid']}
       aria-errormessage={props['aria-errormessage']}
     >
-      <Group>
+      <Group data-picodash-number-shell data-unit={unit ? true : undefined}>
         <Input
           ref={inputRef}
           id={props.id}
@@ -234,6 +236,11 @@ export function NumberField({
             immediateEditGeneration.current += 1
           }}
         />
+        {unit ? (
+          <span data-picodash-number-unit aria-hidden="true">
+            {unit}
+          </span>
+        ) : null}
       </Group>
     </AriaNumberField>
   )
@@ -689,5 +696,7 @@ export type {
   TimeFieldProps,
 } from './ui-values.js'
 
+export { TargetNumber } from './target-number.js'
+export type { TargetNumberProps, TargetNumberResult } from './target-number.js'
 export { TargetSlider } from './target-slider.js'
 export type { TargetSliderProps, TargetSliderResult } from './target-slider.js'
