@@ -2191,7 +2191,8 @@ headless/React parity, result freshness, source-attributed attention and deliber
 `TargetNumberDashlet` binds one numeric target and accepts the application-owned
 `TargetNumberResult`, which has the same variants as `TargetSliderResult`. Unbound `TargetNumber`
 is exported from `/ui`. Target and Actual render side by side with customizable `targetLabel` and
-`actualLabel` strings below, start-aligned. The actual is an output, not another editable field.
+`actualLabel` strings above their fields, start-aligned (dogfood `.25` onward). The actual is a
+read-only output with a bottom border, not another editable field.
 A display-only `unit` suffix appears in both fields. NumberField and NumberDashlet also accept it.
 
 TargetSlider accepts the same optional `unit` for its editable target label. That field follows the

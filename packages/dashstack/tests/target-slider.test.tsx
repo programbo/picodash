@@ -464,6 +464,9 @@ describe('TargetNumber', () => {
     )
     const input = screen.getByRole('textbox', { name: 'Target Reduction' })
     const actual = screen.getByLabelText('Actual Reduction')
+    for (const field of view.container.querySelectorAll('[data-picodash-target-number-field]')) {
+      expect(field.firstElementChild?.hasAttribute('data-picodash-target-field-label')).toBe(true)
+    }
     expect(actual.tagName).toBe('OUTPUT')
     expect(actual.textContent).toBe('5:1')
     fireEvent.change(input, { target: { value: '3.5' } })

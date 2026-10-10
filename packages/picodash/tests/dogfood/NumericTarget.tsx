@@ -1,6 +1,12 @@
 'use client'
 import { createPicodashNexus, type PicodashIssueInput } from '@picodash/nexus'
-import { DashStack, Dashlet, type SingleFieldDashletRenderContext } from '@picodash/dashstack'
+import {
+  DashStack,
+  Dashlet,
+  TargetNumberDashlet,
+  type TargetNumberResult,
+  type SingleFieldDashletRenderContext,
+} from '@picodash/dashstack'
 import { NumberField } from '@picodash/dashstack/ui'
 
 export function createNumericTarget() {
@@ -98,6 +104,30 @@ export function NumericTargetRecipe({
   return (
     <DashStack id="numeric-targets" nexus={nexus}>
       <ModuleTarget id="module-target" nexus={nexus} disabled={disabled} readOnly={readOnly} />
+    </DashStack>
+  )
+}
+
+// Ready-made comparison: the application supplies the achieved result.
+export function NumericTargetComparison({
+  nexus,
+  result,
+}: {
+  nexus: NumericTarget
+  result: TargetNumberResult
+}) {
+  return (
+    <DashStack id="target-comparison" nexus={nexus}>
+      <TargetNumberDashlet
+        id="module-target"
+        label="Module"
+        field={nexus.fields.module}
+        result={result}
+        step={0.01}
+        unit="mm"
+        targetLabel="Target"
+        actualLabel="Actual"
+      />
     </DashStack>
   )
 }

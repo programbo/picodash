@@ -3,7 +3,11 @@ import { act, createElement } from 'react'
 import { createRoot } from 'react-dom/client'
 import { fireEvent, getByRole, queryAllByRole } from '@testing-library/react'
 import { expect, it } from 'vite-plus/test'
-import { createNumericTarget, NumericTargetRecipe } from './NumericTarget.js'
+import {
+  createNumericTarget,
+  NumericTargetRecipe,
+  NumericTargetComparison,
+} from './NumericTarget.js'
 
 it('keeps numeric drafts separate from the accepted readout and forwards edit policies', () => {
   const nexus = createNumericTarget()
@@ -56,6 +60,35 @@ it('keeps numeric drafts separate from the accepted readout and forwards edit po
     expect(nexus.getState().values.module).toBe(1.6)
     expect(element.textContent).toContain('Accepted 1.6 mm · Achieved 1.5 mm')
     expect(input.getAttribute('aria-invalid')).not.toBe('true')
+  } finally {
+    act(() => root.unmount())
+    element.remove()
+    nexus.destroy()
+  }
+})
+
+it('renders the ready-made target comparison with an independent actual output', () => {
+  const nexus = createNumericTarget()
+  const element = document.createElement('div')
+  document.body.append(element)
+  const root = createRoot(element)
+  try {
+    act(() =>
+      root.render(
+        createElement(NumericTargetComparison, {
+          nexus,
+          result: { status: 'ready', value: 1.25 },
+        }),
+      ),
+    )
+    const input = getByRole(element, 'textbox', { name: 'Target Module' })
+    expect(getByRole(element, 'status', { name: 'Actual Module' }).textContent).toBe('1.25mm')
+    act(() => {
+      fireEvent.change(input, { target: { value: '1.6' } })
+      fireEvent.blur(input)
+    })
+    expect(nexus.getState().values.module).toBe(1.6)
+    expect(getByRole(element, 'status', { name: 'Actual Module' }).textContent).toBe('1.25mm')
   } finally {
     act(() => root.unmount())
     element.remove()

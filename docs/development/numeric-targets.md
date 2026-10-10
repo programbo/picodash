@@ -1,4 +1,58 @@
-# Compose a numeric target with an achieved-value readout
+# Compare a numeric target with an actual result
+
+## Use TargetNumberDashlet for a two-field comparison
+
+`TargetNumberDashlet` from `@picodash/dashstack` (also reexported by `@picodash/picodash`)
+binds an editable numeric target to a Nexus field and displays an application-owned actual result.
+Target is on the left; Actual is a read-only output on the right with a simple bottom border.
+From dogfood `.25`, both labels appear **above** their fields, left-aligned. Earlier snapshots put
+them below. `targetLabel` and `actualLabel` customize the text; their defaults are `"Target"` and
+`"Actual"`. There is no label-placement prop.
+
+The bundle's `example/NumericTarget.tsx` now also exports `NumericTargetComparison`:
+
+```tsx
+const nexus = createNumericTarget() // keep stable for the mounted application
+root.render(<NumericTargetComparison nexus={nexus} result={{ status: 'ready', value: 1.5 }} />)
+```
+
+Its comparison uses this public composition inside a DashStack:
+
+```tsx
+<TargetNumberDashlet
+  id="module-target"
+  label="Module"
+  field={nexus.fields.module}
+  result={result}
+  step={0.01}
+  unit="mm"
+  targetLabel="Target"
+  actualLabel="Actual"
+/>
+```
+
+`unit` adds a display-only suffix to both values without changing the stored number. For a reduction
+ratio use `unit=":1"`. `formatOptions` controls numeric formatting; `formatValue` customizes the
+Actual readout. The Actual value never writes back into the target field.
+
+Supply a `TargetNumberResult` from the application's calculation:
+
+| Result                                                | Actual display                                                          |
+| ----------------------------------------------------- | ----------------------------------------------------------------------- |
+| `{ status: 'ready', value: 1.5 }`                     | The finite result, including zero when applicable.                      |
+| `{ status: 'pending', lastValue: 1.5 }`               | The previous result while calculating; omit `lastValue` to show a dash. |
+| `{ status: 'no-fit', message: 'No feasible result' }` | A dash, with the explanation available to assistive technology.         |
+| `{ status: 'error', message: 'Calculation failed' }`  | A dash, with the error available to assistive technology.               |
+
+Compute the result from accepted application values, not a rejected target draft. The bound control
+handles Nexus input drafts, validation feedback, and inherited read-only/disabled policies. The
+unbound `TargetNumber` from `@picodash/dashstack/ui` provides the same presentation with controlled
+`value`, `onChange`, and `result` props when the application owns the binding.
+
+## Custom composition for additional supporting content
+
+The following older recipe remains useful when you need a different readout or extra content.
+For the standard Target/Actual pair, prefer the ready-made control above.
 
 Use `NumberField` from `@picodash/dashstack/ui` inside a bound `Dashlet` when a ready-made
 `NumberDashlet` does not leave enough room for your result or supporting content. The public control

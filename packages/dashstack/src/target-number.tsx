@@ -36,6 +36,9 @@ export function TargetNumber({
       aria-busy={result.status === 'pending'}
     >
       <div data-picodash-target-number-field>
+        <span id={targetId} data-picodash-target-field-label>
+          {targetLabel}
+        </span>
         <NumberField
           {...props}
           unit={unit}
@@ -44,11 +47,11 @@ export function TargetNumber({
             props['aria-labelledby'] ? `${targetId} ${props['aria-labelledby']}` : undefined
           }
         />
-        <span id={targetId} data-picodash-target-field-label>
-          {targetLabel}
-        </span>
       </div>
       <div data-picodash-target-number-field>
+        <span id={actualId} data-picodash-target-field-label>
+          {actualLabel}
+        </span>
         <output
           className="picodash-dashstack-control"
           data-picodash-target-actual
@@ -70,9 +73,6 @@ export function TargetNumber({
           </span>
           {unit && actual !== undefined ? <span data-picodash-number-unit>{unit}</span> : null}
         </output>
-        <span id={actualId} data-picodash-target-field-label>
-          {actualLabel}
-        </span>
       </div>
       <span id={statusId} className="picodash-visually-hidden" role="status">
         {message}

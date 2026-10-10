@@ -2478,7 +2478,7 @@
 }
 [data-picodash-target-field-label] {
   display: block;
-  margin-block-start: var(--picodash-space-1);
+  margin-block-end: var(--picodash-space-1);
   text-align: start;
   font-size: var(--picodash-font-size-sm);
   color: var(--picodash-color-text-muted);
