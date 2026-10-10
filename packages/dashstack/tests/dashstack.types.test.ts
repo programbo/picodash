@@ -82,8 +82,12 @@ describe('@picodash/dashstack public types', () => {
       primaryFocusRef,
       children: 'Value',
     })
-    // @ts-expect-error only root groups accept pin.
     void createElement(Dashlet, { id: 'pinned', label: 'Pinned', pin: 'start' })
+    void createElement(DashStack, { stickyLanes: 'none' })
+    // @ts-expect-error sticky lanes must use a supported root policy.
+    void createElement(DashStack, { stickyLanes: 'middle' })
+    // @ts-expect-error ordering pins have no both mode.
+    void createElement(Dashlet, { id: 'bad-pin', label: 'Bad pin', pin: 'both' })
     void DashHeader
     void ActionMenu
     void DashStackActionItems

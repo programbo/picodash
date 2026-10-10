@@ -29,7 +29,11 @@ export function createReorderPresentation(
           '',
       ),
   )
-  const scrollport = handle.closest<HTMLElement>('[data-picodash-dashstack-band="automatic"]')
+  // Pins constrain order, not the scroll owner. Single-lane modes scroll the root
+  // list; short-Stack fallback scrolls the Stack itself.
+  let scrollport: HTMLElement | null = handle.parentElement
+  while (scrollport && !/^(auto|scroll)$/.test(view.getComputedStyle(scrollport).overflowY))
+    scrollport = scrollport.parentElement
   const slotTop = (node: HTMLElement) => reorderLayoutRect(node).top + (scrollport?.scrollTop ?? 0)
   const slots = new Map(nodes.map((node) => [node, slotTop(node)]))
   const animations = new Map<HTMLElement, ReturnType<typeof animate>>()
@@ -87,12 +91,15 @@ export function createReorderPresentation(
     if (disposed) return
     if (scrollport && y !== undefined) {
       const rect = scrollport.getBoundingClientRect()
-      const edge = Math.min(48, rect.height / 4)
+      const style = view.getComputedStyle(scrollport)
+      const top = rect.top + (Number.parseFloat(style.scrollPaddingTop) || 0)
+      const bottom = rect.bottom - (Number.parseFloat(style.scrollPaddingBottom) || 0)
+      const edge = Math.min(48, Math.max(0, bottom - top) / 4)
       const speed =
-        y < rect.top + edge
-          ? -Math.min(12, (rect.top + edge - y) / 3)
-          : y > rect.bottom - edge
-            ? Math.min(12, (y - rect.bottom + edge) / 3)
+        y < top + edge
+          ? -Math.min(12, (top + edge - y) / 3)
+          : y > bottom - edge
+            ? Math.min(12, (y - bottom + edge) / 3)
             : 0
       const previous = scrollport.scrollTop
       scrollport.scrollTop += speed

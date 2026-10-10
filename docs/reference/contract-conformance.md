@@ -1242,3 +1242,11 @@ The full six-package release gate passes 1,124 tests. Its isolated consumer veri
 `.23` rollback and `.24` reinstall, frozen installation, declarations, the shipped detachable
 example's retained bound control, and Vite/Next production CSS builds. The recommendation is
 updated only after those checks; the external app is not modified.
+
+### Local pinning and sticky lanes (2026-10-10)
+
+Local ordering partitions and keyboard boundaries are covered by
+`packages/dashstack/tests/subgroups.test.tsx`; the existing ordering model owns reconciliation.
+The control-desk journey in `apps/lab/tests/reordering.spec.ts` covers subgroup pointer boundaries,
+all four root sticky modes, retained controls during mode changes, and the outer overflow fallback.
+The API extends the source after dogfood `.25`; no older immutable bundle gains this behavior.

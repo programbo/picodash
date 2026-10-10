@@ -68,15 +68,16 @@ validator rejects it. Configure numeric validation as above; a JSON-compatible d
 not establish domain validation. The slider does not overwrite valid canonical values outside its
 presentation scale: it shows a warning and omits its thumb until the value is representable.
 
-Top-level groups may collapse. Subgroups cannot collapse or pin and keep their columns aligned with
-other rows. They inherit the parent label colour unless overridden. Pin only root groups. To keep
-a single control pinned, wrap it in a headerless group with an accessible name. A pinned group’s
+Top-level groups may collapse. Subgroups cannot collapse and keep their columns aligned with
+other rows. They inherit the parent label colour unless overridden. In snapshots through `.25`,
+pin only root groups; wrap a single pinned control in a headerless group with an accessible name.
+The current source also supports local pins as described below. A pinned group’s
 `reorderable` prop governs its children, not whether the group moves between bands.
 
 ## Reorder groups and their contents independently
 
 There is one supported subgroup level: DashStack → root DashGroup → subgroup → Dashlets.
-A subgroup cannot contain another group, collapse, or pin, but it **can move as a whole** among
+A subgroup cannot contain another group or collapse, but it **can move as a whole** among
 its parent's direct children when that parent permits reordering. Moving it carries its contents;
 it does not change their internal order.
 
@@ -125,6 +126,15 @@ it from the Stack. To allow Targets and Envelope to exchange places, enable Geom
 
 The equivalent `SubgroupPriorities` fixture in `example/SubgroupPriorities.tsx` is included in newly
 packed snapshots. Existing immutable snapshots retain their original examples and guide.
+
+### Keep rows above and below a reorderable zone
+
+In the current source, groups and Dashlets accept local ordering pins. Use `pin="start"` for
+leading children and `pin="end"` for trailing children. Only siblings in the same band can
+reorder against one another. Pins inside a group do not affect scrolling or visibility.
+`DashStack.stickyLanes` controls root scrolling independently and defaults to `"both"`.
+See [pin bands](../reference/dashstack.md#pin-bands) for all four scrolling modes.
+Dogfood snapshots through `.25` still have the earlier root-group-only pin restriction.
 
 ## Read effective order
 

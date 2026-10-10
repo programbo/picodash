@@ -7,7 +7,7 @@ Accepted, 2026-10-09. John authorized implementation through the joint Mira/Maz 
 ## Decision
 
 DashStack permits one organizational subgroup level inside a root DashGroup. Subgroups cannot
-collapse or pin. Root groups own visibility; each container owns its immediate children's order.
+collapse. Pinning rules are revised by the 2026-10-10 amendment below. Root groups own visibility; each container owns its immediate children's order.
 JSX remains the authority for membership. No persisted parent graph is introduced.
 
 Only root groups accept `pin="start"` or `pin="end"`. A headerless root group needs `aria-label`
@@ -53,3 +53,14 @@ Extend the existing controller to one complete JSON field through createValueGes
 createValueInputGesture. This keeps private revision fencing in Nexus and avoids UI-owned rollback
 based on equality alone. Numeric compatibility APIs remain number-only; UI products still own
 pointer and keyboard state and transient spring paint.
+
+## Amendment: local ordering pins and sticky lanes (2026-10-10)
+
+Accepted by John. Dashlets and groups may declare `pin="start" | "end"` in any supported
+ordering container. Pinning partitions immediate siblings; it does not change membership,
+collapse, visibility, or scrolling inside groups. The existing one-subgroup-level limit remains.
+
+DashStack owns `stickyLanes="start" | "end" | "both" | "none"`, defaulting to `"both"`.
+Only selected root lanes stay visible during scrolling. If the selected lanes cannot fit,
+the outer Stack scrolls all content without overlap. These are JSX presentation defaults,
+not persisted Nexus settings. This supersedes the root-group-only pin restriction above.

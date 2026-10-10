@@ -174,6 +174,104 @@ test('reorders the long control desk with glass drag surfaces and fixed pin lane
   await name.press('ArrowDown')
   await name.press('Escape')
   await expect(desk.locator('[data-picodash-reorder-active]')).toHaveCount(0)
+  // Local pins fence real pointer movement inside a headerless subgroup.
+  const local = desk.getByRole('group', { name: 'Monitoring order', exact: true })
+  const localIds = () =>
+    local
+      .locator('[data-picodash-dashlet]')
+      .evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-picodash-dashlet')))
+  const polling = local.getByRole('button', { name: 'Reorder Polling cadence', exact: true })
+  await polling.scrollIntoViewIfNeeded()
+  const localFrom = (await polling.boundingBox())!
+  const localEnd = (await local.getByText('Connection', { exact: true }).boundingBox())!
+  await page.mouse.move(localFrom.x + localFrom.width / 2, localFrom.y + localFrom.height / 2)
+  await page.mouse.down()
+  await page.mouse.move(localFrom.x + localFrom.width / 2, localEnd.y + localEnd.height, {
+    steps: 8,
+  })
+  await page.mouse.up()
+  await expect
+    .poll(localIds)
+    .toEqual(['monitoring-name', 'monitoring-summary', 'monitoring-interval', 'monitoring-state'])
+
+  // Changing scroll policy preserves the same controls and committed orders.
+  const stickyControls = page.getByRole('group', { name: 'Sticky lanes', exact: true })
+  for (const mode of ['start', 'end', 'none', 'both'] as const) {
+    await stickyControls.getByRole('button', { name: mode, exact: true }).click()
+    await desk.scrollIntoViewIfNeeded()
+    const scrollport = mode === 'both' ? lane('automatic') : desk
+    await scrollport.evaluate((node) => {
+      node.scrollTop = 0
+    })
+    const startBoxBefore = (await lane('start').boundingBox())!
+    const middleBoxBefore = (await lane('automatic').boundingBox())!
+    expect(middleBoxBefore.y).toBeGreaterThanOrEqual(startBoxBefore.y + startBoxBefore.height - 1)
+    const top = (await lane('start').boundingBox())!.y
+    const bottom = (await lane('end').boundingBox())!.y
+    await scrollport.evaluate((node) => {
+      node.scrollTop = 100
+    })
+    await expect.poll(() => scrollport.evaluate((node) => node.scrollTop)).toBe(100)
+    const topAfter = (await lane('start').boundingBox())!.y
+    const bottomAfter = (await lane('end').boundingBox())!.y
+    await desk.screenshot({ path: resolve(directory, `sticky-lanes-${mode}.png`) })
+    if (mode === 'both' || mode === 'start') expect(topAfter).toBeCloseTo(top, 0)
+    else expect(topAfter).toBeLessThan(top - 80)
+    if (mode === 'both' || mode === 'end') expect(bottomAfter).toBeCloseTo(bottom, 0)
+    else expect(bottomAfter).toBeLessThan(bottom - 80)
+    if (mode === 'none') {
+      await desk.evaluate((node) => {
+        node.scrollTop = 0
+      })
+      const drag = desk.getByRole('button', { name: 'Reorder Activity', exact: true })
+      await drag.scrollIntoViewIfNeeded()
+      const dragBox = (await drag.boundingBox())!
+      const viewport = (await desk.boundingBox())!
+      const beforeDrag = await payload()
+      const beforeScroll = await desk.evaluate((node) => node.scrollTop)
+      await page.mouse.move(dragBox.x + dragBox.width / 2, dragBox.y + dragBox.height / 2)
+      await page.mouse.down()
+      await page.mouse.move(dragBox.x + dragBox.width / 2, viewport.y + viewport.height - 8, {
+        steps: 8,
+      })
+      await expect
+        .poll(() => desk.evaluate((node) => node.scrollTop))
+        .toBeGreaterThan(beforeScroll + 30)
+      await drag.dispatchEvent('pointercancel', { pointerId: 1 })
+      await page.mouse.up()
+      expect(await payload()).toBe(beforeDrag)
+    }
+    expect(await nameInput.evaluate((node, original) => node === original, inputIdentity)).toBe(
+      true,
+    )
+    expect(await localIds()).toEqual([
+      'monitoring-name',
+      'monitoring-summary',
+      'monitoring-interval',
+      'monitoring-state',
+    ])
+  }
+  // When pinned content cannot fit, the outer Stack exposes all lanes without overlap.
+  const stack = desk.locator('..')
+  for (const mode of ['both', 'start', 'end'] as const) {
+    await stickyControls.getByRole('button', { name: mode, exact: true }).click()
+    await stack.evaluate((node) => {
+      node.style.height = '90px'
+    })
+    await expect(stack).toHaveAttribute('data-picodash-stack-overflow', '')
+    const startBox = (await lane('start').boundingBox())!
+    const endBox = (await lane('end').boundingBox())!
+    expect(endBox.y).toBeGreaterThanOrEqual(startBox.y + startBox.height)
+    await stack.evaluate((node) => {
+      node.scrollTop = node.scrollHeight
+    })
+    await expect.poll(() => stack.evaluate((node) => node.scrollTop)).toBeGreaterThan(0)
+    await stack.evaluate((node) => {
+      node.style.removeProperty('height')
+      node.scrollTop = 0
+    })
+    await expect(stack).not.toHaveAttribute('data-picodash-stack-overflow')
+  }
   expect(errors).toEqual([])
 })
 

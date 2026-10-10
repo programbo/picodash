@@ -2960,3 +2960,48 @@
 [data-slot='dash-header']:has([data-picodash-group-host-actions]) [data-picodash-group-disclosure] {
   position: relative;
 }
+
+/* With one or no sticky lanes, unpinned root bands share a single scrollport.
+ * Group contents never establish a local scrollport for ordering pins. */
+[data-picodash-sticky-lanes]:not([data-picodash-sticky-lanes='both'])
+  > [data-picodash-dashstack-list] {
+  overflow: auto;
+  overscroll-behavior: contain;
+  grid-template-rows: max-content minmax(max-content, 1fr) max-content;
+  scroll-padding-block: var(--_picodash-sticky-start-height, 0px)
+    var(--_picodash-sticky-end-height, 0px);
+}
+[data-picodash-sticky-lanes]:not([data-picodash-sticky-lanes='both'])
+  > [data-picodash-dashstack-list]
+  > [data-picodash-dashstack-band='automatic'] {
+  overflow: visible;
+}
+[data-picodash-sticky-lanes='start']
+  > [data-picodash-dashstack-list]
+  > [data-picodash-dashstack-band='start'],
+[data-picodash-sticky-lanes='end']
+  > [data-picodash-dashstack-list]
+  > [data-picodash-dashstack-band='end'] {
+  position: sticky;
+  z-index: 2;
+  background: var(--picodash-color-surface);
+}
+[data-picodash-sticky-lanes='start']
+  > [data-picodash-dashstack-list]
+  > [data-picodash-dashstack-band='start'] {
+  inset-block-start: 0;
+}
+[data-picodash-sticky-lanes='end']
+  > [data-picodash-dashstack-list]
+  > [data-picodash-dashstack-band='end'] {
+  inset-block-end: 0;
+}
+[data-picodash-stack-overflow][data-picodash-sticky-lanes] > [data-picodash-dashstack-list] {
+  overflow: visible;
+  scroll-padding-block: 0;
+}
+[data-picodash-stack-overflow][data-picodash-sticky-lanes]
+  > [data-picodash-dashstack-list]
+  > [data-picodash-dashstack-band] {
+  position: static;
+}

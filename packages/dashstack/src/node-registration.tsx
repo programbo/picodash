@@ -297,8 +297,6 @@ export function useCommittedDashStackNode(kind: NodeKind, id: unknown): void {
   const registry = useContext(RegistryContext)
   const declaration = useContext(DeclarationContext)
   const nestedDashlet = useContext(DashletLeafContext)
-  if (declaration?.pin !== undefined && (kind !== 'group' || declaration.owner !== 'list'))
-    throw new TypeError('Only root DashGroups accept pin.')
   const nexus = usePicodashNexus() as ScopedNexus<PicodashFieldDefinitions>
   const tokenRef = useRef<Token | null>(null)
   if (tokenRef.current === null) tokenRef.current = {}

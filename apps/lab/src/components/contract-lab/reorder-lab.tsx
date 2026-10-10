@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import {
   DashStack,
   DashGroup,
@@ -12,6 +13,7 @@ import { ActionMenu } from '@picodash/ui'
 import type { ValueBindingNexus } from './value-binding-model'
 
 export function ReorderLab({ nexus }: { readonly nexus: ValueBindingNexus }) {
+  const [stickyLanes, setStickyLanes] = useState<'start' | 'end' | 'both' | 'none'>('both')
   return (
     <section
       aria-label="Reordering playground"
@@ -19,10 +21,23 @@ export function ReorderLab({ nexus }: { readonly nexus: ValueBindingNexus }) {
     >
       <h2 className="mb-2 text-lg font-semibold">Reordering playground</h2>
       <p className="mb-4 text-sm text-(--picodash-color-text-muted)">
-        Drag the grips to arrange rows and whole groups. Start and end lanes stay visible while the
-        middle scrolls. Items stay in their own group and lane. Enter picks up a grip, arrows move
-        it, and Escape cancels.
+        Drag the grips to arrange rows and whole groups. Choose which root lanes stay visible while
+        the other lanes scroll. Items stay in their own group and lane. Enter picks up a grip,
+        arrows move it, and Escape cancels.
       </p>
+      <div role="group" aria-label="Sticky lanes" className="mb-3 flex gap-2">
+        {(['both', 'start', 'end', 'none'] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            aria-pressed={stickyLanes === mode}
+            className="rounded border border-(--picodash-color-border) px-2 py-1"
+            onClick={() => setStickyLanes(mode)}
+          >
+            {mode}
+          </button>
+        ))}
+      </div>
       <div className="h-[42rem]">
         <DashStack
           nexus={nexus}
@@ -30,6 +45,7 @@ export function ReorderLab({ nexus }: { readonly nexus: ValueBindingNexus }) {
           title="Workspace control desk"
           headingLevel={3}
           reorderable
+          stickyLanes={stickyLanes}
         >
           <DashGroup
             id="start-workspace-pinned"
@@ -69,24 +85,33 @@ export function ReorderLab({ nexus }: { readonly nexus: ValueBindingNexus }) {
             field={nexus.fields.enabled}
             formatValue={(value) => (value ? 'Watching for changes' : 'Updates paused')}
           />
-          <DashGroup id="monitoring" label="Monitoring" collapsible>
-            <DisplayDashlet
-              id="monitoring-name"
-              label="Source workspace"
-              field={nexus.fields.name}
-            />
-            <DisplayDashlet
-              id="monitoring-interval"
-              label="Polling cadence"
-              field={nexus.fields.interval}
-              formatValue={(value) => `${value} seconds`}
-            />
-            <DisplayDashlet
-              id="monitoring-state"
-              label="Connection"
-              field={nexus.fields.enabled}
-              formatValue={(value) => (value ? 'Active' : 'Idle')}
-            />
+          <DashGroup id="monitoring" label="Monitoring" collapsible reorderable={false}>
+            <DashGroup id="monitoring-order" aria-label="Monitoring order" reorderable>
+              <DisplayDashlet
+                id="monitoring-name"
+                pin="start"
+                label="Source workspace"
+                field={nexus.fields.name}
+              />
+              <DisplayDashlet
+                id="monitoring-interval"
+                label="Polling cadence"
+                field={nexus.fields.interval}
+                formatValue={(value) => `${value} seconds`}
+              />
+              <DisplayDashlet
+                id="monitoring-state"
+                pin="end"
+                label="Connection"
+                field={nexus.fields.enabled}
+                formatValue={(value) => (value ? 'Active' : 'Idle')}
+              />
+              <DisplayDashlet
+                id="monitoring-summary"
+                label="Monitoring summary"
+                field={nexus.fields.name}
+              />
+            </DashGroup>
           </DashGroup>
           <DisplayDashlet
             id="cadence"

@@ -1780,7 +1780,7 @@ describe('@picodash/dashstack alpha shell', () => {
           }),
         }),
       ),
-    ).toThrow('Subgroups cannot collapse or pin.')
+    ).toThrow('Subgroups cannot collapse.')
     expect(() => nexus.destroy()).not.toThrow()
   })
 

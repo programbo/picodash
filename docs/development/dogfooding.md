@@ -153,13 +153,18 @@ with these standalone imports too. Advanced APIs may be available only from thei
 
 ## Compose custom groups and pinned controls
 
+The current source also supports local ordering pins on Dashlets and subgroups, with root
+scrolling controlled by `DashStack.stickyLanes` (default `"both"`). The instructions below
+retain the root-group wrapper compatible with the recommended `.25` snapshot; that snapshot
+does not yet expose the new API. See [pin bands](../reference/dashstack.md#pin-bands).
+
 A custom component used directly inside a DashStack must receive a stable `id` **at the call
 site** and forward that same ID to the single DashGroup or Dashlet it renders. An ID hidden
 inside the component is not enough: DashStack reads the child declaration before the wrapper
 renders. A React `key` does not replace `id`. Missing IDs can fail at runtime with
 `invalid-node-id`; changing the ID inside the wrapper also violates registration.
 
-`pin="start"` and `pin="end"` belong only on **root DashGroups**. To pin a SegmentedDashlet or
+In snapshots through `.25`, `pin="start"` and `pin="end"` belong only on **root DashGroups**. To pin a SegmentedDashlet or
 another control, put it inside a pinned root group. Dashlets and nested subgroups cannot be
 pinned. A custom root-group wrapper should expose and forward `pin` as well as `id`:
 

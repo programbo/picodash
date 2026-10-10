@@ -92,7 +92,7 @@ describe('organizational subgroups', () => {
     view.unmount()
     nexus.destroy()
   })
-  it('rejects a third group level and pinned custom Dashlet wrappers', () => {
+  it('rejects a third group level', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',
       fields: { value: { defaultValue: 1 } },
@@ -108,17 +108,73 @@ describe('organizational subgroups', () => {
         </DashStack>,
       ),
     ).toThrow('one subgroup level')
-    function Custom({ id }: { id: string; pin?: 'start' }) {
-      return <Dashlet id={id} label="Custom" />
-    }
-    expect(() =>
-      render(
-        <DashStack id="pin" nexus={nexus}>
-          <Custom id="custom" pin="start" />
-        </DashStack>,
-      ),
-    ).toThrow('Only root DashGroups')
     cleanup()
+    nexus.destroy()
+  })
+})
+
+describe('local ordering pins', () => {
+  it('partitions each group, fences keyboard moves, preserves cancelled order and reconciles changed pins', () => {
+    const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+    const scope = nexus.scope('local-pins')
+    function Example({
+      pin = 'end',
+      groupPin = 'start',
+    }: {
+      pin?: 'start' | 'end'
+      groupPin?: 'start' | 'end'
+    }) {
+      return (
+        <DashStack nexus={scope} reorderable={false}>
+          <DashGroup id="parent" label="Parent" reorderable>
+            <Dashlet id="footer" label="Footer" pin="end" />
+            <DashGroup id="zone" aria-label="Zone" reorderable>
+              <Dashlet id="last" label="Last" pin={pin} />
+              <Dashlet id="a" label="A" />
+              <Dashlet id="first" label="First" pin="start" />
+              <Dashlet id="b" label="B" />
+            </DashGroup>
+            <DashGroup id="heading" label="Heading" pin={groupPin} />
+          </DashGroup>
+        </DashStack>
+      )
+    }
+    const view = render(<Example />)
+    const order = (id: string) =>
+      Array.from(
+        view.container.querySelectorAll(
+          `[data-picodash-dashgroup="${id}"] > [role="group"] > [data-picodash-dashgroup-list] > [role="listitem"]`,
+        ),
+      ).map(
+        (node) =>
+          node.getAttribute('data-picodash-dashlet') ??
+          node.getAttribute('data-picodash-dashgroup'),
+      )
+    expect(order('parent')).toEqual(['heading', 'zone', 'footer'])
+    expect(order('zone')).toEqual(['first', 'a', 'b', 'last'])
+    expect(view.queryByRole('button', { name: 'Reorder First' })).toBeNull()
+    const grip = view.getByRole('button', { name: 'Reorder A' })
+    fireEvent.keyDown(grip, { key: 'Enter' })
+    fireEvent.keyDown(grip, { key: 'End' })
+    fireEvent.keyDown(grip, { key: 'ArrowDown' })
+    fireEvent.keyDown(grip, { key: 'Enter' })
+    expect(order('zone')).toEqual(['first', 'b', 'a', 'last'])
+    expect(scope.getState().scope?.dashStack?.groupOrders.get('zone')).toEqual([
+      'first',
+      'b',
+      'a',
+      'last',
+    ])
+    fireEvent.keyDown(grip, { key: 'Enter' })
+    fireEvent.keyDown(grip, { key: 'Home' })
+    fireEvent.keyDown(grip, { key: 'Escape' })
+    expect(order('zone')).toEqual(['first', 'b', 'a', 'last'])
+    view.rerender(<Example pin="start" />)
+    expect(order('zone')).toEqual(['first', 'last', 'b', 'a'])
+    expect(order('parent')).toEqual(['heading', 'zone', 'footer'])
+    view.rerender(<Example pin="start" groupPin="end" />)
+    expect(order('parent')).toEqual(['zone', 'footer', 'heading'])
+    view.unmount()
     nexus.destroy()
   })
 })

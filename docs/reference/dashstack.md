@@ -25,7 +25,7 @@ layout. It does not require DashPanel or `PicodashProvider`.
 ## Linked controls and organizational subgroups
 
 [ADR 0008](../adr/0008-organizational-subgroups-and-linked-controls.md) accepts one organizational
-subgroup level, root-group pinning, effective structure readers, numeric gesture ownership,
+subgroup level, local ordering pins, root sticky lanes, effective structure readers, numeric gesture ownership,
 source-owned attention, explicit reveal, and `TargetSliderDashlet`. See the
 [implementation guide](../development/linked-controls.md) for public recipes. These additions are
 implemented; the broader consumer layout matrix remains under verification.
@@ -132,6 +132,7 @@ type DashStackProps<TValues extends object, CustomTheme extends string = never> 
     children?: ReactNode
     presentation?: DashStackPresentation
     orientation?: DashStackOrientation
+    stickyLanes?: 'start' | 'end' | 'both' | 'none'
     reorderable?: boolean
     disabled?: boolean
     readOnly?: boolean
@@ -352,6 +353,7 @@ type DashletBaseProps = RegisteredNodeNativeProps & {
   disabled?: boolean
   readOnly?: boolean
   rail?: Readonly<DashletRailOptions>
+  pin?: 'start' | 'end'
   primaryFocusRef?: RefObject<HTMLElement | null>
 }
 ```
@@ -1489,26 +1491,33 @@ or aggregated behavior in the initial contract.
 > Contract: Accepted
 > Implementation: Partial
 
-The root ordering container has `start`, automatic, and `end` bands. Only root DashGroups accept
-`pin?: "start" | "end"`; Dashlets and subgroups reject pinning. Omitting the prop selects the automatic band. Pinning is declarative
-application configuration, not user-owned Nexus state. There is no built-in pin or unpin interaction
-in the initial contract.
+Every ordering container has `start`, automatic, and `end` bands. Dashlets and groups accept
+`pin?: "start" | "end"` relative to their immediate parent, including within subgroups.
+Omitting `pin` selects the automatic band. Pinning is declarative application configuration,
+not user-owned Nexus state. There is no built-in pin or unpin interaction.
 
 A durable container order controls relative order within each band. Nodes reorder only against
 visible siblings in the same band and never cross a band boundary. An interactive handle appears
 only when the effective container policy permits reordering and at least two visible nodes occupy
-that band.
+that band. Multiple pinned siblings can reorder among themselves; a pin is not an absolute index.
 
-At the DashStack root, start and end groups remain outside the automatic band's scrollport.
-Group children use one ordinary sibling ordering container without nested fixed scroll regions.
+`DashStack.stickyLanes?: "start" | "end" | "both" | "none"` defaults to `"both"`.
+This controls root-lane visibility during scrolling independently of ordering:
 
-The automatic band has a zero minimum block size. Pinned groups keep natural heights. The middle
-scrolls while the pinned groups fit; if their combined height exceeds the available height, the
-outer Stack scrolls so they never overlap. This applies both standalone and inside DashPanel.
+- `"both"`: start and end lanes retain natural heights outside the middle scrollport.
+- `"start"`: the start lane stays visible; the middle and end scroll together.
+- `"end"`: the end lane stays visible; the start and middle scroll together.
+- `"none"`: all three lanes scroll together.
 
-The root automatic scrollport uses UI's vertical
-[`scroll-fade` recipe](ui.md#scroll-overflow-feedback) to indicate offscreen content. Start and end
-bands remain unfaded; nested group bands do not add masks or nested scrollports.
+Inside groups, pins only affect order. They never introduce sticky content or nested scrollports.
+The middle can shrink to zero; if the selected sticky lanes cannot fit in the available height,
+the outer Stack scrolls all content so nothing overlaps or becomes unreachable. This applies both
+standalone and inside DashPanel. Changing `stickyLanes` preserves mounted controls and values;
+it is presentation configuration and is not persisted.
+
+With `"both"`, the automatic scrollport uses UI's vertical
+[`scroll-fade` recipe](ui.md#scroll-overflow-feedback). The other modes use a shared root
+scrollport without a fade over the sticky content. Nested group contents do not add masks.
 
 Changing `pin` moves a node immediately to the declared band. Existing relative order is preserved
 where meaningful; otherwise the node follows already-customized destination nodes in declaration
@@ -2152,7 +2161,7 @@ itself upgrade or qualify Picodash's experimental integration.
 ## Linked controls and organizational subgroups
 
 [ADR 0008](../adr/0008-organizational-subgroups-and-linked-controls.md) accepts one non-collapsible,
-non-pinned subgroup level, root-group-only pinning, derived structure inspection, and explicit
+organizational subgroup level, local ordering pins and root sticky lanes, derived structure inspection, and explicit
 reveal/focus. Subgroups inherit label colour and the shared input grid. Their headings have no
 button hover treatment; their reorder grip remains a separate interaction.
 

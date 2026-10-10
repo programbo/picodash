@@ -251,6 +251,7 @@ export type DashStackProps<
     readonly 'aria-label'?: string
     readonly 'aria-labelledby'?: string
     readonly reorderable?: boolean
+    readonly stickyLanes?: 'start' | 'end' | 'both' | 'none'
   } & (
     | { readonly nexus: RootNexus<Fields>; readonly id: string }
     | { readonly nexus: ScopedNexus<Fields>; readonly id?: string }
@@ -288,6 +289,7 @@ export type DashGroupProps = RegisteredNodeNativeProps & {
 }
 
 type DashletBaseProps = RegisteredNodeNativeProps & {
+  readonly pin?: 'start' | 'end'
   readonly band?: boolean | CSSProperties['color']
   readonly glow?: boolean | CSSProperties['color']
   readonly tint?: boolean | CSSProperties['color']
@@ -1174,7 +1176,6 @@ const DashletImpl = forwardRef<HTMLDivElement, DashletProps<any> | CompoundDashl
       className,
       ...nativeProps
     } = props
-    if (pin !== undefined) throw new TypeError('Only root DashGroups accept pin.')
     const ancestry = useContext(DashGroupAncestryContext)
     requireAccessibleLabel(label, ariaLabel, 'Dashlet')
     const emphasisStyle: CSSProperties &
@@ -1435,8 +1436,8 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   const homeRef = useRef<HTMLDivElement>(null)
   const actionsRef = useRef<HTMLDivElement>(null)
   const structure = useContext(DashStackStructureContext)
-  if (subgroup && (declaredCollapsible === true || defaultCollapsed || pin !== undefined))
-    throw new TypeError('Subgroups cannot collapse or pin.')
+  if (subgroup && (declaredCollapsible === true || defaultCollapsed))
+    throw new TypeError('Subgroups cannot collapse.')
   if (label === undefined && (declaredCollapsible === true || defaultCollapsed))
     throw new TypeError('A headerless group cannot collapse.')
   const collapsible = declaredCollapsible ?? (!subgroup && label !== undefined)
@@ -1775,11 +1776,14 @@ const DashStackImpl = forwardRef<HTMLDivElement, DashStackProps>(function DashSt
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
     reorderable = true,
+    stickyLanes = 'both',
     className,
     ...props
   },
   ref,
 ) {
+  if (!['start', 'end', 'both', 'none'].includes(stickyLanes))
+    throw new TypeError('Invalid DashStack stickyLanes.')
   if (title === undefined && headingLevel !== undefined)
     throw new TypeError('DashStack headingLevel requires title.')
   if (title !== undefined && headingLevel === undefined)
@@ -1851,7 +1855,7 @@ const DashStackImpl = forwardRef<HTMLDivElement, DashStackProps>(function DashSt
     declarations: orderingDeclarations,
     durableOrder: rootOrder,
     reorderable,
-    sessionFence: rootCollapseFence,
+    sessionFence: `${rootCollapseFence}:${stickyLanes}`,
     announce: actionRegistry.announce,
   })
   const declarationById = useMemo(
@@ -1969,7 +1973,11 @@ const DashStackImpl = forwardRef<HTMLDivElement, DashStackProps>(function DashSt
     if (!list || !start || !end) return
     const syncOverflow = () => {
       const padding = Number.parseFloat(view?.getComputedStyle(list).paddingBottom ?? '0') || 0
-      const pinned = start.offsetHeight + end.offsetHeight
+      const startHeight = stickyLanes === 'both' || stickyLanes === 'start' ? start.offsetHeight : 0
+      const endHeight = stickyLanes === 'both' || stickyLanes === 'end' ? end.offsetHeight : 0
+      const pinned = startHeight + endHeight
+      list.style.setProperty('--_picodash-sticky-start-height', `${startHeight}px`)
+      list.style.setProperty('--_picodash-sticky-end-height', `${endHeight}px`)
       const available = root.clientHeight - (header?.offsetHeight ?? 0) - padding
       // Once the middle reaches zero, expose all content in the outer scrollport.
       // Pinned heights do not depend on this mode, so resizing cannot oscillate it.
@@ -1981,8 +1989,10 @@ const DashStackImpl = forwardRef<HTMLDivElement, DashStackProps>(function DashSt
     return () => {
       observer.disconnect()
       root.removeAttribute('data-picodash-stack-overflow')
+      list.style.removeProperty('--_picodash-sticky-start-height')
+      list.style.removeProperty('--_picodash-sticky-end-height')
     }
-  }, [title !== undefined])
+  }, [title !== undefined, stickyLanes])
   const listName =
     ariaLabelledBy ?? (ariaLabel === undefined && title !== undefined ? headingId : undefined)
   return (
@@ -2010,6 +2020,7 @@ const DashStackImpl = forwardRef<HTMLDivElement, DashStackProps>(function DashSt
                                 ref={setRootRef}
                                 className={classNames('picodash-dashstack', className)}
                                 data-picodash-dashstack
+                                data-picodash-sticky-lanes={stickyLanes}
                                 data-picodash-dashstack-compact={compact || undefined}
                               >
                                 {title !== undefined ? (
@@ -2035,7 +2046,10 @@ const DashStackImpl = forwardRef<HTMLDivElement, DashStackProps>(function DashSt
                                       key={band}
                                       role="presentation"
                                       data-picodash-dashstack-band={band}
-                                      data-picodash-scroll-fade={band === 'automatic' || undefined}
+                                      data-picodash-scroll-fade={
+                                        (stickyLanes === 'both' && band === 'automatic') ||
+                                        undefined
+                                      }
                                     >
                                       {declarationsByBand[band].map((declaration, index) =>
                                         createElement(
