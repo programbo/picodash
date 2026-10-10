@@ -253,6 +253,35 @@ Check action buttons with a real pointer click and Enter or Space, including tra
 out of disabled state. Replacing a public Button with a native button can change event timing;
 it does not resolve a self-disabling feedback loop.
 
+## Offer presets without restricting custom values
+
+The current `Combobox` from `@picodash/dashstack/ui` and ready-made `ComboboxDashlet` select only
+from their supplied `options`. They do not expose `allowsCustomValue`. `@picodash/ui` and
+`@picodash/picodash/ui` do not export a ComboBox. Do not cast unsupported props onto these controls
+or assume that typing a value absent from `options` will commit it.
+
+For an application-owned value such as playback RPM, compose the editor inside a custom Dashlet:
+
+- A native input with an associated `datalist` provides suggestions while allowing other values,
+  without adding a dependency. Give it an accessible label and use the same unique ID for the
+  input's `list` attribute and the datalist's `id`. Browser presentation and suggestion behavior
+  vary; test the target browsers.
+- When you need a styled listbox with controlled selection and filtering, use `ComboBox` directly
+  from `react-aria-components` with `allowsCustomValue`, `Input`, `Button`, `Popover`, `ListBox`, and
+  `ListBoxItem`. Declare React Aria as an application dependency rather than relying on Picodash's
+  transitive installation. This is application composition, not an additional Picodash export.
+
+Keep the editable text draft separate from the committed number. For positive RPM, reject blank,
+non-finite, zero, and negative values before committing; retain the last valid speed while the
+user edits. Apply the same validation to presets and typed values. Define a commit policy such as
+Enter or blur, and show invalid input without silently clamping it. If the value belongs in Nexus,
+put its canonical validation on the field and use the public binding contract.
+
+For safe-area focus redirection, pass a ref to the custom Dashlet's `primaryFocusRef` and attach it
+to the actual input (React Aria's `Input` when using that composition). That ref is optional for
+normal direct interaction. Keep the self-disabling feedback rule above in mind for both native
+and React Aria controls.
+
 ## Match a Tailwind v4 host layout to the theme
 
 Picodash ships its own control styles. If your application already uses Tailwind v4, map public
