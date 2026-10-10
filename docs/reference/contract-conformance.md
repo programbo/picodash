@@ -1281,3 +1281,12 @@ focus ring, retained active endpoint, and a keyboard focus ring. The OpenCountRa
 uses the inline actual result without a separate result Dashlet. Package checks, focused tests,
 Lab production build, and the browser journey pass. The bridge-dependent phone journey could not
 run against the production Lab because its private development-bridge file is absent.
+
+### Dogfood .28: Range results and thumb focus (2026-10-10)
+
+Clean snapshot `0.1.0-dogfood.28` records source commit
+`847a210cb70dd0405d251934f316b23392177144`. All 1,134 release-gate tests pass, including
+317 DashStack tests. The isolated consumer passes 13 tests, public type checks, repeated and
+frozen installation, `.28` to `.27` rollback and `.28` reinstall, and Vite/Next production CSS
+builds. The shipped OpenCountRange recipe consumes the inline result through installed public
+packages. The recommendation advances only after these checks pass.
