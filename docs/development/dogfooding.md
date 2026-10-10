@@ -223,6 +223,36 @@ The source fixture `packages/picodash/tests/dogfood/GroupedControls.tsx` is chec
 consumer smoke test and will ship as `example/GroupedControls.tsx` in newly packed snapshots.
 Existing immutable bundles keep their original guide and examples.
 
+## Put action buttons inside custom Dashlets
+
+A custom Dashlet can contain a native `<button type="button">` or the public `Button` from
+`@picodash/ui`. Use `onClick` for the native button and `onPress` for the public Button. Interactive
+children keep their own pointer and keyboard activation; no extra context or event propagation
+blocker is required.
+
+`primaryFocusRef` is optional. Attach the same ref to the intended control and the Dashlet when
+clicking empty row space or revealing the Dashlet from a rail should focus that control. Without
+it, those actions focus the named Dashlet shell. It is not required to activate a child button.
+
+**Keep interaction feedback separate from application activity.** A Dashlet's
+`interaction.items.get(id)?.active` flag includes pointer and keyboard presses on that Dashlet.
+It does not mean a geometry edit, solver operation, or other domain task is running. Deriving a
+button's disabled state from _any_ active Dashlet can disable the button during its own press.
+React Aria cancels a press interrupted by disabling, even if the button becomes enabled again
+on release. A programmatic `.click()` does not exercise that sequence.
+
+For example, when playback must pause or become unavailable during geometry manipulation, derive
+that condition from the relevant geometry controls or the application's geometry gesture state.
+Use explicit control IDs, excluding the playback Dashlet:
+
+```ts
+const isManipulating = geometryControlIds.some((id) => interaction.items.get(id)?.active === true)
+```
+
+Check action buttons with a real pointer click and Enter or Space, including transitions into and
+out of disabled state. Replacing a public Button with a native button can change event timing;
+it does not resolve a self-disabling feedback loop.
+
 ## Match a Tailwind v4 host layout to the theme
 
 Picodash ships its own control styles. If your application already uses Tailwind v4, map public
