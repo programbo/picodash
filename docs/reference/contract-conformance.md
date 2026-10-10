@@ -1300,3 +1300,9 @@ with the installed TypeScript compiler. Facade checks and the five packaging tes
 snapshot packing and isolated consumer typechecking include the fixture. The immutable `.28`
 bundle and current release recommendation are unchanged; this is documentation and example work,
 not new runtime behavior or new rendered-browser evidence.
+
+The recipe also enables four corner docks plus full-left/full-right at the Provider, lets the
+main Panel inherit that policy, and narrows a Candidates Panel to the full sides. It documents
+Provider maximum versus Panel narrowing, corner height caps, quarter-zone drag targeting, and
+app-owned canvas readout clearance. The expanded fixture passes TypeScript checking; the 37
+existing dock-arena, drag-intent, and dock-policy tests pass. This adds no runtime behavior.

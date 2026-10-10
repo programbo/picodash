@@ -16,7 +16,19 @@ export function WorkspacePanel({
       <header>Gear designer</header>
       <div ref={workspaceRef} style={{ position: 'relative', minHeight: 0, overflow: 'auto' }}>
         {children}
-        <DashPanelProvider nexus={nexus} boundary={workspaceRef} boundaryInset={12}>
+        <DashPanelProvider
+          nexus={nexus}
+          boundary={workspaceRef}
+          boundaryInset={12}
+          dockPositions={[
+            'top-left',
+            'top-right',
+            'bottom-left',
+            'bottom-right',
+            'full-left',
+            'full-right',
+          ]}
+        >
           <DashPanel
             id="workspace-tools"
             title="Design controls"
@@ -30,6 +42,21 @@ export function WorkspacePanel({
             }}
           >
             <p>Place your controls here.</p>
+          </DashPanel>
+          <DashPanel
+            id="workspace-candidates"
+            title="Candidates"
+            width={320}
+            boundaryInset={0}
+            dockPositions={['full-left', 'full-right']}
+            defaultLayout={{
+              placement: {
+                mode: 'hybrid',
+                disposition: { kind: 'docked', position: 'full-right' },
+              },
+            }}
+          >
+            <p>Place candidate results here.</p>
           </DashPanel>
         </DashPanelProvider>
       </div>

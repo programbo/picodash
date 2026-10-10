@@ -175,7 +175,19 @@ export function WorkspacePanel({
       <header>Gear designer</header>
       <div ref={workspaceRef} style={{ position: 'relative', minHeight: 0, overflow: 'auto' }}>
         {children}
-        <DashPanelProvider nexus={nexus} boundary={workspaceRef} boundaryInset={12}>
+        <DashPanelProvider
+          nexus={nexus}
+          boundary={workspaceRef}
+          boundaryInset={12}
+          dockPositions={[
+            'top-left',
+            'top-right',
+            'bottom-left',
+            'bottom-right',
+            'full-left',
+            'full-right',
+          ]}
+        >
           <DashPanel
             id="workspace-tools"
             title="Design controls"
@@ -189,6 +201,21 @@ export function WorkspacePanel({
             }}
           >
             <p>Place your controls here.</p>
+          </DashPanel>
+          <DashPanel
+            id="workspace-candidates"
+            title="Candidates"
+            width={320}
+            boundaryInset={0}
+            dockPositions={['full-left', 'full-right']}
+            defaultLayout={{
+              placement: {
+                mode: 'hybrid',
+                disposition: { kind: 'docked', position: 'full-right' },
+              },
+            }}
+          >
+            <p>Place candidate results here.</p>
           </DashPanel>
         </DashPanelProvider>
       </div>
@@ -235,6 +262,57 @@ return this panel to its current declared default, call `nexus.resetDashPanelLay
 or use its Reset layout action. Do not reset on every render. Boundaries and insets are live policy,
 not saved placement: a panel already docked `full-left` only needs the inset change; no reset is
 required. A saved floating placement remains floating until the user docks or resets it.
+
+### Enable corners at the Provider, then narrow individual panels
+
+The Provider's `dockPositions` is the maximum allowed set. A Panel inherits it when its own
+`dockPositions` is omitted; an explicit Panel list may only narrow that set. Adding `top-left`
+only to a Panel while its Provider permits only full sides throws
+`Panel dock position top-left widens the Provider policy.`
+
+The example enables all four corners and both full sides on the Provider. Design controls inherits
+all six; Candidates narrows to `full-left` and `full-right`. Apply the same arrangement to an
+existing `PicodashProvider`. Each exact dock has one occupant, so an occupied destination cannot
+accept a second panel. Panels share occupancy only when their Provider, resolved boundary, and
+resolved inset match; both example panels clear the inset for that reason.
+
+Standalone `DashPanelProvider` supports twelve positions: the four corners, plus `full-left`,
+`center-left`, `full-right`, `center-right`, `full-top`, `center-top`, `full-bottom`, and
+`center-bottom`. `PicodashProvider` supports the eight corner and left/right positions; it excludes
+the four horizontal top/bottom positions. An explicit list replaces the default allowed list.
+Dock policy applies to fixed and docked hybrid panels; floating placement uses snapping instead.
+
+### Corner sizing and drag targets
+
+Corner panels keep their content height up to an allocation cap. A lone corner does **not** force
+its content to two-thirds height. Native allocations on each left or right side are:
+
+| Occupants on that side             | Height allocation                                            |
+| ---------------------------------- | ------------------------------------------------------------ |
+| One corner                         | Up to two-thirds of the available height                     |
+| Top and bottom corners             | Up to half each                                              |
+| One corner and a full-side panel   | Corner up to one-third; full side fills the other two-thirds |
+| Both corners and a full-side panel | Each gets one-third; corners may be shorter                  |
+| Full-side panel alone              | Fills the available height                                   |
+
+The available height comes from the resolved boundary after insets. Oversized corner content
+scrolls inside its allocation. These are live caps, not saved user heights. Center-side allocations
+and the complete occupancy rules are in the
+[dock arena contract](../reference/dashpanel.md#dock-occupancy-and-allocation).
+
+During a hybrid drag, the panel must approach the left or right boundary edge. The pointer's
+vertical position within that boundary chooses the target: top quarter selects the top corner,
+bottom quarter selects the bottom corner, and the middle half selects the full side. If that
+full-side position is disabled, the middle zone can target the corresponding enabled center-side
+position. A disabled or occupied candidate is not replaced with a different available corner.
+The placement menu also exposes enabled destinations that do not have a drag zone. Releasing on
+an available target commits the dock.
+
+Canvas readout offsets belong to your app. For a top-corner panel, offset only the corresponding
+top readout row; for a bottom-corner panel, only the bottom row. A full-side panel may require both.
+Use the occupied panel's rendered bounds when calculating clearance, rather than treating the
+corner's maximum allocation as its actual height. Picodash does not reposition those readouts or
+reserve their layout space.
 
 See the [boundary contract](../reference/dashpanel.md#boundaries-insets-and-portals) and
 [durable layout](../reference/dashpanel.md#durable-layout) for the full rules.
