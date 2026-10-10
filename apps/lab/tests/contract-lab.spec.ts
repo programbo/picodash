@@ -220,10 +220,9 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
       values: { target: 0 },
     })
     await expect(phone.getByLabel('Achieved', { exact: true })).toHaveText('0 mm')
-    await expect(phone.locator('[data-picodash-achieved-marker]')).toHaveCSS(
-      '--_picodash-achieved-position',
-      '0%',
-    )
+    await expect(
+      phone.locator('.picodash-dashstack-target-slider [data-picodash-achieved-marker]'),
+    ).toHaveCSS('--_picodash-achieved-position', '0%')
     const detent = phone.getByRole('slider', { name: 'Detents', exact: true })
     await detent.scrollIntoViewIfNeeded()
     const detentTrack = detent.locator('xpath=ancestor::*[@data-picodash-detent-track]')

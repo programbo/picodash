@@ -19,6 +19,7 @@ it('projects Any without writes, commits atomic endpoint edits, and keeps unavai
   try {
     render(8, 4)
     render(12, 4)
+    expect(getByRole(element, 'status', { name: 'Actual' }).textContent).toBe('4')
     expect(writes).toBe(0)
     expect(nexus.getState().values.counts).toEqual({ min: 3, max: null })
     expect(getByRole(element, 'slider', { name: /^End\b/ }).getAttribute('aria-valuetext')).toBe(
@@ -49,9 +50,10 @@ it('projects Any without writes, commits atomic endpoint edits, and keeps unavai
     render(null, null)
     expect(writes).toBe(before)
     expect(nexus.getState().values.counts.max).toBe(null)
-    expect(getByRole(element, 'status', { name: 'Achieved planet count' }).textContent).toBe(
-      'No feasible solution',
+    expect(element.querySelector('[data-picodash-range-result-message]')?.textContent).toBe(
+      'No match',
     )
+    expect(element.textContent).toContain('No feasible solution')
     expect(projectCountWindow({ min: 3, max: 12 }, 8)).toEqual({
       value: { start: 3, end: 12 },
       scaleMax: 12,

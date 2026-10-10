@@ -95,6 +95,11 @@ export function OpenCountRangeRecipe({
                 formatValue={(value) =>
                   `${value.start}–${value.end === projection.endDetent.value ? 'Any' : value.end}`
                 }
+                result={
+                  achieved === null
+                    ? { status: 'no-fit', message: 'No feasible solution' }
+                    : { status: 'ready', value: achieved }
+                }
                 value={projection.value}
                 createGesture={(options) => {
                   const gesture = binding.createValueGesture(options)
@@ -118,9 +123,6 @@ export function OpenCountRangeRecipe({
             </>
           )
         }}
-      </Dashlet>
-      <Dashlet id="achieved-count" label="Planets">
-        <output aria-label="Achieved planet count">{achieved ?? 'No feasible solution'}</output>
       </Dashlet>
     </DashStack>
   )

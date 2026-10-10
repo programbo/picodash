@@ -286,6 +286,66 @@ test('reorders the long control desk with glass drag surfaces and fixed pin lane
   await local.scrollIntoViewIfNeeded()
   await expect.poll(alignedSubgroupTitle).toBeLessThanOrEqual(2)
   await local.screenshot({ path: resolve(directory, 'subgroup-header-mobile.png') })
+
+  await page.getByRole('button', { name: 'Back to Dashlets', exact: true }).click()
+  const countRange = page.locator('[data-picodash-dashlet="range-detents"]')
+  const countTrack = countRange.locator('.picodash-dashstack-range-slider-track')
+  for (const width of [390, 1280]) {
+    await page.setViewportSize({ width, height: 900 })
+    await countRange.scrollIntoViewIfNeeded()
+    await expect(countRange.getByRole('status', { name: 'Actual', exact: true })).toHaveText('4')
+    const resultGeometry = () =>
+      countTrack.evaluate((track) => {
+        const box = track.getBoundingClientRect()
+        const marker = track
+          .querySelector('[data-picodash-achieved-marker]')!
+          .getBoundingClientRect()
+        const text = track
+          .querySelector('[data-picodash-achieved-readout]')!
+          .getBoundingClientRect()
+        return {
+          error: Math.abs(marker.x - (box.x + (box.width - Math.min(24, box.width * 0.3)) * 0.2)),
+          below: text.top >= box.bottom,
+          inside: text.left >= box.left && text.right <= box.right,
+        }
+      })
+    await expect.poll(async () => (await resultGeometry()).error).toBeLessThan(1)
+    expect(await resultGeometry()).toMatchObject({ below: true, inside: true })
+    const countStart = countRange.getByRole('slider', { name: /^Start/ })
+    await countStart.press('ArrowRight')
+    await expect(countRange.getByRole('status', { name: 'Actual', exact: true })).toHaveText('4')
+    await countStart.press('ArrowLeft')
+
+    // Release clicks must preserve End focus; pointer feedback is not a keyboard ring.
+    for (const row of [
+      countRange,
+      page.locator('[data-picodash-dashlet="RangeDashlet"]'),
+      page.locator('[data-picodash-dashlet="SliderDashlet"]'),
+      page.locator('[data-picodash-dashlet="endpoint-detents"]'),
+    ]) {
+      await row.scrollIntoViewIfNeeded()
+      const end = row.getByRole('slider').last()
+      const thumb = row
+        .locator(
+          '[data-picodash-dashstack-range-slider-thumb], [data-picodash-dashstack-slider-thumb]',
+        )
+        .last()
+      const box = (await thumb.boundingBox())!
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+      await page.mouse.down()
+      await expect(end).toBeFocused()
+      await expect(thumb).toHaveCSS('outline-style', 'none')
+      await page.mouse.move(box.x + box.width / 2 - 5, box.y + box.height / 2)
+      await page.mouse.up()
+      await expect(end).toBeFocused()
+      await expect(thumb).toHaveCSS('outline-style', 'none')
+      await end.press('ArrowLeft')
+      await expect(end).toBeFocused()
+      await expect(thumb).toHaveCSS('outline-style', 'solid')
+    }
+    await countRange.scrollIntoViewIfNeeded()
+    await countRange.screenshot({ path: resolve(directory, `range-actual-${width}.png`) })
+  }
   expect(errors).toEqual([])
 })
 

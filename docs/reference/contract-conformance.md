@@ -1268,3 +1268,16 @@ an empty disclosure column. The control-desk browser journey verifies title/row-
 at desktop and 390px viewport widths alongside reordering and sticky-lane behavior.
 The release gate passes 1,128 tests. Isolated consumer installation, rollback to `.26`, reinstall,
 13 consumer tests, public types, and Vite/Next production CSS builds pass.
+
+### Range actual results and thumb focus (2026-10-10)
+
+RangeSlider and RangeDashlet expose an independent optional result and result formatter.
+`range-result.test.tsx` owns result states, bounds independence, detent results, bound forwarding,
+and the regression where release clicks redirected End focus to Start. Shared marker extraction
+retains the existing TargetSlider tests and reduced-motion behavior.
+The control-desk browser journey checks result geometry at 390px and 1280px and real pointer
+press/release followed by keyboard input on ordinary and detent Slider/Range controls: no pointer
+focus ring, retained active endpoint, and a keyboard focus ring. The OpenCountRange consumer recipe
+uses the inline actual result without a separate result Dashlet. Package checks, focused tests,
+Lab production build, and the browser journey pass. The bridge-dependent phone journey could not
+run against the production Lab because its private development-bridge file is absent.

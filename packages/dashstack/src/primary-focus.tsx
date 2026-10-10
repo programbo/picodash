@@ -280,6 +280,7 @@ export function shouldRedirectDashletRowClick(event: MouseEvent, row: HTMLElemen
     if (member.parentElement === row && member.hasAttribute('data-picodash-dashlet-shell')) continue
     if (
       isInteractive(member) ||
+      member.hasAttribute('data-picodash-control-interaction') ||
       member.hasAttribute('data-picodash-dashlet-help') ||
       member.hasAttribute('data-picodash-reorder-handle') ||
       member.hasAttribute('data-picodash-dashlet-actions')

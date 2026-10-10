@@ -514,6 +514,7 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
                       endDetent={{ value: 12, label: 'Any' }}
                     />
                     <RangeDashlet
+                      result={{ status: 'ready', value: 4 }}
                       id="range-detents"
                       label="Count range"
                       field={nexus.fields.countRange}

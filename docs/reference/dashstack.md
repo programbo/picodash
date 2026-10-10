@@ -983,7 +983,7 @@ facade-specific state or behavior.
 | `CheckboxGroupDashlet<T>` | `readonly T[]`                       | `options`                                                                                                                   |
 | `MultiSelectDashlet<T>`   | `readonly T[]`                       | `options`, `placeholder?`                                                                                                   |
 | `SearchDashlet`           | `string`                             | `placeholder?`                                                                                                              |
-| `RangeDashlet`            | `{ start: number; end: number }`     | `min?=0`, `max?=100`, `step?=1`, `formatOptions?`, `formatValue?`, `startDetent?`, `endDetent?`                             |
+| `RangeDashlet`            | `{ start: number; end: number }`     | `min?=0`, `max?=100`, `step?=1`, `formatOptions?`, `formatValue?`, `startDetent?`, `endDetent?`, `result?`, `formatResult?` |
 | `MeterDashlet`            | `number`                             | `min?=0`, `max?=100`, `formatOptions?`, `formatValue?`                                                                      |
 | `ProgressDashlet`         | `number`                             | `min?=0`, `max?=100`, `formatOptions?`, `formatValue?`                                                                      |
 | `StatusDashlet<T>`        | `string \| number`                   | `options`                                                                                                                   |
@@ -2349,3 +2349,37 @@ identity, a presentation update callback, reveal registration, and a bounded reo
 It must preserve one content tree and cancel any provisional reorder before moving the surface.
 DashStack remains independent of DashPanel. `DashStackNode.presentation` reports a group's actual
 host, while `parentId`, `children`, `depth` and committed order continue to describe logical ancestry.
+
+### Range actual result (2026-10-10)
+
+RangeSlider and RangeDashlet accept optional `result` with the same ready, pending, no-fit and
+error variants as TargetSlider's result. The app supplies this independent scalar outcome. It is
+shown beneath the track using the shared achieved marker; it never writes or constrains the bound
+`{ start, end }` value. A result outside the selected interval still uses its true scale position.
+A result outside the displayed numeric scale (unless it exactly matches an endpoint detent) is
+reported as “outside scale” without a misleading clamped marker.
+
+`formatResult(value)` formats only the actual readout, including any unit. Existing
+`formatValue(range)` continues to format the selected bounds. Without `formatResult`, the result
+uses `formatOptions` and the current locale, or an exact detent's label. Pending results can retain
+a dimmed `lastValue`; no-fit/error results share the readout row. Omitting `result` preserves the
+original compact Range layout. The result is available to assistive technology and described by
+both endpoint controls, without announcing every ready-value update.
+
+```tsx
+<RangeDashlet
+  id="planet-count"
+  label="Planet count"
+  field={nexus.fields.planetRange}
+  min={2}
+  max={12}
+  result={{ status: 'ready', value: actualPlanetCount }}
+  formatResult={(value) => `${value} planets`}
+/>
+```
+
+The checked `OpenCountRange` dogfood recipe demonstrates this with an app-owned Any endpoint.
+
+Range track and thumb clicks preserve the active endpoint instead of invoking the Dashlet's
+primary-focus shortcut. Label clicks still focus the first endpoint. Pointer use retains hover
+and drag feedback; the focus outline is reserved for keyboard interaction, including detent thumbs.

@@ -49,6 +49,8 @@ import { DetentRangeSlider } from './detent-range.js'
 import { validateSliderOptions, type SliderDetent } from './slider-options.js'
 import { useValueControlGesture, type ValueGestureFactory } from './numeric-control-gesture.js'
 import { useSteppedThumbMotion } from './stepped-thumb-motion.js'
+import { useRangeResult } from './range-result.js'
+import type { TargetResult } from './target-result.js'
 import { composeControlClassName } from './ui-class-name.js'
 
 export type NumberRangeValue = {
@@ -184,6 +186,9 @@ function segmentInput(segment: TemporalSegment) {
 }
 
 export type RangeSliderProps = DashStackControlProps & {
+  /** Independent app-owned outcome; never changes the selected bounds. */
+  readonly result?: TargetResult
+  readonly formatResult?: (value: number) => ReactNode
   readonly startDetent?: SliderDetent
   readonly endDetent?: SliderDetent
   readonly formatValue?: (value: NumberRangeValue) => ReactNode
@@ -228,9 +233,13 @@ function ContinuousRangeSlider({
   formatOptions,
   formatValue,
   createGesture,
+  result,
+  formatResult,
   ...props
 }: RangeSliderProps) {
   validateRangeSliderConfiguration(min, max, step)
+  const actual = useRangeResult({ result, formatResult, formatOptions, min, max })
+  const describedBy = [props['aria-describedby'], actual.id].filter(Boolean).join(' ') || undefined
   const rootRef = useRef<HTMLDivElement>(null)
   const change = useValueControlGesture({
     ref: rootRef,
@@ -249,7 +258,7 @@ function ContinuousRangeSlider({
   )
   const startInputRef = usePrimaryControlRef<HTMLInputElement>()
   const endInputRef = usePrimaryControlRef<HTMLInputElement>()
-  const readOnlyDescription = useReadOnlyDescription(props.readOnly, props['aria-describedby'])
+  const readOnlyDescription = useReadOnlyDescription(props.readOnly, describedBy)
 
   return (
     <>
@@ -272,10 +281,13 @@ function ContinuousRangeSlider({
         step={step}
         formatOptions={formatOptions}
         isDisabled={props.disabled}
+        data-picodash-control-interaction
+        data-result={result?.status}
+        aria-busy={result?.status === 'pending' || undefined}
         data-readonly={props.readOnly || undefined}
         aria-label={props['aria-label']}
         aria-labelledby={props['aria-labelledby']}
-        aria-describedby={props['aria-describedby']}
+        aria-describedby={describedBy}
         aria-invalid={props['aria-invalid']}
         aria-errormessage={props['aria-errormessage']}
       >
@@ -289,6 +301,7 @@ function ContinuousRangeSlider({
         <SliderTrack className="picodash-dashstack-range-slider-track" data-picodash-step-track>
           <SliderThumb
             index={0}
+            data-picodash-range-end="start"
             // At the upper limit only Start can move inward; keep it reachable when thumbs coincide.
             data-picodash-range-upper-overlap={
               (value.start === value.end && value.end === max) || undefined
@@ -302,6 +315,7 @@ function ContinuousRangeSlider({
           />
           <SliderThumb
             index={1}
+            data-picodash-range-end="end"
             data-picodash-range-lower-overlap={
               (value.start === value.end && value.start === min) || undefined
             }
@@ -312,8 +326,10 @@ function ContinuousRangeSlider({
             isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
             aria-errormessage={props['aria-errormessage']}
           />
+          {actual.marker}
         </SliderTrack>
       </AriaSlider>
+      {actual.description}
       {readOnlyDescription.description}
     </>
   )

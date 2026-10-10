@@ -1,6 +1,7 @@
 'use client'
 
 import { useContext, useEffect, useId, useLayoutEffect, useRef } from 'react'
+import { Group } from 'react-aria-components'
 import { animate } from 'motion'
 import { thumbSnapSpring, minimumStepPixels } from './stepped-thumb-motion.js'
 import type { SliderProps } from './ui.js'
@@ -307,7 +308,8 @@ export function DetentSlider({
           >
             {readout}
           </span>
-          <div
+          <Group
+            role="presentation"
             ref={thumbRef}
             data-picodash-dashstack-slider-thumb
             data-detent-phase={detentPhase(value, scale)}
@@ -335,7 +337,7 @@ export function DetentSlider({
                 if (!disabled) change(detentValue(event.currentTarget.valueAsNumber, scale))
               }}
             />
-          </div>
+          </Group>
           {marks?.map((mark, index) => (
             <span
               key={index}

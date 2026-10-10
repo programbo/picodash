@@ -137,7 +137,17 @@ export type RangeDashletProps<
   F extends ScalarField<PicodashJsonValue> = ExactField<NumberRangeValue>,
 > = Shell &
   ExactCompoundFieldProps<F, NumberRangeValue> &
-  Pick<RangeSliderProps, 'min' | 'max' | 'step' | 'formatOptions' | 'startDetent' | 'endDetent'> & {
+  Pick<
+    RangeSliderProps,
+    | 'min'
+    | 'max'
+    | 'step'
+    | 'formatOptions'
+    | 'startDetent'
+    | 'endDetent'
+    | 'result'
+    | 'formatResult'
+  > & {
     readonly formatValue?: (value: NumberRangeValue) => ReactNode
   }
 
@@ -149,6 +159,8 @@ function RangeDashletInner<F extends ScalarField<PicodashJsonValue>>(
     step = 1,
     formatOptions,
     formatValue,
+    result,
+    formatResult,
     startDetent,
     endDetent,
     ...props
@@ -190,6 +202,8 @@ function RangeDashletInner<F extends ScalarField<PicodashJsonValue>>(
                 startDetent={startDetent}
                 endDetent={endDetent}
                 formatValue={formatValue}
+                result={result}
+                formatResult={formatResult}
                 min={min}
                 max={max}
                 step={step}

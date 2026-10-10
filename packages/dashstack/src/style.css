@@ -1645,27 +1645,28 @@
     margin-inline: calc(var(--picodash-space-3) * 1.25 + var(--picodash-space-1));
   }
   .picodash-dashstack-range-slider:dir(ltr)
-    [data-picodash-dashstack-range-slider-thumb]:first-child,
+    [data-picodash-dashstack-range-slider-thumb][data-picodash-range-end='start'],
   .picodash-dashstack-range-slider:dir(rtl)
-    [data-picodash-dashstack-range-slider-thumb]:last-child {
+    [data-picodash-dashstack-range-slider-thumb][data-picodash-range-end='end'] {
     translate: -50% 0;
   }
-  .picodash-dashstack-range-slider:dir(ltr) [data-picodash-dashstack-range-slider-thumb]:last-child,
+  .picodash-dashstack-range-slider:dir(ltr)
+    [data-picodash-dashstack-range-slider-thumb][data-picodash-range-end='end'],
   .picodash-dashstack-range-slider:dir(rtl)
-    [data-picodash-dashstack-range-slider-thumb]:first-child {
+    [data-picodash-dashstack-range-slider-thumb][data-picodash-range-end='start'] {
     translate: 50% 0;
   }
   .picodash-dashstack-range-slider:dir(ltr)
-    [data-picodash-dashstack-range-slider-thumb]:first-child::before,
+    [data-picodash-dashstack-range-slider-thumb][data-picodash-range-end='start']::before,
   .picodash-dashstack-range-slider:dir(rtl)
-    [data-picodash-dashstack-range-slider-thumb]:last-child::before {
+    [data-picodash-dashstack-range-slider-thumb][data-picodash-range-end='end']::before {
     clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - var(--picodash-space-1)));
     transform-origin: 100% 100%;
   }
   .picodash-dashstack-range-slider:dir(ltr)
-    [data-picodash-dashstack-range-slider-thumb]:last-child::before,
+    [data-picodash-dashstack-range-slider-thumb][data-picodash-range-end='end']::before,
   .picodash-dashstack-range-slider:dir(rtl)
-    [data-picodash-dashstack-range-slider-thumb]:first-child::before {
+    [data-picodash-dashstack-range-slider-thumb][data-picodash-range-end='start']::before {
     clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--picodash-space-1)), 0 100%);
     transform-origin: 0 100%;
   }
@@ -2314,7 +2315,7 @@
 .picodash-dashstack-target-slider[data-mark-labels] [data-picodash-target-track] {
   padding-block-end: calc(var(--picodash-font-size-sm) * 2.25 + var(--picodash-space-5));
 }
-.picodash-dashstack-target-slider [data-picodash-achieved-marker] {
+[data-picodash-achieved-marker] {
   position: absolute;
   inset-inline-start: var(--_picodash-achieved-position, 0%);
   inset-block-start: calc(100% + var(--picodash-space-1));
@@ -2794,7 +2795,7 @@
 [data-picodash-detent-track]:dir(rtl) [data-picodash-dashstack-slider-thumb] {
   transform: translate(50%, -50%);
 }
-[data-picodash-detent-track] [data-picodash-dashstack-slider-thumb]:has(:focus-visible) {
+[data-picodash-detent-track] [data-picodash-dashstack-slider-thumb][data-focus-visible] {
   outline: calc(2 * var(--picodash-border-width-thin)) solid var(--picodash-color-focus);
   outline-offset: 2px;
 }
@@ -2809,7 +2810,7 @@
   }
   .picodash-dashstack-slider:not([data-disabled], [data-readonly])
     [data-picodash-detent-track]
-    [data-picodash-dashstack-slider-thumb]:is([data-dragging], :has(:focus-visible))::before {
+    [data-picodash-dashstack-slider-thumb]:is([data-dragging], [data-focus-visible])::before {
     transform: scale(1.25);
   }
 }
@@ -3010,4 +3011,30 @@
   > [data-picodash-dashstack-list]
   > [data-picodash-dashstack-band] {
   position: static;
+}
+
+/* Optional outcomes share the range scale, not its editable bounds. */
+.picodash-dashstack-range-slider[data-result] {
+  padding-block-end: calc(var(--picodash-font-size-sm) * 1.25 + var(--picodash-space-4));
+}
+[data-picodash-range-result-scale] {
+  --_picodash-target-thumb-half: 0px;
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 0;
+  pointer-events: none;
+}
+[data-picodash-range-result-scale='numeric'] {
+  inset-inline: var(--_picodash-detent-start, 0px) var(--_picodash-detent-end, 0px);
+}
+[data-picodash-range-result-message] {
+  position: absolute;
+  inset-block-start: calc(100% + var(--picodash-space-2));
+  inset-inline: 0;
+  font-size: var(--picodash-font-size-sm);
+  line-height: 1.25;
+  text-align: center;
+}
+.picodash-dashstack-range-slider[data-result='pending'] [data-picodash-achieved-marker] {
+  opacity: 0.6;
 }

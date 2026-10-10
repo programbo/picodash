@@ -102,6 +102,8 @@ export function LinkedRange({ nexus, ...props }: Sample) {
           <RangeSlider
             {...controlProps(context)}
             value={context.binding.value.range}
+            result={{ status: 'ready', value: context.binding.value.slider }}
+            formatResult={(value) => `${value}%`}
             min={0}
             max={100}
             onChange={(range) =>

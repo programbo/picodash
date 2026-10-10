@@ -1,6 +1,8 @@
 'use client'
 import { useContext, useEffect, useId, useLayoutEffect, useRef } from 'react'
+import { Group } from 'react-aria-components'
 import { animate } from 'motion'
+import { useRangeResult } from './range-result.js'
 import { thumbSnapSpring, minimumStepPixels } from './stepped-thumb-motion.js'
 import type { NumberRangeValue, RangeSliderProps } from './ui-values.js'
 import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
@@ -34,8 +36,20 @@ export function DetentRangeSlider({
   createGesture,
   formatOptions,
   formatValue,
+  result,
+  formatResult,
   ...props
 }: RangeSliderProps & { min: number; max: number; step: number }) {
+  const actual = useRangeResult({
+    result,
+    formatResult,
+    formatOptions,
+    min,
+    max,
+    startDetent,
+    endDetent,
+  })
+  const describedBy = [props['aria-describedby'], actual.id].filter(Boolean).join(' ') || undefined
   const rootRef = useRef<HTMLDivElement>(null),
     trackRef = useRef<HTMLDivElement>(null)
   const startRef = usePrimaryControlRef<HTMLInputElement>(),
@@ -65,7 +79,7 @@ export function DetentRangeSlider({
   latest.current = { value, change, scale, disabled, clamp }
   const session = useRef<Session>({ kind: 'idle' })
   const id = useId()
-  const readOnly = useReadOnlyDescription(props.readOnly, props['aria-describedby'])
+  const readOnly = useReadOnlyDescription(props.readOnly, describedBy)
   const text = (n: number) =>
     n === startDetent?.value
       ? startDetent.label
@@ -256,6 +270,10 @@ export function DetentRangeSlider({
         aria-label={props['aria-label']}
         aria-labelledby={props['aria-labelledby']}
         className={composeControlClassName('picodash-dashstack-range-slider', props.className)}
+        aria-describedby={describedBy}
+        data-result={result?.status}
+        aria-busy={result?.status === 'pending' || undefined}
+        data-picodash-control-interaction
         data-detent-range
         data-disabled={props.disabled || undefined}
         data-readonly={props.readOnly || undefined}
@@ -274,7 +292,8 @@ export function DetentRangeSlider({
             const lo = which === 'start' ? (startDetent?.value ?? min) : Math.max(min, value.start),
               hi = which === 'end' ? (endDetent?.value ?? last) : Math.min(last, value.end)
             return (
-              <div
+              <Group
+                role="presentation"
                 key={which}
                 ref={which === 'start' ? startThumb : endThumb}
                 data-picodash-dashstack-range-slider-thumb
@@ -287,10 +306,6 @@ export function DetentRangeSlider({
                   (which === 'end' && value.start === value.end && value.start === min) || undefined
                 }
                 style={{ insetInlineStart: position(value[which]) }}
-                onPointerEnter={(e) => e.currentTarget.setAttribute('data-hovered', 'true')}
-                onPointerLeave={(e) => e.currentTarget.removeAttribute('data-hovered')}
-                onFocus={(e) => e.currentTarget.setAttribute('data-focus-visible', 'true')}
-                onBlur={(e) => e.currentTarget.removeAttribute('data-focus-visible')}
               >
                 <input
                   ref={which === 'start' ? startRef : endRef}
@@ -323,9 +338,10 @@ export function DetentRangeSlider({
                       change(clamp(which, detentValue(e.currentTarget.valueAsNumber, scale), value))
                   }}
                 />
-              </div>
+              </Group>
             )
           })}
+          {actual.marker}
         </div>
       </div>
       <span hidden id={`${id}-start`}>
@@ -340,6 +356,7 @@ export function DetentRangeSlider({
         {endDetent ? `End End selects ${endDetent.label}. ` : ''}Release and press again at an
         endpoint to enter its extra stop.
       </span>
+      {actual.description}
       {readOnly.description}
     </>
   )
