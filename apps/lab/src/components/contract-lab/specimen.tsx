@@ -321,7 +321,11 @@ function FocusedPlacementControls({
   onAllocationSetupChange,
   theme,
   onThemeChange,
+  portalHost,
+  onPortalHostChange,
 }: {
+  readonly portalHost: 'boundary' | 'document'
+  readonly onPortalHostChange: (host: 'boundary' | 'document') => void
   readonly allocationSetup: FocusedAllocationSetup
   readonly onAllocationSetupChange: (setup: FocusedAllocationSetup) => void
   readonly theme: FocusedPlacementTheme
@@ -365,6 +369,22 @@ function FocusedPlacementControls({
               onPress={() => onThemeChange(option)}
             >
               {option}
+            </Button>
+          ))}
+        </div>
+      </div>
+      <div className="grid gap-1" role="group" aria-label="Panel portal host">
+        <span className="text-xs text-(--picodash-color-text-muted)">Portal</span>
+        <div className="flex flex-wrap gap-1">
+          {(['boundary', 'document'] as const).map((host) => (
+            <Button
+              key={host}
+              size="sm"
+              variant={portalHost === host ? 'secondary' : 'outline'}
+              aria-pressed={portalHost === host}
+              onPress={() => onPortalHostChange(host)}
+            >
+              {host === 'boundary' ? 'Boundary portal' : 'Document portal'}
             </Button>
           ))}
         </div>
@@ -414,6 +434,7 @@ function FocusedPlacementSpecimen({
   const [allocationSetup, setAllocationSetup] = useState<FocusedAllocationSetup>('none')
   const [theme, setTheme] = useState<FocusedPlacementTheme>('system')
   const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null)
+  const [portalHost, setPortalHost] = useState<'boundary' | 'document'>('boundary')
   const [nexusState, setNexusState] = useState<FocusedPlacementNexusState>({ status: 'loading' })
   const nexus = nexusState.status === 'ready' ? nexusState.nexus : null
   const diagnosticNexuss = useMemo(() => (nexus === null ? [] : [nexus]), [nexus])
@@ -477,7 +498,7 @@ function FocusedPlacementSpecimen({
       nexus={nexus}
       providerId="contract-lab-focused-placement-provider"
       boundary={placementBoundary}
-      portalContainer={portalTarget}
+      portalContainer={portalHost === 'boundary' ? portalTarget : null}
       theme={theme}
     >
       <ContractLabDevBridgeConnector
@@ -492,6 +513,8 @@ function FocusedPlacementSpecimen({
         onAllocationSetupChange={setAllocationSetup}
         theme={theme}
         onThemeChange={setTheme}
+        portalHost={portalHost}
+        onPortalHostChange={setPortalHost}
       />
       <div
         ref={placementBoundary}

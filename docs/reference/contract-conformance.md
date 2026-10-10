@@ -1306,3 +1306,17 @@ main Panel inherit that policy, and narrows a Candidates Panel to the full sides
 Provider maximum versus Panel narrowing, corner height caps, quarter-zone drag targeting, and
 app-owned canvas readout clearance. The expanded fixture passes TypeScript checking; the 37
 existing dock-arena, drag-intent, and dock-policy tests pass. This adds no runtime behavior.
+
+### Docked reveal focus and document scrolling (2026-10-10)
+
+Minimize/Reveal control focus transfers use `preventScroll` so focusing a retained Panel during
+its offscreen translation does not request scrolling to that transient position. The existing
+DashPanel component test asserts both focus options; all 41 component tests pass. The Lab placement
+specimen now exposes a public Document portal choice, and the existing phone placement journey
+checks pointer and Enter reveal at a viewport-flush right boundary, sampling document scroll each
+frame and on scroll/focus events through the transition while asserting Minimize receives focus.
+That Chromium journey and the Lab production build pass. The reported in-app-browser lurch was
+not reproduced in Chromium before the fix; this is regression coverage, not a claim of a failing
+Chromium reproduction or a fresh in-app-browser verification. The consumer guide distinguishes
+portal clipping, focus scrolling, and transformed versus settled dock geometry. No new dogfood
+snapshot was created; `.28` remains immutable and does not contain this fix.

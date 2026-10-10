@@ -266,6 +266,31 @@ or use its Reset layout action. Do not reset on every render. Boundaries and ins
 not saved placement: a panel already docked `full-left` only needs the inset change; no reset is
 required. A saved floating placement remains floating until the user docks or resets it.
 
+### Portal overflow and focus during reveal
+
+A Panel's geometry boundary and DOM portal are separate. A Panel portaled to `document.body` is
+outside your app shell, so `overflow-hidden` on that shell cannot contain it. A minimized docked
+Panel remains mounted and translates beyond its boundary; those transformed bounds can temporarily
+enlarge document overflow. A geometry boundary alone is not a CSS clipping container.
+
+The source now transfers focus between Minimize and Reveal with `preventScroll: true`, preserving
+keyboard focus without scrolling to a control's temporary offscreen position. This fix is newer
+than dogfood `.28`; it is not present in that immutable snapshot. It prevents focus-induced scrolling,
+not the existence of transformed overflow. App-wide clipping is not a prerequisite for the focus fix.
+
+For an app that deliberately owns the entire viewport, document-level overflow clipping may be an
+appropriate layout policy. The Gearset Designer integration found that clipping `html` alone did
+not contain its absolutely positioned body portals: its body also needed positioning and clipping.
+Keep scrolling within the app's intended scroll regions. Do not apply that policy to an ordinary
+scrolling page merely to work around Panel focus; alternatively, choose a suitable public
+`portalContainer` and review which Panels and overlays it clips.
+
+When reserving canvas or readout space, distinguish the visible animated rectangle from the settled
+dock rectangle. `getBoundingClientRect()` includes transforms, so following it during minimize or
+reveal can make the canvas move with the animation. Use untransformed layout geometry in the same
+coordinate system as your workspace. `offsetLeft`/`offsetTop` are relative to the element's offset
+parent, not automatically the viewport; account for that origin and scrolling when using them.
+
 ### Enable corners at the Provider, then narrow individual panels
 
 The Provider's `dockPositions` is the maximum allowed set. A Panel inherits it when its own

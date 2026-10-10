@@ -2610,13 +2610,15 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const revealButtonRef = useRef<HTMLButtonElement | null>(null)
   const pendingCollapseFocus = useRef<'minimize' | 'reveal' | null>(null)
   useLayoutEffect(() => {
+    // Focus follows the controls while the retained Panel is translated offscreen.
+    // Scrolling to that transient geometry would move the document during reveal.
     if (pendingCollapseFocus.current === 'reveal' && dockedMinimized) {
-      revealButtonRef.current?.focus()
+      revealButtonRef.current?.focus({ preventScroll: true })
       pendingCollapseFocus.current = null
       return
     }
     if (pendingCollapseFocus.current === 'minimize' && !collapsed) {
-      collapseButtonRef.current?.focus()
+      collapseButtonRef.current?.focus({ preventScroll: true })
       pendingCollapseFocus.current = null
     }
   }, [collapsed, dockedMinimized])

@@ -290,8 +290,8 @@ one object, while the retracted Panel becomes inert and leaves the accessibility
 
 A detached Reveal control remains on the vacated edge or bottom corner. Its arrow points in the
 opposite direction, back into the container. A control-initiated minimize transfers focus to
-Reveal, and Reveal transfers focus back to Minimize after expansion. Reduced motion makes both
-changes immediate. Programmatic controller commands retain their existing no-focus-movement rule.
+Reveal, and Reveal transfers focus back to Minimize as expansion starts. Both transfers prevent
+scrolling to the controls' transient animated positions. Reduced motion makes both changes immediate. Programmatic controller commands retain their existing no-focus-movement rule.
 Collapse/minimize and visibility are transient, retain dock occupancy and child state, and are
 never persisted. Reveal carriers render above every ordinary Panel layer so an overlapping active
 Panel cannot make the replacement control unreachable.

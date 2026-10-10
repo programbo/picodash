@@ -1080,7 +1080,10 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(reveal.element.querySelector('svg')?.getAttribute('data-picodash-arrow-direction')).toBe(
       'down-left',
     )
+    const revealFocus = vi.spyOn(reveal.element, 'focus')
     pressButton(minimize)
+    expect(revealFocus).toHaveBeenLastCalledWith({ preventScroll: true })
+    revealFocus.mockRestore()
 
     expect(aside.props).toMatchObject({
       'aria-hidden': true,
@@ -1124,7 +1127,10 @@ describe('@picodash/dashpanel alpha shell', () => {
       inert: undefined,
     })
     expect(reveal.props.isDisabled).not.toBe(true)
+    const minimizeFocus = vi.spyOn(minimize.element, 'focus')
     pressButton(reveal)
+    expect(minimizeFocus).toHaveBeenLastCalledWith({ preventScroll: true })
+    minimizeFocus.mockRestore()
     expect(renderer.root.findByType('aside').props).toMatchObject({
       'data-collapsed': 'false',
       'data-picodash-docked-minimized': undefined,

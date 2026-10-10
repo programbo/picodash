@@ -163,3 +163,10 @@ supplies a separate session layout scope, replaces Close with Return to stack, a
 native pointer to normal Panel movement. A home return target takes precedence over snap/dock
 intent. Cancellation reports back to the coordinator. The standalone Panel surface, application
 value scope and ordinary durable-layout behavior are unchanged; DashPanel imports no DashStack code.
+
+## Minimize and reveal focus without scrolling
+
+Control-initiated minimize and reveal retain their focus handoff between the two controls, but must
+not scroll the document or containing scrollports to a transient offscreen Panel position. Use
+non-scrolling focus during the transform transition; do not defer keyboard accessibility until the
+animation ends. Portal clipping remains separate application policy.

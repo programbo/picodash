@@ -138,15 +138,42 @@ test('captures phone-sized placement motion and reduced-motion evidence', async 
     await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
     await expect(panel).toHaveAttribute('data-picodash-placement', 'hybrid-docked')
 
+    // A body portal exposes overflow that the specimen's clipped local portal contains.
+    await page.getByRole('button', { name: 'Document portal', exact: true }).click()
+    await boundary.evaluate((element) => {
+      // Match a workspace whose right dock is flush with the viewport edge.
+      element.style.width = `${window.innerWidth - element.getBoundingClientRect().left}px`
+      element.scrollIntoView({ block: 'start' })
+    })
     const minimize = panel.getByRole('button', { name: 'Minimize panel Placement Panel' })
     await minimize.click()
     const reveal = page.getByRole('button', { name: 'Reveal panel Placement Panel' })
     await expect(reveal).toBeVisible()
     await reveal.scrollIntoViewIfNeeded()
     await capture(page, testInfo, 'placement-minimized.png')
-    await reveal.click()
-    await expect(minimize).toBeFocused()
+    for (const activation of ['pointer', 'keyboard']) {
+      if (activation === 'keyboard') {
+        await minimize.press('Enter')
+        await expect(reveal).toBeFocused()
+      }
+      await page
+        .locator('[data-contract-lab-focused-placement-panel]')
+        .evaluate(async (element) => {
+          await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+          await Promise.all(element.getAnimations().map((animation) => animation.finished))
+        })
+      const scroll = await documentScrollDuring(page, panel, () =>
+        activation === 'pointer' ? reveal.click() : reveal.press('Enter'),
+      )
+      await writeEvidence(testInfo, `placement-reveal-${activation}-scroll.json`, scroll)
+      await expect(minimize).toBeFocused()
+      expect(scroll.samples.length).toBeGreaterThan(1)
+      expect(scroll.samples.filter((sample) => sample.x !== scroll.start.x)).toEqual([])
+      expect(scroll.samples.filter((sample) => sample.y !== scroll.start.y)).toEqual([])
+    }
 
+    await boundary.evaluate((element) => element.style.removeProperty('width'))
+    await page.getByRole('button', { name: 'Boundary portal', exact: true }).click()
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await page.getByRole('button', { name: 'Floating', exact: true }).click()
     await panel.getByRole('button', { name: 'Collapse panel Placement Panel' }).press('Enter')
@@ -466,6 +493,44 @@ async function writeEvidence(testInfo: TestInfo, name: string, value: unknown): 
   const evidencePath = path.join(artifactDirectory, name)
   await writeFile(evidencePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
   await testInfo.attach(name, { path: evidencePath, contentType: 'application/json' })
+}
+
+async function documentScrollDuring(page: Page, panel: Locator, trigger: () => Promise<unknown>) {
+  const observation = await page.evaluateHandle(() => {
+    const start = { x: window.scrollX, y: window.scrollY }
+    const samples = [start]
+    const sample = () => samples.push({ x: window.scrollX, y: window.scrollY })
+    let frame = 0
+    const tick = () => {
+      sample()
+      frame = requestAnimationFrame(tick)
+    }
+    window.addEventListener('scroll', sample)
+    window.addEventListener('focusin', sample)
+    frame = requestAnimationFrame(tick)
+    return {
+      stop() {
+        cancelAnimationFrame(frame)
+        window.removeEventListener('scroll', sample)
+        window.removeEventListener('focusin', sample)
+        sample()
+        return { start, samples }
+      },
+    }
+  })
+  try {
+    await trigger()
+    await panel.evaluate(async (element) => {
+      // Flush transition creation, then observe through its final rendered frame.
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+      await Promise.all(element.getAnimations().map((animation) => animation.finished))
+      await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
+    })
+    return await observation.evaluate((tracker) => tracker.stop())
+  } finally {
+    await observation.evaluate((tracker) => tracker.stop())
+    await observation.dispose()
+  }
 }
 
 async function triggeredMotion(
