@@ -328,6 +328,16 @@ function DashletGallery({ onOpenContracts }: { readonly onOpenContracts: () => v
     },
     {
       name: 'SegmentedDashlet',
+      additional: (
+        <SegmentedDashlet
+          readOnly={readOnly}
+          disabled={disabled}
+          id="disabled-segment"
+          label="Disabled segment"
+          field={nexus.fields.choice}
+          options={[{ value: 'Option A', disabled: true }, 'Option B', 'Option C']}
+        />
+      ),
       readout: false,
       render: (props: SampleProps) => (
         <SegmentedDashlet

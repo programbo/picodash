@@ -2304,7 +2304,9 @@ selected-label underline. Pointer selection uses a restrained 300ms sampled spri
 focus-visible selection and reduced motion remain immediate. MultiSelect chips share the solid
 accent treatment. Remove actions inherit the chip foreground and use a subtle hover highlight;
 read-only chips retain balanced padding, disabled chips dim, and keyboard focus remains outlined.
-Forced-colors mode uses system Highlight/HighlightText and GrayText for disabled chips.
+Disabled segments use the shared disabled-opacity token, including individually disabled options
+and a disabled current selection; read-only segments retain normal emphasis. Forced-colors mode
+uses system Highlight/HighlightText and GrayText for disabled segments and chips.
 
 ### Target label alignment and detent feedback (2026-10-09)
 

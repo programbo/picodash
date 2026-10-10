@@ -1320,3 +1320,14 @@ not reproduced in Chromium before the fix; this is regression coverage, not a cl
 Chromium reproduction or a fresh in-app-browser verification. The consumer guide distinguishes
 portal clipping, focus scrolling, and transformed versus settled dock geometry. No new dogfood
 snapshot was created; `.28` remains immutable and does not contain this fix.
+
+### Disabled segmented option presentation (2026-10-10)
+
+Segmented options now apply the shared disabled-opacity token to the visible segment rather than
+only styling the hidden legacy marker. Disabled selected options retain their selection indicator;
+read-only options retain normal emphasis. Forced colors uses system GrayText and a selected outline
+without opacity dimming. The gallery includes an individually disabled segment. The existing long
+control-desk browser journey verifies light/dark computed styles, selected and whole-group disabled
+states, read-only distinction, keyboard skipping, and forced colors; its screenshots were visually
+reviewed. All eight stylesheet tests and the Lab build pass. The source and live Lab include the
+fix; dogfood `.28` is unchanged and does not include it.

@@ -506,10 +506,9 @@
   color: var(--picodash-color-text-muted);
 }
 
-.picodash-dashstack-segmented
-  [data-picodash-dashstack-segment][data-selected][data-disabled]
-  [data-picodash-dashstack-segment-marker] {
-  color: var(--picodash-color-text-muted);
+.picodash-dashstack-segmented [data-picodash-dashstack-segment][data-disabled] {
+  cursor: not-allowed;
+  opacity: var(--picodash-opacity-disabled);
 }
 
 .picodash-dashstack-combobox,
@@ -1463,6 +1462,19 @@
   [data-picodash-dashstack-segment-indicator] {
     background: Highlight;
     forced-color-adjust: none;
+  }
+
+  .picodash-dashstack-segmented [data-picodash-dashstack-segment][data-disabled] {
+    color: GrayText;
+    border-color: GrayText;
+    opacity: 1;
+  }
+
+  .picodash-dashstack-segmented
+    [data-picodash-dashstack-segment][data-disabled]
+    [data-picodash-dashstack-segment-indicator] {
+    background: Canvas;
+    border: var(--picodash-border-width-thin) solid GrayText;
   }
 
   .picodash-dashstack-listbox [role='option'][data-selected] {

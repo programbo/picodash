@@ -346,6 +346,41 @@ test('reorders the long control desk with glass drag surfaces and fixed pin lane
     await countRange.scrollIntoViewIfNeeded()
     await countRange.screenshot({ path: resolve(directory, `range-actual-${width}.png`) })
   }
+  const segmented = page.locator('[data-picodash-dashlet="disabled-segment"]')
+  const unavailable = segmented
+    .locator('[data-picodash-dashstack-segment]')
+    .filter({ hasText: 'Option A' })
+  const enabled = segmented
+    .locator('[data-picodash-dashstack-segment]')
+    .filter({ hasText: 'Option B' })
+  await segmented.getByRole('radio', { name: 'Option B', exact: true }).check()
+  for (const theme of ['dark', 'light']) {
+    if (theme === 'light')
+      await page.getByRole('button', { name: 'Light theme', exact: true }).click()
+    await expect(segmented.getByRole('radio', { name: 'Option A', exact: true })).toBeDisabled()
+    await expect(unavailable).toHaveCSS('opacity', '0.5')
+    await expect(unavailable).toHaveCSS('cursor', 'not-allowed')
+    await expect(enabled).toHaveCSS('opacity', '1')
+    await segmented.scrollIntoViewIfNeeded()
+    await segmented.screenshot({ path: resolve(directory, `disabled-segment-${theme}.png`) })
+  }
+  await segmented.getByRole('radio', { name: 'Option B', exact: true }).press('ArrowRight')
+  await expect(segmented.getByRole('radio', { name: 'Option C', exact: true })).toBeChecked()
+  await segmented.getByRole('radio', { name: 'Option C', exact: true }).press('ArrowRight')
+  await expect(segmented.getByRole('radio', { name: 'Option B', exact: true })).toBeChecked()
+  await page.getByRole('button', { name: 'Read-only', exact: true }).click()
+  await expect(enabled).toHaveCSS('opacity', '1')
+  await page.getByRole('button', { name: 'Read-only', exact: true }).click()
+  await page.getByRole('button', { name: 'Disabled', exact: true }).click()
+  await expect(enabled).toHaveCSS('opacity', '0.5')
+  await expect(segmented.getByRole('radio', { name: 'Option B', exact: true })).toBeChecked()
+  await page.emulateMedia({ forcedColors: 'active' })
+  await expect(enabled).toHaveCSS('opacity', '1')
+  await expect(enabled).toHaveCSS(
+    'color',
+    await unavailable.evaluate((node) => getComputedStyle(node).color),
+  )
+  await segmented.screenshot({ path: resolve(directory, 'disabled-segment-forced-colors.png') })
   expect(errors).toEqual([])
 })
 
