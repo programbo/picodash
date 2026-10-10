@@ -1250,3 +1250,12 @@ Local ordering partitions and keyboard boundaries are covered by
 The control-desk journey in `apps/lab/tests/reordering.spec.ts` covers subgroup pointer boundaries,
 all four root sticky modes, retained controls during mode changes, and the outer overflow fallback.
 The API extends the source after dogfood `.25`; no older immutable bundle gains this behavior.
+
+### Dogfood .26: local ordering pins and sticky lanes (2026-10-10)
+
+Clean snapshot `0.1.0-dogfood.26` records source commit
+`453a99a96f6f71f1cce5e6c128d3d3cd70e13b26`. The six-package release gate passes 1,128 tests.
+The isolated consumer passes 13 tests, public type checks, repeated and frozen installation,
+`.26` to `.25` rollback and `.26` reinstall, and Vite/Next production CSS builds. The shipped
+`SubgroupPriorities.tsx` exercises subgroup pins and the Stack sticky policy through installed
+public packages. The recommendation advances only after these checks pass.
