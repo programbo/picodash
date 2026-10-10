@@ -1290,3 +1290,13 @@ Clean snapshot `0.1.0-dogfood.28` records source commit
 frozen installation, `.28` to `.27` rollback and `.28` reinstall, and Vite/Next production CSS
 builds. The shipped OpenCountRange recipe consumes the inline result through installed public
 packages. The recommendation advances only after these checks pass.
+
+### Workspace-edge panel recipe (2026-10-10)
+
+The dogfooding guide now includes a measured workspace below an app header, inherited 12px
+insets, a zero-inset Hybrid full-left Panel, tuple forms, and saved-placement/default-reset
+semantics. Its code matches `tests/dogfood/WorkspacePanel.tsx`, checked against public exports
+with the installed TypeScript compiler. Facade checks and the five packaging tests pass. Future
+snapshot packing and isolated consumer typechecking include the fixture. The immutable `.28`
+bundle and current release recommendation are unchanged; this is documentation and example work,
+not new runtime behavior or new rendered-browser evidence.

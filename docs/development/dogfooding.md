@@ -151,6 +151,94 @@ package: `@picodash/nexus` for state, `@picodash/dashstack` for controls, or
 The example uses the facade without requiring a floating panel. The aggregate stylesheet works
 with these standalone imports too. Advanced APIs may be available only from their owning package.
 
+## Dock a hybrid panel flush below an app header
+
+Give the workspace below your header its own measured boundary. Set a shared 12px inset on the
+Provider, then clear it for the panel that should touch the workspace edge:
+
+```tsx
+'use client'
+import { useRef, type ReactNode } from 'react'
+import { DashPanel, DashPanelProvider } from '@picodash/dashpanel'
+import type { createSettings } from './Controls'
+
+export function WorkspacePanel({
+  nexus,
+  children,
+}: {
+  nexus: ReturnType<typeof createSettings>
+  children: ReactNode
+}) {
+  const workspaceRef = useRef<HTMLDivElement>(null)
+  return (
+    <div style={{ display: 'grid', height: '100dvh', gridTemplateRows: 'auto minmax(0, 1fr)' }}>
+      <header>Gear designer</header>
+      <div ref={workspaceRef} style={{ position: 'relative', minHeight: 0, overflow: 'auto' }}>
+        {children}
+        <DashPanelProvider nexus={nexus} boundary={workspaceRef} boundaryInset={12}>
+          <DashPanel
+            id="workspace-tools"
+            title="Design controls"
+            width={320}
+            boundaryInset={0}
+            defaultLayout={{
+              placement: {
+                mode: 'hybrid',
+                disposition: { kind: 'docked', position: 'full-left' },
+              },
+            }}
+          >
+            <p>Place your controls here.</p>
+          </DashPanel>
+        </DashPanelProvider>
+      </div>
+    </div>
+  )
+}
+```
+
+Use the stable Nexus instance from the first-control example and render your canvas as
+`<WorkspacePanel nexus={nexus}>{canvas}</WorkspacePanel>`. The example needs only React and the
+installed Picodash styles. Give the host page zero body margin if it should fill the viewport.
+`example/WorkspacePanel.tsx` and its `Controls.tsx` type companion are included in snapshots built
+after `.28`; the APIs used here already work in `.28`. If your app already uses
+`PicodashProvider`, apply the same `boundary` and `boundaryInset` props there instead of nesting
+another Provider.
+
+The grid gives the workspace the remaining height below the header. DashPanel measures that
+**element's rectangle**, so `full-left` fills the workspace height and meets its left edge without
+covering the header. Hybrid still allows the user to drag the panel away and dock it again.
+Omitting `boundary` uses the inherited boundary, or the viewport when none is supplied. Explicit
+`boundary={null}` chooses the viewport; an unresolved ref falls back until it can be measured.
+Changing the boundary does not change where Panel DOM is portaled, and the panel does not reserve
+space in the workspace's document layout. Reserve canvas space separately if you want it.
+
+`boundaryInset` accepts finite, non-negative CSS pixels. A Panel override replaces the Provider
+inset; `0` clears all four sides. The tuple forms use physical sides, including in RTL layouts:
+
+| Value            | Insets                                |
+| ---------------- | ------------------------------------- |
+| `12`             | 12px on every side                    |
+| `[8, 12]`        | 8px top/bottom, 12px left/right       |
+| `[8, 12, 16]`    | 8px top, 12px left/right, 16px bottom |
+| `[8, 12, 16, 0]` | top, right, bottom, left respectively |
+
+An omitted Panel inset inherits the Provider's setting. `null` is not a valid inset. The inset
+applies to both docking and free movement, so this panel also has zero boundary clearance when
+undocked. Snapping has its own additional offset. For only a flush left edge while keeping 12px
+on the other sides, use `boundaryInset={[12, 12, 12, 0]}` instead.
+
+`defaultLayout` is the starting placement when there is no applicable saved layout override.
+Completed moves and docks record an override in Nexus; reload durability depends on the app's
+Nexus persistence setup. Changing a default does not erase an existing override. To deliberately
+return this panel to its current declared default, call `nexus.resetDashPanelLayout('workspace-tools')`
+or use its Reset layout action. Do not reset on every render. Boundaries and insets are live policy,
+not saved placement: a panel already docked `full-left` only needs the inset change; no reset is
+required. A saved floating placement remains floating until the user docks or resets it.
+
+See the [boundary contract](../reference/dashpanel.md#boundaries-insets-and-portals) and
+[durable layout](../reference/dashpanel.md#durable-layout) for the full rules.
+
 ## Compose custom groups and pinned controls
 
 Snapshot `.26` adds local ordering pins on Dashlets and subgroups, with root
