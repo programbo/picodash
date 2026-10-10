@@ -1259,3 +1259,12 @@ The isolated consumer passes 13 tests, public type checks, repeated and frozen i
 `.26` to `.25` rollback and `.26` reinstall, and Vite/Next production CSS builds. The shipped
 `SubgroupPriorities.tsx` exercises subgroup pins and the Stack sticky policy through installed
 public packages. The recommendation advances only after these checks pass.
+
+### Dogfood .27: draggable subgroup header spacing (2026-10-10)
+
+Clean snapshot `0.1.0-dogfood.27` records source commit
+`85a2767be0dff2579ee480c5e4a2ddaf16f2aa52`. Non-collapsible draggable headings no longer reserve
+an empty disclosure column. The control-desk browser journey verifies title/row-label alignment
+at desktop and 390px viewport widths alongside reordering and sticky-lane behavior.
+The release gate passes 1,128 tests. Isolated consumer installation, rollback to `.26`, reinstall,
+13 consumer tests, public types, and Vite/Next production CSS builds pass.
