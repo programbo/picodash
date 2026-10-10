@@ -151,6 +151,78 @@ package: `@picodash/nexus` for state, `@picodash/dashstack` for controls, or
 The example uses the facade without requiring a floating panel. The aggregate stylesheet works
 with these standalone imports too. Advanced APIs may be available only from their owning package.
 
+## Compose custom groups and pinned controls
+
+A custom component used directly inside a DashStack must receive a stable `id` **at the call
+site** and forward that same ID to the single DashGroup or Dashlet it renders. An ID hidden
+inside the component is not enough: DashStack reads the child declaration before the wrapper
+renders. A React `key` does not replace `id`. Missing IDs can fail at runtime with
+`invalid-node-id`; changing the ID inside the wrapper also violates registration.
+
+`pin="start"` and `pin="end"` belong only on **root DashGroups**. To pin a SegmentedDashlet or
+another control, put it inside a pinned root group. Dashlets and nested subgroups cannot be
+pinned. A custom root-group wrapper should expose and forward `pin` as well as `id`:
+
+```tsx
+'use client'
+import {
+  createPicodashNexus,
+  DashGroup,
+  DashStack,
+  SwitchDashlet,
+  type DashGroupProps,
+} from '@picodash/picodash'
+
+export function createGroupedSettings() {
+  return createPicodashNexus({
+    valueOwner: 'nexus',
+    fields: { enabled: { defaultValue: true } },
+  })
+}
+
+type SettingsNexus = ReturnType<typeof createGroupedSettings>
+
+function DriveGroup({
+  id,
+  pin,
+  nexus,
+}: {
+  id: DashGroupProps['id']
+  pin?: DashGroupProps['pin']
+  nexus: SettingsNexus
+}) {
+  return (
+    <DashGroup id={id} label="Drive" pin={pin}>
+      <SwitchDashlet id="enabled-control" label="Enabled" field={nexus.fields.enabled} />
+    </DashGroup>
+  )
+}
+
+export function GroupedControls({ nexus }: { nexus: SettingsNexus }) {
+  return (
+    <DashStack id="grouped-settings" nexus={nexus}>
+      <DriveGroup id="drive" pin="start" nexus={nexus} />
+      <DashGroup id="mechanical-roles" label="Mechanical roles" />
+    </DashStack>
+  )
+}
+```
+
+Create `createGroupedSettings()` once per mounted application and pass that stable instance to
+`GroupedControls`. The wrapper's `id="drive"` identifies the group; `id="enabled-control"`
+identifies its child Dashlet; `enabled` identifies the Nexus field. These are separate identities.
+The pinned group is a direct Stack child, even though its implementation lives in `DriveGroup`.
+
+**Typecheck and render.** TypeScript cannot prove what an arbitrary wrapper renders or where a
+group sits in the Stack. In dogfood `.23`, `pin` on a SegmentedDashlet passed the consumer's
+typecheck but failed at runtime. Do not treat accepted props as permission to bypass the
+composition contract. Start the application, render each composition, and exercise its controls
+before reporting an integration as working.
+
+The source fixture `packages/picodash/tests/dogfood/GroupedControls.tsx` is checked by the external
+consumer smoke test and will ship as `example/GroupedControls.tsx` in newly packed snapshots.
+Existing immutable bundles keep their original guide and examples.
+
 ## Match a Tailwind v4 host layout to the theme
 
 Picodash ships its own control styles. If your application already uses Tailwind v4, map public

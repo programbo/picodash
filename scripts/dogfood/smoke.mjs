@@ -109,6 +109,7 @@ try {
         'Emphasis.tsx',
         'LinkedControls.tsx',
         'Detachable.tsx',
+        'GroupedControls.tsx',
       ],
     }),
   )

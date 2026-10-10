@@ -111,6 +111,7 @@ async function main() {
       'Emphasis.tsx',
       'LinkedControls.tsx',
       'Detachable.tsx',
+      'GroupedControls.tsx',
     ]) {
       await cp(join(root, 'packages/picodash/tests/dogfood', file), join(output, 'example', file))
     }
