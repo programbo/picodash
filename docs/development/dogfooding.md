@@ -515,6 +515,50 @@ You can also use `bg-(--picodash-color-canvas)` and `text-(--picodash-color-text
 the provider without aliases. Tailwind remains optional for Picodash itself. Verify light, dark,
 and nested-provider layouts; computed colors should follow the nearest provider.
 
+## Keep groups translucent inside a frosted Panel
+
+If a Panel looks frosted only in the gaps between groups, inspect the group background before
+increasing the blur. DashPanel already paints a translucent background and applies backdrop blur.
+DashGroups paint `--picodash-color-well` on top of it; an opaque well hides the blurred content
+beneath each group, even when the Panel itself is translucent.
+
+Give the well color an alpha component in your application's theme. For a partial restyle of the
+built-in themes, add these overrides after importing the Picodash stylesheet:
+
+```css
+[data-picodash-theme='dark'] {
+  --picodash-color-well: rgb(24 28 32 / 35%);
+}
+
+[data-picodash-theme='light'] {
+  --picodash-color-well: rgb(242 245 250 / 35%);
+}
+```
+
+These are starting values to adjust against your canvas, not new built-in defaults. For an
+existing named theme, change its `--picodash-color-well` definition instead. This is a partial
+restyle, not a complete named-theme recipe: new named themes must define the full shared color
+palette and `color-scheme` described in the
+[theme contract](../reference/ui.md#theme-and-stylesheet-contract). Apply the rule to the public theme carrier
+so it also matches Panels and overlays carrying that theme outside the original DOM subtree.
+
+Keep the existing Panel-level blur. Adding `backdrop-filter` to each group creates extra blur
+layers and changes the appearance; it is not needed to reveal the Panel's existing blurred
+background. Changing the well token requires no private component selector or package patch.
+Use color alpha rather than CSS `opacity`, which would also fade labels, inputs, and focus feedback.
+The well token is shared: this change affects every well-colored element in that theme.
+
+Alpha accumulates through overlapping backgrounds. A 65.5%-opaque Panel with a 35%-opaque group
+has roughly 77.6% combined opacity over the canvas; the group is not simply 35% opaque overall.
+Nested translucent groups can become denser again. Keep foreground colors readable and check
+expanded groups, nested groups, and controls over both light and dark canvas content.
+
+To verify your theme, inspect computed styles on the Panel and an expanded group. The Panel should
+retain its backdrop blur, while the group's background color should now have alpha below one.
+The current implementation mixes the Panel surface color with transparency and uses twice
+`--picodash-blur-surface` (12px by default, producing 24px of Panel blur). Those implementation
+values can change; the consumer adjustment is the public well color, not a copied Panel recipe.
+
 ## Update or roll back
 
 Run the installer from a **new** snapshot against the same application directory:
