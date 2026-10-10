@@ -71,7 +71,7 @@ presentation scale: it shows a warning and omits its thumb until the value is re
 Top-level groups may collapse. Subgroups cannot collapse and keep their columns aligned with
 other rows. They inherit the parent label colour unless overridden. In snapshots through `.25`,
 pin only root groups; wrap a single pinned control in a headerless group with an accessible name.
-The current source also supports local pins as described below. A pinned group’s
+Snapshot `.26` adds local pins as described below. A pinned group’s
 `reorderable` prop governs its children, not whether the group moves between bands.
 
 ## Reorder groups and their contents independently
@@ -129,7 +129,7 @@ packed snapshots. Existing immutable snapshots retain their original examples an
 
 ### Keep rows above and below a reorderable zone
 
-In the current source, groups and Dashlets accept local ordering pins. Use `pin="start"` for
+From snapshot `.26`, groups and Dashlets accept local ordering pins. Use `pin="start"` for
 leading children and `pin="end"` for trailing children. Only siblings in the same band can
 reorder against one another. Pins inside a group do not affect scrolling or visibility.
 `DashStack.stickyLanes` controls root scrolling independently and defaults to `"both"`.

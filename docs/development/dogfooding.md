@@ -153,10 +153,10 @@ with these standalone imports too. Advanced APIs may be available only from thei
 
 ## Compose custom groups and pinned controls
 
-The current source also supports local ordering pins on Dashlets and subgroups, with root
+Snapshot `.26` adds local ordering pins on Dashlets and subgroups, with root
 scrolling controlled by `DashStack.stickyLanes` (default `"both"`). The instructions below
-retain the root-group wrapper compatible with the recommended `.25` snapshot; that snapshot
-does not yet expose the new API. See [pin bands](../reference/dashstack.md#pin-bands).
+retain the root-group wrapper compatible with earlier snapshots. Snapshots through `.25`
+do not expose the new API. See [pin bands](../reference/dashstack.md#pin-bands).
 
 A custom component used directly inside a DashStack must receive a stable `id` **at the call
 site** and forward that same ID to the single DashGroup or Dashlet it renders. An ID hidden
