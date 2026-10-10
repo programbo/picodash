@@ -110,6 +110,7 @@ try {
         'LinkedControls.tsx',
         'Detachable.tsx',
         'GroupedControls.tsx',
+        'SubgroupPriorities.tsx',
       ],
     }),
   )

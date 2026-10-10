@@ -112,6 +112,7 @@ async function main() {
       'LinkedControls.tsx',
       'Detachable.tsx',
       'GroupedControls.tsx',
+      'SubgroupPriorities.tsx',
     ]) {
       await cp(join(root, 'packages/picodash/tests/dogfood', file), join(output, 'example', file))
     }

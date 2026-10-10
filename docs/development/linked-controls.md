@@ -73,6 +73,59 @@ other rows. They inherit the parent label colour unless overridden. Pin only roo
 a single control pinned, wrap it in a headerless group with an accessible name. A pinned group’s
 `reorderable` prop governs its children, not whether the group moves between bands.
 
+## Reorder groups and their contents independently
+
+There is one supported subgroup level: DashStack → root DashGroup → subgroup → Dashlets.
+A subgroup cannot contain another group, collapse, or pin, but it **can move as a whole** among
+its parent's direct children when that parent permits reordering. Moving it carries its contents;
+it does not change their internal order.
+
+| Operation                                                | Policy that controls it                                                                  |
+| -------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Move a root group among root siblings                    | The DashStack's `reorderable`, within the same pin band.                                 |
+| Move a whole subgroup among its parent's direct children | The parent DashGroup's effective `reorderable`.                                          |
+| Reorder Dashlets inside a subgroup                       | That subgroup's effective `reorderable`.                                                 |
+| Omit `reorderable` on a group                            | Inherit the parent container's effective policy. DashStack defaults to `true`.           |
+| Drag a Dashlet into another group                        | Not supported. JSX authorship determines membership; reordering does not reparent nodes. |
+
+A group's own `reorderable={false}` does **not** fix that group in its parent's order. It disables
+reordering of its children. Conversely, `reorderable` on a subgroup enables its children without
+enabling movement of the subgroup itself. Handles require at least two visible siblings eligible
+to move within the same container and band.
+
+For a fixed layout with reorderable target priorities, use this composition. These empty Dashlets
+stand in for your controls or readouts; retain their stable IDs when replacing them:
+
+```tsx
+import { DashStack, DashGroup, Dashlet } from '@picodash/dashstack'
+
+function PriorityGroups() {
+  return (
+    <DashStack id="priorities" nexus={nexus} reorderable={false}>
+      <DashGroup id="geometry" label="Geometry" reorderable={false}>
+        <DashGroup id="targets" label="Targets" reorderable>
+          <Dashlet id="reduction" label="Reduction" />
+          <Dashlet id="module" label="Tooth size" />
+        </DashGroup>
+        <DashGroup id="envelope" label="Envelope">
+          <Dashlet id="diameter" label="Outer diameter" />
+          <Dashlet id="thickness" label="Ring thickness" />
+        </DashGroup>
+      </DashGroup>
+    </DashStack>
+  )
+}
+```
+
+Here, Geometry stays fixed in the Stack. Targets and Envelope stay fixed inside Geometry.
+Only Reduction and Tooth size can exchange places. Envelope omits its policy and inherits `false`
+from Geometry, so its children stay fixed. Geometry could also omit its explicit `false` and inherit
+it from the Stack. To allow Targets and Envelope to exchange places, enable Geometry's
+`reorderable`; to keep Envelope's contents fixed in that case, set `reorderable={false}` on Envelope.
+
+The equivalent `SubgroupPriorities` fixture in `example/SubgroupPriorities.tsx` is included in newly
+packed snapshots. Existing immutable snapshots retain their original examples and guide.
+
 ## Read effective order
 
 ```tsx
