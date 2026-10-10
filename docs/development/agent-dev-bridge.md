@@ -5,6 +5,84 @@ an agent a narrow, authenticated view of explicitly disclosed Contract Lab state
 session, inspect values/scopes/diagnostics, set allowlisted values, and wait for a value or sequence
 change. It does not expose an arbitrary Nexus debugger and must never run in production.
 
+## External apps: current support boundary
+
+The supported, end-to-end verified host workflow is currently **Contract Lab only**. The relay,
+client, and browser connector are reusable APIs, but there is no shipped external Vite integration
+or supported external install command yet. Dogfood `.28` excludes `@picodash/dev-bridge`; the
+current snapshot packer still ships only Nexus, UI, DashPanel, DashStack, and Picodash. The Bridge
+package is private and declares a `workspace:*` Nexus dependency. Copying its source or packing
+it alone is not the reproducible external distribution path used by the public snapshots.
+
+A missing `.picodash/dev-bridge.json` does not mean that a preview is broken. The Lab development
+host creates that file when it starts the relay and credential broker. An ordinary Vite dev server,
+production preview, or installed Picodash Provider does not start them or register a Nexus session.
+The CLI consumes a running relay; it is not a host launcher.
+
+For a production-preview consumer such as planetary designer, keep the preview unchanged. External
+Bridge support needs a separate, explicitly enabled development workflow, with a compatible Bridge
+package and a host adapter verified outside this monorepo. Changing `NODE_ENV` on a production
+preview is not that integration. Until those pieces are delivered, use the Lab quickstart below to
+try the protocol; it will inspect the Lab's own Nexus, not a separate application's state.
+
+### What the host adapter must own
+
+The existing lifecycle is implemented by the
+[Lab development host](../../apps/lab/scripts/dev-host.mjs), not by `DashPanelProvider` or
+`PicodashProvider`. It is a reference implementation, not a Vite plugin:
+
+1. Start `startPicodashDevBridgeRelay` with the exact development browser origin and an ephemeral
+   loopback port. The relay rejects `NODE_ENV=production`. Acquire the private host lock and write
+   the agent URL/token to an owned `0600` credential file under a `0700` directory.
+2. Start an ephemeral loopback credential broker. Its bodyless POST endpoint validates the browser
+   origin and issues a separate, origin-bound, single-use browser credential. Pass only its URL to
+   the web development process; strip agent credentials from that process's environment. Never put
+   the agent bearer token in a `VITE_*` variable or browser bundle.
+3. Mount a development-only browser connector against the application's actual Nexus instance.
+   Fetch a fresh browser credential, then call `connectPicodashDevBridge` from the `/browser`
+   entrypoint with a stable registration ID, explicit disclosure and permissions, and an abort
+   signal. The Lab's `NEXT_PUBLIC_*` variable and Next.js launcher are host-specific plumbing.
+4. Abort registration/connection before destroying Nexus, including unmount and hot-reload cleanup.
+   Re-registration after browser reload creates a new generation; agents rediscover before writing.
+   This is not a persistent connection to an old page or a transparent retry of an old mutation.
+5. On shutdown, failed startup, or child exit, close the browser connection, broker, and relay;
+   terminate the owned development child; remove only credential/lock files whose ownership still
+   matches. Ignore credential files in Git and do not print tokens to logs.
+
+The Lab connector is gated on development mode; the low-level browser API does not itself supply
+that host gate. An external adapter must enforce its own opt-in development boundary. The verified
+origin is a local HTTP browser origin. A tailnet/HTTPS preview is not covered by this loopback
+recipe; credentials are bound to the exact origin, including scheme and port.
+
+### Disclosure recipe
+
+Start with explicit read-only disclosure, then allow individual inputs as needed. This example
+exposes two existing Lab fields and one scope, and allows writes only to the metric:
+
+```json
+{
+  "registrationId": "contract-lab-specimen",
+  "disclosure": {
+    "valueFields": ["specimenMetric", "specimenUnit"],
+    "scopeIds": ["contract-lab-standalone-list"],
+    "diagnostics": false
+  },
+  "permissions": { "writableFields": ["specimenMetric"] }
+}
+```
+
+Use your own existing field keys, scope IDs, and registration ID when an external host becomes
+available. Begin with `writableFields: []`, then add only intended inputs; writable fields must be
+included in `valueFields`. Omitted disclosure lists and permissions default to empty, and diagnostics
+defaults to false. Scope disclosure exposes that scope's metadata for inspection; it does not grant
+metadata writes. Registration also enumerates Nexus field keys, so hiding a value does not hide the
+existence of its field name. Do not treat disclosure as a way to conceal sensitive field names.
+
+Keep disclosure and permission objects stable across React renders. The
+[Lab connector](../../apps/lab/src/components/contract-lab/dev-bridge-connector.tsx) owns its connection
+through effect cleanup and must reconnect if these inputs change. Its source shows the lifecycle;
+it is not an installable consumer component.
+
 ## Quickstart with Contract Lab
 
 Browser hosts pass an `AbortSignal` to `connectPicodashDevBridge` and abort it before destroying
@@ -80,6 +158,21 @@ printf '%s\n' '{"timeoutMs":1000,"condition":{"type":"value_equals","field":"spe
 
 The other condition is `{"type":"sequence_after","sequence":7}`. A wait returns
 `outcome: "satisfied"` or `"timed_out"`; Ctrl-C aborts it.
+
+### A Bridge sequence is not solver readiness
+
+A successful `set-values` response means Nexus accepted the transaction. A satisfied
+`sequence_after` wait means the Bridge observed a newer disclosed snapshot in that session
+generation. The sequence is Bridge-owned, not a worker job ID or a guarantee that every Nexus
+transaction produced a new snapshot. Changes outside disclosure may not advance it; disclosed
+metadata or diagnostics changes can advance it without a solver result.
+
+Neither result proves that React has painted, that a worker has finished, or that a computed design
+matches the latest inputs. A solver result held outside Nexus is not visible through this Bridge.
+After a canonical write, wait separately for the application's result readiness and correlate it
+with the input revision or job ID. An old `ready` result is insufficient. If an app intentionally
+publishes result status and revision into Nexus, it can disclose those fields read-only and wait
+for the matching revision and ready state; Bridge does not add that application contract itself.
 
 ## Exit meanings
 

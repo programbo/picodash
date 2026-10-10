@@ -23,6 +23,15 @@ or production transport.
 The baseline supports `sessions`, `inspect`, `set-values`, and `wait`. The exact local setup,
 credential handling, and exit codes are in [the operational guide](../../docs/development/agent-dev-bridge.md).
 
+## External consumer status
+
+The verified host workflow is currently Contract Lab-only. The private package is excluded from
+public dogfood snapshots, including `.28`; no external Vite adapter or supported external install
+command is shipped. The [external-app boundary](../../docs/development/agent-dev-bridge.md#external-apps-current-support-boundary)
+explains distribution, host-owned relay/broker lifecycle, and disclosure. A production preview does
+not activate the Bridge. [Sequence waits](../../docs/development/agent-dev-bridge.md#a-bridge-sequence-is-not-solver-readiness)
+observe disclosed Nexus snapshots, not completion of a solver running outside Nexus.
+
 ## Development boundary
 
 The relay refuses to start when `NODE_ENV=production`. It binds loopback only, uses ephemeral

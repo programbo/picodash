@@ -7,7 +7,10 @@ a registry. External dependencies still download from your configured registry.
 
 These are development previews, not a promise of stable APIs or saved-data compatibility. Keep the
 previous snapshot while evaluating an update. Dev Bridge is private development tooling and is not
-included. The experimental charts entry is not part of the starter example.
+included. The supported Bridge host workflow is currently Contract Lab-only; see the
+[external-app integration boundary](agent-dev-bridge.md#external-apps-current-support-boundary)
+before attempting to connect a separate Vite app. The experimental charts entry is not part of the
+starter example.
 
 ## Find the recommended snapshot
 
