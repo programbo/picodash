@@ -85,8 +85,8 @@ export function ReorderLab({ nexus }: { readonly nexus: ValueBindingNexus }) {
             field={nexus.fields.enabled}
             formatValue={(value) => (value ? 'Watching for changes' : 'Updates paused')}
           />
-          <DashGroup id="monitoring" label="Monitoring" collapsible reorderable={false}>
-            <DashGroup id="monitoring-order" aria-label="Monitoring order" reorderable>
+          <DashGroup id="monitoring" label="Monitoring" collapsible>
+            <DashGroup id="monitoring-order" label="Monitoring order" reorderable>
               <DisplayDashlet
                 id="monitoring-name"
                 pin="start"
@@ -109,6 +109,13 @@ export function ReorderLab({ nexus }: { readonly nexus: ValueBindingNexus }) {
               <DisplayDashlet
                 id="monitoring-summary"
                 label="Monitoring summary"
+                field={nexus.fields.name}
+              />
+            </DashGroup>
+            <DashGroup id="monitoring-details" label="Monitoring details">
+              <DisplayDashlet
+                id="monitoring-detail-name"
+                label="Workspace"
                 field={nexus.fields.name}
               />
             </DashGroup>

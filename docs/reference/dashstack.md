@@ -314,7 +314,9 @@ collapse override owns user visibility of mounted children.
 
 Group presentation decision, 2026-10-07: the whole collapsible header is a disclosure target except
 its independent reorder grip. It remains one keyboard-accessible button with expanded state and
-focus repair; non-collapsible groups do not gain a toggle target. Titles retain the normal size,
+focus repair; non-collapsible groups do not gain a toggle target. Draggable non-collapsible
+headings align their titles with child-row labels; only headings with a disclosure button reserve
+a chevron column. Titles retain the normal size,
 use semibold weight, and default to the theme's strongest text color. Optional `labelColor` accepts
 a CSS color (including a theme variable) and colors the title and chevron. CSS derives the header
 and child first-column hover tint from that same color at 10% opacity. Grips and child control

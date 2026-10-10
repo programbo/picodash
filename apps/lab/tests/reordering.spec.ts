@@ -174,8 +174,16 @@ test('reorders the long control desk with glass drag surfaces and fixed pin lane
   await name.press('ArrowDown')
   await name.press('Escape')
   await expect(desk.locator('[data-picodash-reorder-active]')).toHaveCount(0)
-  // Local pins fence real pointer movement inside a headerless subgroup.
+  // Local pins fence real pointer movement inside a draggable organizational subgroup.
   const local = desk.getByRole('group', { name: 'Monitoring order', exact: true })
+  await expect(
+    desk.getByRole('button', { name: 'Reorder Monitoring order', exact: true }),
+  ).toBeVisible()
+  const subgroupTitle = local.getByText('Monitoring order', { exact: true })
+  const subgroupRowLabel = local.getByText('Source workspace', { exact: true })
+  const alignedSubgroupTitle = async () =>
+    Math.abs((await subgroupTitle.boundingBox())!.x - (await subgroupRowLabel.boundingBox())!.x)
+  expect(await alignedSubgroupTitle()).toBeLessThanOrEqual(2)
   const localIds = () =>
     local
       .locator('[data-picodash-dashlet]')
@@ -272,6 +280,12 @@ test('reorders the long control desk with glass drag surfaces and fixed pin lane
     })
     await expect(stack).not.toHaveAttribute('data-picodash-stack-overflow')
   }
+  await local.scrollIntoViewIfNeeded()
+  await local.screenshot({ path: resolve(directory, 'subgroup-header-desktop.png') })
+  await page.setViewportSize({ width: 390, height: 844 })
+  await local.scrollIntoViewIfNeeded()
+  await expect.poll(alignedSubgroupTitle).toBeLessThanOrEqual(2)
+  await local.screenshot({ path: resolve(directory, 'subgroup-header-mobile.png') })
   expect(errors).toEqual([])
 })
 
