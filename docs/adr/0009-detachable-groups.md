@@ -20,6 +20,8 @@ Vertical movement previews reordering. At 48px horizontal travel from pickup, ca
 preview and continue as a Panel. Release settles; Escape/pointer cancellation restores the original
 presentation without committing order or discarding drafts. Only the home Stack accepts return.
 Pointer entry previews an expanded empty home slot; release restores remembered disclosure.
+The initial pull can return without re-grabbing once it has left and re-entered the home Stack;
+Escape throughout that provisional gesture restores inline presentation.
 
 A tabbable Detach action moves focus into the Panel. Its Return to stack action returns focus home.
 The retained home exposes Show panel. Detached controls occupy the Panel's DOM tab order, never the
@@ -35,7 +37,8 @@ not imply Return. Reduced motion changes no focus or state outcomes.
 
 DashStack owns an explicit `/integration` group-host seam: retained content, logical presentation,
 reveal and cancellation of its own reorder preview. DashPanel owns an explicit `/integration`
-transfer seam for pointer handoff, home-target precedence and a replacement Return action. Neither
+transfer seam for pointer handoff, home-target precedence and a replacement Return action
+whose optional icon is supplied by the integration host. Neither
 foundation imports the other. These seams are bounded protocols, not private runtime access.
 
 Detached hosting layout is session-only, held in a separate metadata-only Nexus with no fields,

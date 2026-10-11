@@ -4,7 +4,7 @@ import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vite-plus/test'
 import { createPicodashNexus } from '@picodash/nexus'
 import { getDashStackStructure, revealDashlet } from '@picodash/dashstack'
-import { PicodashProvider, DashStack, DashGroup, Dashlet } from '../src/index.js'
+import { PicodashProvider, DashPanel, DashStack, DashGroup, Dashlet } from '../src/index.js'
 import { transitionGroup } from '../src/detachable-state.js'
 
 let mediaChange: (() => void) | undefined
@@ -195,4 +195,55 @@ it('retains a pinned non-reorderable group through Strict Mode and isolates two 
   mounted.unmount()
   await flush()
   nexus.destroy()
+})
+
+it('activates the physical detached host for retained controls rather than their React ancestor', async () => {
+  const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+  const mounted = render(
+    <PicodashProvider nexus={nexus}>
+      <DashPanel id="source" title="Source">
+        <button>Source action</button>
+        <DashStack id="tools">
+          <DashGroup id="geometry" label="Geometry" detachable reorderable>
+            <Dashlet id="value" label="Value">
+              <input aria-label="Detached editor" />
+            </Dashlet>
+            <Dashlet id="other" label="Other">
+              <input aria-label="Other editor" />
+            </Dashlet>
+          </DashGroup>
+        </DashStack>
+      </DashPanel>
+    </PicodashProvider>,
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Detach group Geometry' }))
+  await flush()
+  const source = screen.getByRole('complementary', { name: 'Source' })
+  const detached = screen.getByRole('complementary', { name: 'Geometry' })
+  const sourceAction = screen.getByRole('button', { name: 'Source action' })
+  fireEvent.pointerDown(sourceAction)
+  expect(source.getAttribute('data-active')).toBe('true')
+  fireEvent.pointerDown(screen.getByRole('textbox', { name: 'Detached editor' }))
+  expect(detached.getAttribute('data-active')).toBe('true')
+  expect(source.hasAttribute('data-active')).toBe(false)
+  act(() => sourceAction.focus())
+  act(() => screen.getByRole('textbox', { name: 'Detached editor' }).focus())
+  expect(detached.getAttribute('data-active')).toBe('true')
+  expect(source.hasAttribute('data-active')).toBe(false)
+  mounted.unmount()
+  await flush()
+  nexus.destroy()
+})
+
+it('can return during the initial pull after leaving home, with cancellation still restoring inline', () => {
+  let state = transitionGroup('inline', 'pull')
+  expect(transitionGroup(state, 'enter-home')).toBe('detaching')
+  state = transitionGroup(state, 'leave-home')
+  state = transitionGroup(state, 'enter-home')
+  expect(state).toBe('detaching-return-preview')
+  expect(transitionGroup(state, 'return')).toBe('inline')
+  expect(transitionGroup(state, 'cancel')).toBe('inline')
+  const away = transitionGroup(state, 'leave-home')
+  expect(transitionGroup(away, 'cancel')).toBe('inline')
+  expect(transitionGroup(away, 'settle')).toBe('detached')
 })

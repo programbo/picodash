@@ -1465,3 +1465,23 @@ Clean snapshot `0.1.0-dogfood.34` records source `f5f1d9686f2a0380c1704c09b2e41e
 All 1,138 package release tests pass. Isolated repeat/frozen installs, .33 update/rollback,
 13 consumer tests, public types and Vite/Next CSS builds pass. The owned browser session and
 its processes exited. Live designer adoption remains with Maz.
+
+### Detach gesture return and retained-content activation (2026-10-12)
+
+The initial pull now distinguishes leaving home and previewing return before release. It can
+return in one gesture, while Escape still restores inline presentation from every provisional
+state. Panel activation uses the nearest physical Panel for native pointer/focus events so a
+retained editor's original React ancestor cannot raise the source over its detached host. React
+activation remains available for overlays outside Panel surfaces. The integration host supplies
+`picture-in-picture` for Return; the retained home uses `app-window-mac` for Show panel, and
+inline Detach retains `picture-in-picture-2`.
+
+Two focused regressions reproduced the original activation and transition failures before the
+fix. All 27 Picodash and 198 DashPanel tests pass, with owning lint/types and a production Lab
+build. The existing detach browser journey passes with same-gesture return and Escape during
+return preview, plus retained editor/order, settled return and responsive fallback assertions.
+An isolated Gearset Designer copy using the candidate packages and an enabled detachable
+Geometry group verifies a real Tooth size reorder over Configuration: order changes while the
+detached host remains active at z-index 10 above the source at 0. All three icon placements and
+button return pass; no browser page errors occurred. This is candidate-preview browser evidence,
+not a claim of live designer adoption.

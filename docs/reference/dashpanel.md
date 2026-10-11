@@ -1136,4 +1136,7 @@ action ownership without an explicit contract revision.
 `useDashPanelHostId`, and the `DashPanelTransfer`, `DashPanelTransferDriver` and
 `DashPanelTransferPoint` types. This is a bounded host-coordination contract used by Picodash's
 [detachable groups](picodash.md#detachable-groups), not an alternate application placement API.
+The host may supply `returnIcon` for the Return action; DashPanel retains the accessible
+`returnLabel` and action behavior. Activation follows the physical Panel containing a pointer
+or focus target, even when retained content has a different React ancestor.
 See [PANEL-TRANSFER-1](dashpanel-contract-decisions.md#detachable-group-hosting-panel-transfer-1).

@@ -1,7 +1,7 @@
 'use client'
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, useId } from 'react'
 import { createPortal } from 'react-dom'
-import { PictureInPicture, PictureInPicture2 } from 'lucide-react'
+import { AppWindowMac, PictureInPicture, PictureInPicture2 } from 'lucide-react'
 import { createGroupTransferMotion } from './group-transfer-motion.js'
 import { createPicodashNexus, type DashPanelLayoutRecord } from '@picodash/nexus'
 import { DashPanel, useDashPanel, type DashPanelDefaultLayout } from '@picodash/dashpanel'
@@ -13,7 +13,12 @@ import {
   type DashPanelTransferPoint,
 } from '@picodash/dashpanel/integration'
 import type { DashGroupHostProps } from '@picodash/dashstack/integration'
-import { transitionGroup, type DetachableEvent } from './detachable-state.js'
+import {
+  transitionGroup,
+  isDetaching,
+  isReturnPreview,
+  type DetachableEvent,
+} from './detachable-state.js'
 
 const desktopQuery = '(min-width: 768px) and (any-pointer: fine)'
 const focusable =
@@ -198,7 +203,7 @@ export function DetachableGroup(props: DashGroupHostProps) {
   useLayoutEffect(() => {
     const home = homeRef.current
     const stack = groupRef.current?.closest<HTMLElement>('[data-picodash-dashstack]')
-    const preview = state === 'return-preview'
+    const preview = isReturnPreview(state)
     const from = home?.getBoundingClientRect().height ?? 0
     const wasPreview = home?.hasAttribute('data-return-preview')
     home?.toggleAttribute('data-return-preview', preview)
@@ -268,7 +273,7 @@ export function DetachableGroup(props: DashGroupHostProps) {
       latest.current.props.reorder.cancel()
       pickup.current = null
       header.style.removeProperty('translate')
-      if (stateRef.current === 'detaching') callbacks.current.returnHome(false)
+      if (isDetaching(stateRef.current)) callbacks.current.returnHome(false)
     }
     const lost = () => {
       if (stateRef.current === 'inline') cancel()
@@ -296,6 +301,7 @@ export function DetachableGroup(props: DashGroupHostProps) {
   const transfer: DashPanelTransfer = {
     layoutNexus,
     returnLabel: `Return ${name} to stack`,
+    returnIcon: <PictureInPicture aria-hidden="true" data-picodash-detach-icon />,
     returnHome: () => returnHome(),
     register(next) {
       driver.current = next
@@ -320,17 +326,13 @@ export function DetachableGroup(props: DashGroupHostProps) {
     },
     pointer(phase, point) {
       if (phase === 'cancel') {
-        if (stateRef.current === 'detaching') returnHome(false)
+        if (isDetaching(stateRef.current)) returnHome(false)
         else send('cancel')
-        return false
-      }
-      if (stateRef.current === 'detaching') {
-        if (phase === 'drop') send('settle')
         return false
       }
       const stack = groupRef.current?.closest<HTMLElement>('[data-picodash-dashstack]')
       const rect = stack?.getBoundingClientRect()
-      const margin = stateRef.current === 'return-preview' ? 8 : 0
+      const margin = isReturnPreview(stateRef.current) ? 8 : 0
       const inside =
         !!rect &&
         !!rect.width &&
@@ -340,11 +342,15 @@ export function DetachableGroup(props: DashGroupHostProps) {
         point.clientY >= rect.top - margin &&
         point.clientY <= rect.bottom + margin &&
         !stack?.closest('[hidden],[inert]')
+      // A pull begins inside its home. Arm return only after leaving it, so the
+      // handoff does not immediately preview a return beneath the new Panel.
+      const acceptsReturn = inside && stateRef.current !== 'detaching'
       if (phase === 'drop') {
-        if (inside) returnHome()
+        if (acceptsReturn) returnHome()
+        else if (isDetaching(stateRef.current)) send('settle')
         else send('leave-home')
       } else send(inside ? 'enter-home' : 'leave-home')
-      return inside
+      return acceptsReturn
     },
   }
   return (
@@ -359,7 +365,7 @@ export function DetachableGroup(props: DashGroupHostProps) {
               onClick={() => (detached ? show() : detach())}
             >
               {detached ? (
-                <PictureInPicture aria-hidden="true" data-picodash-detach-icon />
+                <AppWindowMac aria-hidden="true" data-picodash-detach-icon />
               ) : (
                 <PictureInPicture2 aria-hidden="true" data-picodash-detach-icon />
               )}

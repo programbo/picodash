@@ -159,8 +159,8 @@ behavior; a theme cannot independently delay those semantics.
 
 Accepted 2026-10-10 in [ADR 0009](../adr/0009-detachable-groups.md). `/integration` adds the explicit
 `DashPanelTransferBoundary` protocol and `useDashPanelHostId` for Picodash coordination. A transfer
-supplies a separate session layout scope, replaces Close with Return to stack, and can hand off a
-native pointer to normal Panel movement. A home return target takes precedence over snap/dock
+supplies a separate session layout scope, replaces Close with Return to stack (with an optional
+host-supplied `returnIcon`), and can hand off a native pointer to normal Panel movement. A home return target takes precedence over snap/dock
 intent. Cancellation reports back to the coordinator. The standalone Panel surface, application
 value scope and ordinary durable-layout behavior are unchanged; DashPanel imports no DashStack code.
 

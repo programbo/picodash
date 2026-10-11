@@ -2003,13 +2003,35 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
   }
   const initial = generation.current
-  const setAsideElement = useMemo(
-    () => (element: HTMLElement | null) => {
+  const setAsideElement = useMemo(() => {
+    let cleanup: (() => void) | undefined
+    return (element: HTMLElement | null) => {
+      cleanup?.()
+      cleanup = undefined
       asideRef.current = element
       if (registration.current) runtime.registerElement(id, element)
-    },
-    [id, runtime],
-  )
+      if (!element) return
+      // Retained portal content can have a different React ancestor. Activation
+      // follows the nearest physical Panel, including controls moved into it.
+      const owns = (target: EventTarget | null) =>
+        target instanceof Element && target.closest('[data-picodash-panel]') === element
+      const pointer = (event: PointerEvent) => {
+        if (owns(event.target)) runtime.activate(id)
+      }
+      const focus = (event: FocusEvent) => {
+        if (!owns(event.target)) return
+        runtime.activate(id)
+        if (event.relatedTarget instanceof Node && element.contains(event.relatedTarget)) return
+        recordPanelInteraction(runtime, id, event.relatedTarget)
+      }
+      element.addEventListener('pointerdown', pointer, true)
+      element.addEventListener('focusin', focus, true)
+      cleanup = () => {
+        element.removeEventListener('pointerdown', pointer, true)
+        element.removeEventListener('focusin', focus, true)
+      }
+    }
+  }, [id, runtime])
   useLayoutEffect(() => {
     const current = generation.current
     if (current === null || current.scopeId !== id) return
@@ -2749,6 +2771,13 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 aria-hidden={!visible || dockedMinimized || undefined}
                 onFocusCapture={(event) => {
                   asideProps.onFocusCapture?.(event)
+                  // Physical Panel events are handled natively. Keep React ownership
+                  // for menus/popovers portalled outside every Panel surface.
+                  if (
+                    event.target instanceof Element &&
+                    event.target.closest('[data-picodash-panel]')
+                  )
+                    return
                   runtime.activate(id)
                   const related = event.relatedTarget
                   if (
@@ -2761,6 +2790,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 }}
                 onPointerDownCapture={(event) => {
                   asideProps.onPointerDownCapture?.(event)
+                  if (
+                    event.target instanceof Element &&
+                    event.target.closest('[data-picodash-panel]')
+                  )
+                    return
                   runtime.activate(id)
                 }}
                 onPointerMove={onMovePointerMove}
@@ -2838,7 +2872,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                         size="sm"
                         onPress={transfer.returnHome}
                       >
-                        <span aria-hidden="true">↩</span>
+                        {transfer.returnIcon ?? <span aria-hidden="true">↩</span>}
                       </Button>
                     ) : showCloseButton ? (
                       <div data-picodash-panel-actions>

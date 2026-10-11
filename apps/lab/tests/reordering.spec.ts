@@ -480,6 +480,19 @@ test('detaches one retained group surface and returns it through keyboard, drag 
   await expect(panel).toHaveCount(0)
   expect(await order()).toEqual(before)
   expect(await editor.evaluate((node, original) => node === original, original)).toBe(true)
+  // Return without releasing/re-grabbing the newly detached Panel. Escape during
+  // this provisional return still cancels the entire original pull.
+  for (const cancel of [true, false]) {
+    await pull()
+    const home = (await header.boundingBox())!
+    await page.mouse.move(home.x + home.width / 2, home.y + home.height / 2, { steps: 8 })
+    await expect(group).toHaveAttribute('data-picodash-return-home', '')
+    if (cancel) await page.keyboard.press('Escape')
+    await page.mouse.up()
+    await expect(panel).toHaveCount(0)
+    expect(await order()).toEqual(before)
+    expect(await editor.evaluate((node, original) => node === original, original)).toBe(true)
+  }
   await pull()
   await page.mouse.up()
   await expect(panel).not.toHaveAttribute('data-picodash-dragging')

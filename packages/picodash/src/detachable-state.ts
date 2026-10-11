@@ -1,4 +1,17 @@
-export type DetachableState = 'inline' | 'detaching' | 'detached' | 'return-preview'
+export type DetachableState =
+  | 'inline'
+  | 'detaching'
+  | 'detaching-away'
+  | 'detaching-return-preview'
+  | 'detached'
+  | 'return-preview'
+
+export function isDetaching(state: DetachableState): boolean {
+  return state === 'detaching' || state === 'detaching-away' || state === 'detaching-return-preview'
+}
+export function isReturnPreview(state: DetachableState): boolean {
+  return state === 'return-preview' || state === 'detaching-return-preview'
+}
 export type DetachableEvent =
   | 'detach'
   | 'pull'
@@ -14,14 +27,18 @@ export function transitionGroup(state: DetachableState, event: DetachableEvent):
     case 'pull':
       return state === 'inline' ? 'detaching' : state
     case 'settle':
-      return state === 'detaching' ? 'detached' : state
+      return isDetaching(state) ? 'detached' : state
     case 'enter-home':
-      return state === 'detached' ? 'return-preview' : state
+      return state === 'detaching-away'
+        ? 'detaching-return-preview'
+        : state === 'detached'
+          ? 'return-preview'
+          : state
     case 'leave-home':
-      return state === 'return-preview' ? 'detached' : state
+      return isDetaching(state) ? 'detaching-away' : state === 'return-preview' ? 'detached' : state
     case 'return':
       return 'inline'
     case 'cancel':
-      return state === 'detaching' ? 'inline' : state === 'return-preview' ? 'detached' : state
+      return isDetaching(state) ? 'inline' : state === 'return-preview' ? 'detached' : state
   }
 }

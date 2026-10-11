@@ -14,6 +14,7 @@ export interface DashPanelTransferDriver {
 export interface DashPanelTransfer {
   readonly layoutNexus: ScopedNexus<PicodashFieldDefinitions>
   readonly returnLabel: string
+  readonly returnIcon?: ReactNode
   readonly returnHome: () => void
   readonly register: (driver: DashPanelTransferDriver) => () => void
   /** True reserves the gesture for the host's return target instead of Panel docking. */
