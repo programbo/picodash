@@ -1485,3 +1485,8 @@ Geometry group verifies a real Tooth size reorder over Configuration: order chan
 detached host remains active at z-index 10 above the source at 0. All three icon placements and
 button return pass; no browser page errors occurred. This is candidate-preview browser evidence,
 not a claim of live designer adoption.
+
+Clean snapshot `0.1.0-dogfood.35` records source `7cd0fef407dbd4f4c126a638aeb6dae7a2245891`.
+All 1,140 package release tests and 13 isolated consumer tests pass, along with repeat/frozen
+installation, .34 update/rollback, public types and Vite/Next builds. The candidate preview and
+owned browser processes exited. Live designer adoption remains with Maz.
