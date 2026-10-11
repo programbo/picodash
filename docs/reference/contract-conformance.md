@@ -1387,3 +1387,11 @@ A saved top-right startup capture at 1280x800 records 97 frames at x910/y63, 370
 no startup animation. Before the fix the first painted Panel was translated far outside the
 boundary. This proves the captured Chrome startup path; a separate report of two flights in the
 in-app browser is not independently reproduced.
+
+Clean snapshot `0.1.0-dogfood.31` records source `2aca6ddbc9a15f48a72a2ee2a519083515465398`.
+All 1,137 package tests and release checks pass. Isolated repeat/frozen installation, `.30`
+update/rollback, 13 consumer tests, public types and Vite/Next CSS builds pass. The installed
+shipping tarballs repeat the hover benchmark at 16.8ms p95 in every unsuppressed phase, with
+324–648 real transition events and unchanged solves. The shipping startup capture also starts
+and remains at the final top-right geometry without animation. Owned browser sessions and the
+isolated preview are closed; live consumer adoption remains with Maz.
