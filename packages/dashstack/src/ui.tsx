@@ -209,7 +209,14 @@ export function NumberField({
       aria-invalid={props['aria-invalid']}
       aria-errormessage={props['aria-errormessage']}
     >
-      <Group data-picodash-number-shell data-unit={unit ? true : undefined}>
+      <Group
+        data-picodash-number-shell
+        data-unit={unit ? true : undefined}
+        onClick={(event) => {
+          // The shell's transparent touch perimeter and unit suffix focus the real input.
+          if (!props.disabled && event.target !== inputRef.current) inputRef.current?.focus()
+        }}
+      >
         <Input
           ref={inputRef}
           id={props.id}

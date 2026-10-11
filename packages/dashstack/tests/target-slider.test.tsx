@@ -30,6 +30,33 @@ const make = () =>
   })
 
 describe('target versus achieved', () => {
+  it('focuses the numeric input from its touch shell without changing the value or enabling disabled input', () => {
+    const onChange = vi.fn()
+    const props = {
+      value: 3,
+      onChange,
+      unit: 'mm',
+      result: { status: 'ready', value: 3.2 } as const,
+      'aria-label': 'Thickness',
+    }
+    const view = render(<TargetNumber {...props} />)
+    const input = screen.getByRole('textbox')
+    const shell = view.container.querySelector('[data-picodash-number-shell]')
+    const unit = view.container.querySelector('[data-picodash-number-unit]')
+    if (!shell || !unit) throw new Error('Missing numeric shell')
+    fireEvent.click(shell)
+    expect(document.activeElement).toBe(input)
+    act(() => input.blur())
+    fireEvent.click(unit)
+    expect(document.activeElement).toBe(input)
+    expect(onChange).not.toHaveBeenCalled()
+    act(() => input.blur())
+    view.rerender(<TargetNumber {...props} disabled />)
+    fireEvent.click(shell)
+    expect(document.activeElement).not.toBe(input)
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
   it('shows externally supplied nonnumeric JSON without fabricating a target', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',

@@ -1423,3 +1423,26 @@ All 1,137 package release tests pass. Isolated repeat/frozen installs, .31 updat
 has the same SHA-256 as the built stylesheet used for the touch/RTL/desktop browser checks.
 The owned browser session and its processes exited. Live Gearset Designer adoption remains
 with Maz.
+
+### Compact numeric fields on touch devices (2026-10-11)
+
+NumberField keeps its existing native input and editing behavior. The shell supplies a transparent
+44px touch perimeter that focuses the input when tapped, while the numeric face uses 32px and
+TargetSlider's attached face uses 28px (or larger theme geometry). The unit suffix focuses the
+same input. Disabled inputs remain disabled. TargetSlider expands this perimeter upward, keeping
+the slider thumb below available for dragging. TargetNumber's Actual output keeps its bottom
+border and matches the compact target height. Fine-pointer sizing and font sizes are unchanged.
+
+The owning TargetNumber test verifies shell/suffix focus, no value write on focus, and disabled
+refusal. An isolated Gearset Designer production build at 390px with actual coarse-pointer
+emulation verifies the native input receives focus from a touch seven pixels above the visible
+attached field, followed by a successful 4.4 edit. Rendered attached shells measure 27px plus the
+2px accent border; standalone numeric input/TargetNumber faces measure 32px, and the invisible
+perimeters remain 44px. No page errors were observed. The 17 target-control tests and owning
+formatting/lint/types pass.
+
+The consumer's .32 adoption confirms six 44px thumb hit targets with compact clipped paint and
+outside-paint touch dragging. Its production CSS processor rewrites native :dir selectors into
+language selectors, so an English-language document switched to dir=rtl does not receive RTL
+thumb paint there. The prior native package-stylesheet RTL proof does not establish that consumer
+build seam; it remains open separately from the mobile size corrections.

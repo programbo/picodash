@@ -1176,6 +1176,11 @@ may wrap, and coarse-pointer targets retain the accepted minimum size. Slider, R
 detent thumbs keep their compact pointed paint inside transparent 44px touch envelopes. Range
 paint anchors its flat inward edge at the value in either text direction. Target fields follow
 the painted thumb, while endpoint insets continue to reserve the full touch envelope.
+Numeric fields on coarse pointers retain a transparent 44px shell tap perimeter around their
+compact face (32px, or 28px for the attached TargetSlider field, subject to larger theme tokens).
+Tapping that perimeter or the unit suffix focuses the existing input without changing its value.
+The attached field expands its tap area upward so it does not cover the thumb below. Disabled
+fields do not focus, and the read-only Actual output needs no expanded interaction area.
 
 ## Reading effective order
 

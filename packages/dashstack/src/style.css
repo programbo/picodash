@@ -3014,6 +3014,44 @@
   }
 }
 
+/* Numeric fields paint a compact face; their shell retains a forgiving touch perimeter. */
+@media (pointer: coarse) {
+  [data-picodash-number-shell] {
+    --_picodash-number-face-height: max(32px, var(--picodash-control-height-md));
+    position: relative;
+    isolation: isolate;
+  }
+  [data-picodash-number-shell]::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    inset-block-start: min(0px, calc((100% - 44px) / 2));
+    block-size: max(44px, 100%);
+    z-index: -1;
+  }
+  [data-picodash-number-shell] > input {
+    min-block-size: var(--_picodash-number-face-height);
+    padding-block: var(--picodash-space-0-5);
+  }
+  [data-picodash-number-shell][data-unit] > input {
+    min-block-size: calc(
+      var(--_picodash-number-face-height) - 2 * var(--picodash-border-width-thin)
+    );
+  }
+  [data-picodash-target-label-slot] [data-picodash-number-shell] {
+    --_picodash-number-face-height: max(28px, var(--picodash-control-height-xs));
+  }
+  /* Extend above an attached label, leaving the thumb below it available to drag. */
+  [data-picodash-target-label-slot] [data-picodash-number-shell]::before {
+    inset-block-start: auto;
+    inset-block-end: 0;
+  }
+  [data-picodash-target-actual] {
+    min-block-size: max(32px, var(--picodash-control-height-md));
+    padding-block: var(--picodash-space-0-5);
+  }
+}
+
 /* Detachable groups keep their one content surface in either host. */
 [data-picodash-group-home],
 [data-picodash-group-surface] {
