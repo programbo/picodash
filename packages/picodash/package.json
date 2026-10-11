@@ -2,10 +2,19 @@
   "name": "@picodash/picodash",
   "version": "0.0.0",
   "description": "The Picodash facade for Nexus-backed DashPanel and DashStack compositions.",
+  "keywords": [
+    "tanstack-intent"
+  ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/programbo/picodash.git",
+    "directory": "packages/picodash"
+  },
   "files": [
     "dist",
-    "style.css"
+    "style.css",
+    "skills/bind-controls"
   ],
   "type": "module",
   "sideEffects": [

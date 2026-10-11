@@ -1,5 +1,6 @@
 'use client'
 
+import { PanelHotkey } from './panel-hotkey.tsx'
 import {
   forwardRef,
   useId,
@@ -194,6 +195,8 @@ export interface DashPanelProps<CustomTheme extends string = never> extends Omit
   onCollapsedChange?: (collapsed: boolean) => void
   defaultVisible?: boolean
   showCloseButton?: boolean
+  /** Offer a persistent shortcut recorder beside the title of a docked panel. */
+  recordableHotkey?: boolean
   onVisibilityChange?: (visible: boolean) => void
   onRequestRemove?: (details: DashPanelRemoveRequest) => void
   actionMenu?: false | readonly ReactElement[]
@@ -735,6 +738,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     defaultCollapsed,
     defaultVisible,
     showCloseButton = true,
+    recordableHotkey = false,
     collapsible,
     onVisibilityChange,
     onRequestRemove,
@@ -762,6 +766,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const transfer = useContext(DashPanelTransferContext)
   const layoutNexus = transfer?.layoutNexus ?? scoped
   const durableLayout = usePicodashNexusSelector(layoutNexus, (state) => state.scope?.dashPanel)
+  const durableHotkey = usePicodashNexusSelector(scoped, (state) => state.scope?.dashPanelHotkey)
   const resolvedDefaultLayout = useMemo(
     () => normalizeDashPanelDefaultLayout(defaultLayout),
     [defaultLayout],
@@ -2681,7 +2686,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       collapseButtonRef.current?.focus({ preventScroll: true })
       pendingCollapseFocus.current = null
     }
-  }, [collapsed, dockedMinimized])
+  }, [collapsed, dockedMinimized, visible])
 
   const panelRoot = (
     <DashPanelPolicyProvider
@@ -2840,6 +2845,34 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                     title: (
                       <div data-picodash-panel-title-drag-surface>
                         <h2 id={headingId}>{title}</h2>
+                        {recordableHotkey ? (
+                          <PanelHotkey
+                            binding={durableHotkey}
+                            panelName={panelName}
+                            enabled={!!dockedMinimizePresentation && currentCollapsible}
+                            onCommit={(binding) => {
+                              const result = scoped.setDashPanelHotkey(binding)
+                              if (!result.ok) return 'Could not update the shortcut.'
+                              if (
+                                'persistence' in result &&
+                                result.persistence !== 'saved' &&
+                                result.persistence !== 'unchanged'
+                              )
+                                return 'Change applied for this session; storage could not be updated.'
+                              return undefined
+                            }}
+                            onToggle={() => {
+                              if (!visible || collapsed) {
+                                pendingCollapseFocus.current = 'minimize'
+                                runtime.show(id)
+                                runtime.expand(id)
+                              } else {
+                                pendingCollapseFocus.current = 'reveal'
+                                runtime.collapse(id)
+                              }
+                            }}
+                          />
+                        ) : null}
                         <Button
                           ref={registerMoveHandle}
                           data-picodash-panel-move-handle

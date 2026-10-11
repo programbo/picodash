@@ -170,3 +170,12 @@ Control-initiated minimize and reveal retain their focus handoff between the two
 not scroll the document or containing scrollports to a transient offscreen Panel position. Use
 non-scrolling focus during the transform transition; do not defer keyboard accessibility until the
 animation ends. Portal clipping remains separate application policy.
+
+## 2026-10-12: user-recorded docked visibility shortcuts
+
+Accepted from John's request: opt-in `recordableHotkey` exposes the recorder after the Panel title.
+Use existing Minimize/Reveal, retained children and focus behavior. Persist only the committed key
+through Nexus, separately from layout overrides. Layout reset must preserve this user preference.
+Use pinned TanStack Hotkeys behind a product-owned adapter; no Hotkeys-specific public types.
+Recording, cancellation, rejection and cleanup use the library recorder lifecycle. Keep scope
+ownership in Nexus and behavior in DashPanel. Intent guidance ships with its owning package.

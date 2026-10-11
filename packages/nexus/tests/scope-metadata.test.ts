@@ -850,3 +850,28 @@ describe('Nexus scoped views and metadata commands', () => {
     }
   })
 })
+
+describe('durable panel hotkeys', () => {
+  it('preserves the binding across layout and stack resets, rejects invalid writes, and clears explicitly', () => {
+    const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { n: { defaultValue: 1 } } })
+    const scope = nexus.scope('inspector')
+    expect(nexus.setDashPanelHotkey('inspector', 'Mod+Shift+[KeyK]').ok).toBe(true)
+    scope.setDashPanelLayout(panel)
+    scope.setDashStackRootOrder(['a'])
+    scope.resetDashPanelLayout()
+    scope.resetDashStackMetadata()
+    expect(scope.getState().scope).toEqual({ dashPanelHotkey: 'Mod+Shift+[KeyK]' })
+    scope.setDashStackRootOrder(['a'])
+    scope.removeDashStackRootOrder()
+    expect(scope.getState().scope).toEqual({ dashPanelHotkey: 'Mod+Shift+[KeyK]' })
+    const before = nexus.getState()
+    expect(scope.setDashPanelHotkey('Mod+Shift+[KeyK]').ok).toBe(true)
+    expect(nexus.getState()).toBe(before)
+    for (const invalid of ['', ' spaced ', 'x'.repeat(129), 'a\nb', undefined, 3]) {
+      expect(scope.setDashPanelHotkey(invalid as never).ok).toBe(false)
+      expect(nexus.getState()).toBe(before)
+    }
+    scope.setDashPanelHotkey(null)
+    expect(scope.getState().scope).toBeUndefined()
+  })
+})

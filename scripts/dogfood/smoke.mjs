@@ -26,6 +26,7 @@ try {
         name: 'picodash-consumer-smoke',
         private: true,
         type: 'module',
+        intent: { skills: ['@picodash/picodash', '@picodash/dashpanel'] },
         dependencies: { react: catalog.react, 'react-dom': catalog['react-dom'] },
         devDependencies: {
           'vite-plus': catalog['vite-plus'],
@@ -78,6 +79,29 @@ try {
     assert.equal(installed.version, snapshot.version)
     assert.doesNotMatch(JSON.stringify(installed), /workspace:|catalog:/)
     assert.equal(installed.scripts, undefined)
+  }
+  // Discover the shipped skills through Intent, not through the authoring tree.
+  const intentCli = join(root, 'node_modules/@tanstack/intent/dist/cli.mjs')
+  const discovery = spawnSync('bun', [intentCli, 'list', '--json'], {
+    cwd: consumer,
+    encoding: 'utf8',
+  })
+  assert.equal(discovery.status, 0, discovery.stderr)
+  const discovered = JSON.parse(discovery.stdout)
+  assert.deepEqual(discovered.skills.map((skill) => skill.use).sort(), [
+    '@picodash/dashpanel#docked-panel-shortcuts',
+    '@picodash/picodash#bind-controls',
+  ])
+  assert.deepEqual(discovered.warnings, [])
+  for (const [pkg, skill] of [
+    ['dashpanel', 'docked-panel-shortcuts'],
+    ['picodash', 'bind-controls'],
+  ]) {
+    const skillPath = join(consumer, 'node_modules/@picodash', pkg, 'skills', skill, 'SKILL.md')
+    assert.ok(
+      (await readFile(skillPath, 'utf8')).includes(`library_version: "${snapshot.version}"`),
+    )
+    run('bun', [intentCli, 'validate', join(consumer, 'node_modules/@picodash', pkg, 'skills')])
   }
   await cp(join(root, 'packages/picodash/tests/dogfood'), consumer, { recursive: true })
   await cp(join(vendor, 'example'), consumer, { recursive: true })

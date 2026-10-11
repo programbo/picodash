@@ -467,6 +467,7 @@ type DashPanelLayoutRecord = {
 }
 
 type DurableScopeMetadata = {
+  readonly dashPanelHotkey?: string
   dashStack?: DashStackMetadataRecord
   dashPanel?: DashPanelLayoutRecord
 }
@@ -1036,6 +1037,7 @@ survives lease release; host affinity ends when the final entity leaves the scop
 interface RootMetadataCommands<Result extends CoreTransactionResult = CoreTransactionResult> {
   setDashPanelLayout(scopeId: string, layout: DashPanelLayoutRecord): Result
   resetDashPanelLayout(scopeId: string): Result
+  setDashPanelHotkey(scopeId: string, hotkey: string | null): Result
   setDashStackRootOrder(scopeId: string, order: readonly string[]): Result
   removeDashStackRootOrder(scopeId: string): Result
   setDashStackGroupOrder(scopeId: string, groupId: string, order: readonly string[]): Result
@@ -1052,6 +1054,7 @@ interface RootMetadataCommands<Result extends CoreTransactionResult = CoreTransa
 interface ScopedMetadataCommands<Result extends CoreTransactionResult = CoreTransactionResult> {
   setDashPanelLayout(layout: DashPanelLayoutRecord): Result
   resetDashPanelLayout(): Result
+  setDashPanelHotkey(hotkey: string | null): Result
   setDashStackRootOrder(order: readonly string[]): Result
   removeDashStackRootOrder(): Result
   setDashStackGroupOrder(groupId: string, order: readonly string[]): Result
@@ -2177,3 +2180,12 @@ initial/final values and compare structurally for `changed`. No UI geometry or n
 is introduced. Dashlet input bindings expose `createValueGesture(options?)` for composed controls.
 The numeric APIs retain their number-only boundaries and existing types. Controllers never combine
 independent fields: model a compound edit as one field or use an existing atomic transaction.
+
+## Durable panel keyboard preferences (2026-10-12)
+
+`dashPanelHotkey?: string` is independent of the `dashPanel` layout record. Root/scoped
+`setDashPanelHotkey` writes a nonempty, trimmed, control/format-character-free string up to 128
+characters; `null` removes it. Nexus treats it as opaque preference text and owns atomic validation,
+serialization, persistence, document inclusion and quarantine. DashPanel validates the keyboard
+syntax and interactions. Layout and Stack resets/pruning preserve it. Scope destruction removes it.
+Unchanged writes do not publish another snapshot. The core gains no browser or TanStack dependency.

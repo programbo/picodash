@@ -65,8 +65,19 @@ async function main() {
       const source = JSON.parse(await readFile(join(sourceDir, 'package.json'), 'utf8'))
       const destination = join(staging, name)
       await mkdir(destination)
-      for (const path of source.files)
+      for (const path of source.files) {
         await cp(join(sourceDir, path), join(destination, path), { recursive: true })
+        if (path.startsWith('skills/')) {
+          const guide = join(destination, path, 'SKILL.md')
+          await writeFile(
+            guide,
+            (await readFile(guide, 'utf8')).replace(
+              /library_version: ['"][^'"]+['"]/,
+              `library_version: "${version}"`,
+            ),
+          )
+        }
+      }
       for (const optional of ['README.md', 'THIRD_PARTY_NOTICES.md']) {
         try {
           await cp(join(sourceDir, optional), join(destination, optional))
@@ -104,6 +115,7 @@ async function main() {
     await mkdir(join(output, 'example'))
     for (const file of [
       'Controls.tsx',
+      'Shortcuts.tsx',
       'Designer.tsx',
       'designer-model.ts',
       'NumericTarget.tsx',

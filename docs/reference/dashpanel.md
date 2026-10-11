@@ -1140,3 +1140,39 @@ The host may supply `returnIcon` for the Return action; DashPanel retains the ac
 `returnLabel` and action behavior. Activation follows the physical Panel containing a pointer
 or focus target, even when retained content has a different React ancestor.
 See [PANEL-TRANSFER-1](dashpanel-contract-decisions.md#detachable-group-hosting-panel-transfer-1).
+
+## Recorded docked-panel shortcuts
+
+`recordableHotkey` (default `false`) adds a small shortcut chip after the title when a Panel is
+collapsible and docked. It records a modifier chord using TanStack Hotkeys. Escape cancels;
+Delete/Backspace clears. Conflicts and reserved editing/navigation chords leave recording active
+and retain the previous key. Labels use platform-specific modifiers and physical key positions.
+
+The shortcut uses Minimize/Reveal and keeps children mounted. It also reveals a closed, mounted
+docked Panel. It is inactive for floating/non-collapsible Panels, text inputs, contenteditable,
+selects, open modals, and recording. Holding a chord fires once. Focus follows the existing
+reveal/minimize controls. Unmounting unregisters the shortcut. Known live TanStack conflicts are
+rejected; restored duplicate registrations are suppressed. External listeners and OS/browser
+reservations cannot all be detected.
+
+Nexus stores the committed binding in `scope.dashPanelHotkey` under the Panel ID. With the existing
+Nexus persistence driver it survives reload. Layout reset preserves it; explicit clearing or scope
+destruction removes it. Visibility, recording state, drafts, and focus remain transient. A default
+Nexus without persistence retains the preference only for its lifetime.
+
+```tsx
+<DashPanel
+  id="inspector"
+  title="Inspector"
+  collapsible
+  recordableHotkey
+  defaultLayout={{
+    placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
+  }}
+>
+  {children}
+</DashPanel>
+```
+
+Installed agent guidance is shipped as the Intent skill `docked-panel-shortcuts` in
+`@picodash/dashpanel/skills/`. Intent is a development dependency only.

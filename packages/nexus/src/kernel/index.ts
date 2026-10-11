@@ -609,6 +609,8 @@ export type DashPanelLayoutRecord = {
 }
 
 export type DurableScopeMetadata = {
+  /** Opaque keyboard binding owned by DashPanel; independent of layout resets. */
+  readonly dashPanelHotkey?: string
   readonly dashStack?: DashStackMetadataRecord
   readonly dashPanel?: DashPanelLayoutRecord
 }
@@ -871,6 +873,7 @@ export interface RootMetadataCommands<
 > {
   setDashPanelLayout(scopeId: string, layout: DashPanelLayoutRecord): Result
   resetDashPanelLayout(scopeId: string): Result
+  setDashPanelHotkey(scopeId: string, hotkey: string | null): Result
   setDashStackRootOrder(scopeId: string, order: readonly string[]): Result
   removeDashStackRootOrder(scopeId: string): Result
   setDashStackGroupOrder(scopeId: string, groupId: string, order: readonly string[]): Result
@@ -896,6 +899,7 @@ export interface ScopedMetadataCommands<
 > {
   setDashPanelLayout(layout: DashPanelLayoutRecord): Result
   resetDashPanelLayout(): Result
+  setDashPanelHotkey(hotkey: string | null): Result
   setDashStackRootOrder(order: readonly string[]): Result
   removeDashStackRootOrder(): Result
   setDashStackGroupOrder(groupId: string, order: readonly string[]): Result
@@ -3273,7 +3277,13 @@ export function createPicodashNexus<
     resetDashPanelLayout: (scopeId) =>
       metadataCommand(scopeId, (previous) => {
         if (!previous?.dashPanel) return previous
-        return previous.dashStack ? { dashStack: previous.dashStack } : undefined
+        return { ...previous, dashPanel: undefined }
+      }),
+    setDashPanelHotkey: (scopeId, hotkey) =>
+      metadataCommand(scopeId, (previous) => {
+        if (hotkey !== null && typeof hotkey !== 'string')
+          throw new TypeError('Invalid Nexus metadata record.')
+        return { ...previous, dashPanelHotkey: hotkey === null ? undefined : hotkey }
       }),
     setDashStackRootOrder: (scopeId, order) =>
       metadataCommand(scopeId, (previous) => {
@@ -3297,9 +3307,7 @@ export function createPicodashNexus<
         return normalized.rootOrder === undefined &&
           !normalized.groupOrders.size &&
           !normalized.collapseOverrides.size
-          ? previous?.dashPanel
-            ? { dashPanel: previous.dashPanel }
-            : undefined
+          ? { ...previous, dashStack: undefined }
           : { ...previous, dashStack: normalized }
       }),
     setDashStackGroupOrder: (scopeId, groupId, order) =>
@@ -3394,9 +3402,7 @@ export function createPicodashNexus<
         return { ...previous, dashStack: normalized }
       }),
     resetDashStackMetadata: (scopeId) =>
-      metadataCommand(scopeId, (previous) =>
-        previous?.dashPanel ? { dashPanel: previous.dashPanel } : undefined,
-      ),
+      metadataCommand(scopeId, (previous) => ({ ...previous, dashStack: undefined })),
     createPrunePlan: ((options: RootDashStackPruneOptions) =>
       createRootPrunePlanInternal(options)) as RootMetadataCommands<NexusResult>['createPrunePlan'],
     executePrunePlan: (plan) => executePrunePlanInternal(plan as object),
@@ -5181,6 +5187,7 @@ export function createPicodashNexus<
       destroyScope: (options) => destroyScopeInternal(scopeId, options),
       setDashPanelLayout: (layout) => nexus.setDashPanelLayout(scopeId, layout),
       resetDashPanelLayout: () => nexus.resetDashPanelLayout(scopeId),
+      setDashPanelHotkey: (hotkey) => nexus.setDashPanelHotkey(scopeId, hotkey),
       setDashStackRootOrder: (order) => nexus.setDashStackRootOrder(scopeId, order),
       removeDashStackRootOrder: () => nexus.removeDashStackRootOrder(scopeId),
       setDashStackGroupOrder: (groupId, order) =>
@@ -5548,11 +5555,9 @@ export function createPicodashNexus<
       return normalized.rootOrder === undefined &&
         normalized.groupOrders.size === 0 &&
         normalized.collapseOverrides.size === 0
-        ? previous?.dashPanel
-          ? { dashPanel: previous.dashPanel }
-          : undefined
+        ? { ...previous, dashStack: undefined }
         : {
-            ...(previous?.dashPanel ? { dashPanel: previous.dashPanel } : {}),
+            ...previous,
             dashStack: normalized,
           }
     })
@@ -5581,6 +5586,7 @@ export function createPicodashNexus<
         candidate = normalizeDurableScopeMetadata({
           dashStack: transformed?.dashStack,
           dashPanel: transformed?.dashPanel,
+          dashPanelHotkey: transformed?.dashPanelHotkey,
         })
       } catch (error) {
         if (error instanceof PicodashContractError) throw error
@@ -5672,6 +5678,7 @@ export function createPicodashNexus<
     if (
       !left ||
       !right ||
+      left.dashPanelHotkey !== right.dashPanelHotkey ||
       !!left.dashPanel !== !!right.dashPanel ||
       !!left.dashStack !== !!right.dashStack
     )

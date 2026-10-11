@@ -532,6 +532,7 @@ function FocusedPlacementSpecimen({
       <DashPanel
         id={focusedPlacementPanelScopeId}
         title="Placement Panel"
+        recordableHotkey
         style={{ transform: 'translateZ(0)' }}
         collapsible
         showCloseButton

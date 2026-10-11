@@ -2588,3 +2588,12 @@ initial/final values and compare structurally for `changed`. No UI geometry or n
 is introduced. Dashlet input bindings expose `createValueGesture(options?)` for composed controls.
 The numeric APIs retain their number-only boundaries and existing types. Controllers never combine
 independent fields: model a compound edit as one field or use an existing atomic transaction.
+
+## 2026-10-12: durable panel hotkey preference
+
+Accepted: add optional `dashPanelHotkey` to durable scope metadata and root/scoped
+`setDashPanelHotkey` commands. The independent leaf preserves a recorded key through layout reset
+and Stack metadata changes. Text validation belongs at the Nexus boundary; keyboard semantics and
+live conflicts belong to DashPanel. Serialization accepts the same bounded text atomically. No
+format-version bump: this is an additive pre-v1 domain, and older snapshots may quarantine scopes
+containing the new key. Clear keys before downgrading if old layout preferences must remain usable.

@@ -49,6 +49,7 @@ export type SerializedDashPanelLayoutRecord = DashPanelLayoutRecord
 
 /** The JSON projection used by Nexus persistence for a durable scope. */
 export type SerializedDurableScopeMetadata = {
+  readonly dashPanelHotkey?: string
   readonly dashStack?: SerializedDashStackMetadataRecord
   readonly dashPanel?: SerializedDashPanelLayoutRecord
 }
@@ -99,7 +100,8 @@ export function normalizeDashPanelLayoutRecord(input: unknown): DashPanelLayoutR
 
 /** Normalizes both product domains atomically; empty domains are omitted. */
 export function normalizeDurableScopeMetadata(input: unknown): DurableScopeMetadata | undefined {
-  if (!isRecord(input) || !hasExactKeys(input, ['dashStack', 'dashPanel'])) throw invalidMetadata()
+  if (!isRecord(input) || !hasExactKeys(input, ['dashStack', 'dashPanel', 'dashPanelHotkey']))
+    throw invalidMetadata()
 
   // Validate both products before constructing the result. This keeps malformed complete records
   // from partially entering a scope snapshot or persistence transaction.
@@ -111,24 +113,32 @@ export function normalizeDurableScopeMetadata(input: unknown): DurableScopeMetad
     !Object.hasOwn(input, 'dashPanel') || ownValue(input, 'dashPanel') === undefined
       ? undefined
       : normalizeDashPanelLayoutRecord(ownValue(input, 'dashPanel'))
+  const dashPanelHotkey =
+    ownValue(input, 'dashPanelHotkey') === undefined
+      ? undefined
+      : normalizeDashPanelHotkey(ownValue(input, 'dashPanelHotkey'))
   const dashStack =
     dashStackCandidate !== undefined && isEmptyDashStack(dashStackCandidate)
       ? undefined
       : dashStackCandidate
-  if (dashStack === undefined && dashPanel === undefined) return undefined
+  if (dashStack === undefined && dashPanel === undefined && dashPanelHotkey === undefined)
+    return undefined
 
   return freezeRecord({
     ...(dashStack === undefined ? {} : { dashStack }),
     ...(dashPanel === undefined ? {} : { dashPanel }),
+    ...(dashPanelHotkey === undefined ? {} : { dashPanelHotkey }),
   })
 }
 
 /** Decodes a JSON metadata projection, rejecting duplicate serialized map keys. */
 export function decodeDurableScopeMetadata(input: unknown): DurableScopeMetadata | undefined {
-  if (!isRecord(input) || !hasExactKeys(input, ['dashStack', 'dashPanel'])) throw invalidMetadata()
+  if (!isRecord(input) || !hasExactKeys(input, ['dashStack', 'dashPanel', 'dashPanelHotkey']))
+    throw invalidMetadata()
   if (
     (Object.hasOwn(input, 'dashStack') && ownValue(input, 'dashStack') === undefined) ||
-    (Object.hasOwn(input, 'dashPanel') && ownValue(input, 'dashPanel') === undefined)
+    (Object.hasOwn(input, 'dashPanel') && ownValue(input, 'dashPanel') === undefined) ||
+    (Object.hasOwn(input, 'dashPanelHotkey') && ownValue(input, 'dashPanelHotkey') === undefined)
   )
     throw invalidMetadata()
   const dashStackCandidate = !Object.hasOwn(input, 'dashStack')
@@ -137,14 +147,20 @@ export function decodeDurableScopeMetadata(input: unknown): DurableScopeMetadata
   const dashPanel = !Object.hasOwn(input, 'dashPanel')
     ? undefined
     : normalizeDashPanelLayoutRecord(ownValue(input, 'dashPanel'))
+  const dashPanelHotkey =
+    ownValue(input, 'dashPanelHotkey') === undefined
+      ? undefined
+      : normalizeDashPanelHotkey(ownValue(input, 'dashPanelHotkey'))
   const dashStack =
     dashStackCandidate !== undefined && isEmptyDashStack(dashStackCandidate)
       ? undefined
       : dashStackCandidate
-  if (dashStack === undefined && dashPanel === undefined) return undefined
+  if (dashStack === undefined && dashPanel === undefined && dashPanelHotkey === undefined)
+    return undefined
   return freezeRecord({
     ...(dashStack === undefined ? {} : { dashStack }),
     ...(dashPanel === undefined ? {} : { dashPanel }),
+    ...(dashPanelHotkey === undefined ? {} : { dashPanelHotkey }),
   })
 }
 
@@ -176,6 +192,9 @@ export function encodeDurableScopeMetadata(
       ? {}
       : { dashStack: encodeDashStackMetadataRecord(normalized.dashStack) }),
     ...(normalized.dashPanel === undefined ? {} : { dashPanel: normalized.dashPanel }),
+    ...(normalized.dashPanelHotkey === undefined
+      ? {}
+      : { dashPanelHotkey: normalized.dashPanelHotkey }),
   })
 }
 
@@ -413,6 +432,7 @@ function hasExactKeys(value: Record<string, unknown>, optional: readonly string[
       key === 'rootOrder' ||
       key === 'dashStack' ||
       key === 'dashPanel' ||
+      key === 'dashPanelHotkey' ||
       Object.hasOwn(value, key),
   )
 }
@@ -529,4 +549,16 @@ function isEmptyDashStack(record: DashStackMetadataRecord): boolean {
 
 function invalidMetadata(): TypeError {
   return new TypeError('Invalid Nexus metadata record.')
+}
+
+function normalizeDashPanelHotkey(input: unknown): string {
+  if (
+    typeof input !== 'string' ||
+    !input.length ||
+    input.length > 128 ||
+    input.trim() !== input ||
+    /[\p{Cc}\p{Cf}]/u.test(input)
+  )
+    throw invalidMetadata()
+  return input
 }

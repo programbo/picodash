@@ -1563,3 +1563,24 @@ Clean snapshot `0.1.0-dogfood.39` records source `a59787c1aaacc9606e585d36ce78c1
 All 1,140 package release tests and 13 isolated consumer tests pass, including repeat/frozen
 installation, .38 update/rollback, public types and Vite/Next builds. Live designer adoption remains
 with Maz.
+
+### Recorded docked-panel shortcuts and Intent (2026-10-12)
+
+DashPanel adds opt-in `recordableHotkey`, using pinned TanStack React Hotkeys 0.13.0 for recording
+and registration. The title chip records, cancels, clears and rejects conflicts. Existing
+Minimize/Reveal retains contents and restores focus. Text editing, modals, recording, repeats and
+restored duplicates do not trigger unwanted toggles. Nexus stores the committed bounded binding
+in independent `dashPanelHotkey` metadata, preserving it through layout/Stack resets and pruning.
+
+Owning Nexus and Panel tests cover atomic writes, codec roundtrip, reset preservation, recording,
+conflicts, reserved chords, clear, text inputs, modal suppression, closed-panel reveal and repeats.
+The existing browser persistence journey now verifies Dev Bridge inspection, saved-key reload,
+layout reset, redocking and focus. An owned browser visually verified the compact title chip and
+recording feedback, then closed; its process exited. The installed `Shortcuts.tsx` consumer example
+and grader cover shared state, retained draft/DOM identity, reload and clearing.
+
+Intent 0.5.5 is development-only. DashPanel and Picodash ship task-specific, version-stamped guides,
+with package discovery, validation and source-review records. The fresh installed-package consumer
+loaded both guides and passed the task, including browser checks. A driver-less negative candidate
+fails the same grader at restored binding. See `tests/skills/README.md` for evidence limits and
+reproduction. No automatic discovery reliability rate is claimed.

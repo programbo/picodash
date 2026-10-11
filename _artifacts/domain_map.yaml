@@ -1,0 +1,38 @@
+library:
+  name: picodash
+  version: 0.0.0
+domains: []
+skills:
+  [
+    {
+      name: docked-panel-shortcuts,
+      slug: docked-panel-shortcuts,
+      domain: panel-preferences,
+      description: 'Add a user-recorded, persistent keyboard shortcut that minimizes
+        and reveals a docked Picodash DashPanel in a React app. Use for panel
+        keyboard access and shortcut persistence, not generic application
+        hotkeys or DashStack ordering.',
+      packages: ['@picodash/dashpanel'],
+      tasks: [
+          Add persistent docked-panel shortcuts without losing application
+          form state.,
+        ],
+      covers: [],
+    },
+    {
+      name: bind-controls,
+      slug: bind-controls,
+      domain: application-controls,
+      description: 'Build a React settings panel or inspector with Picodash controls
+        bound to application values. Use for initial Nexus and DashStack
+        integration or custom Dashlet wrappers; not a planetary solver,
+        generic forms, or panel keyboard shortcuts.',
+      packages: ['@picodash/picodash'],
+      tasks:
+        [
+          'Bind a control and an application readout to one stable Nexus; preserve custom wrapper IDs.',
+        ],
+      covers: [],
+    },
+  ]
+gaps: []

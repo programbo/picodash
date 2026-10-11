@@ -1,0 +1,55 @@
+import {
+  createPicodashNexus,
+  DashPanel,
+  DashStack,
+  PicodashProvider,
+  SwitchDashlet,
+  usePicodashNexusSelector,
+} from '@picodash/picodash'
+import { createWebStoragePersistenceDriver } from '@picodash/nexus/web-storage'
+import '@picodash/picodash/style.css'
+
+// Create once on the client and retain until permanent application teardown.
+export function createSettings() {
+  return createPicodashNexus({
+    valueOwner: 'nexus',
+    nexusId: 'inspector-settings',
+    schemaVersion: 1,
+    fields: { enabled: { defaultValue: true } },
+    persistence: {
+      storageKey: 'inspector-settings-v1',
+      driver: createWebStoragePersistenceDriver('local'),
+      values: { defaultFieldPolicy: 'omit' },
+    },
+  })
+}
+
+export function Controls({ nexus }: { nexus: ReturnType<typeof createSettings> }) {
+  const enabled = usePicodashNexusSelector(nexus, state => state.values.enabled)
+
+  return (
+    <PicodashProvider nexus={nexus}>
+      <output aria-label="Application value">{enabled ? 'On' : 'Off'}</output>
+      <DashPanel
+        id="inspector"
+        title="Inspector"
+        collapsible
+        recordableHotkey
+        defaultLayout={{
+          placement: {
+            mode: 'fixed',
+            disposition: { kind: 'docked', position: 'full-right' },
+          },
+        }}
+      >
+        <DashStack id="inspector-controls">
+          <SwitchDashlet id="enabled-control" label="Enabled" field={nexus.fields.enabled} />
+        </DashStack>
+        <label>
+          Draft name
+          <input aria-label="Draft name" name="draft-name" defaultValue="" />
+        </label>
+      </DashPanel>
+    </PicodashProvider>
+  )
+}

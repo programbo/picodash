@@ -662,3 +662,28 @@ After validating a new clean bundle, update `docs/development/recommended-snapsh
 scoped documentation commit. `dogfood:locate` is the consumer discovery command; trial builds do
 not change the recommendation automatically. The pinned version must remain available at its
 recorded output location, or the command reports it unavailable.
+
+## Docked panel shortcuts and agent guidance (snapshot .40)
+
+Copy `example/Shortcuts.tsx` for a complete persistent inspector. Create its Nexus once on the
+client and import the facade stylesheet. Set `recordableHotkey` and `collapsible` on a docked `DashPanel`. The title chip records a shortcut;
+Escape cancels, Delete/Backspace clears. A saved chord minimizes/reveals retained content. Use your
+existing Nexus persistence driver to retain it across reload. Layout reset does not clear the key.
+Before downgrading to an older snapshot, clear recorded shortcuts if you need its old metadata
+reader to preserve those scopes' layouts; older readers may quarantine the new preference domain.
+
+Two task-specific Intent guides ship inside the tarballs: `bind-controls` in `@picodash/picodash`,
+and `docked-panel-shortcuts` in `@picodash/dashpanel`. They follow the installed package version.
+Intent is optional development tooling, not a runtime dependency. In the consumer project:
+
+```sh
+bun add --dev --exact @tanstack/intent@0.5.5
+bunx --no-install intent list
+bunx --no-install intent install
+```
+
+Choose only the Picodash guides you trust in the interactive allowlist. Commit the resulting
+consumer configuration according to your project's policy. After a bundle update, run `intent
+install` again to refresh agent loading instructions. Agents can use `intent load` with the exact
+use key printed by `intent list`; they do not need this source checkout. The guide authoring and
+source-review checks run with `bun run skills:check` in the Picodash repository.

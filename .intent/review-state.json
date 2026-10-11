@@ -1,0 +1,418 @@
+{
+  "schemaVersion": 1,
+  "baseline": "3f6f4e994d43108d6d39856216e897318588da2c",
+  "items": {
+    "skill:packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": {
+      "fingerprint": "8e9fc55e513e09347dcee86a7f08dad156f3a92e2fa33102a1780f07f5dd037a",
+      "snapshot": {
+        "docs/reference/dashpanel.md": "3103d56b839b172c2bdebc2412746bcda7e12b0d44092dc9fffa0f6eaa6f75ec",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "7cdbc23a28adc808e94da5a09912c5115685645eab4b1431dabe76daa518c0d9",
+        "packages/dashpanel/src/index.tsx": "3a1aa7974b80610d9cf4cb1fabe59f7d16dcbdaa71c49d2d6995f01b8ab03270",
+        "packages/dashpanel/src/panel-hotkey.tsx": "4af248ec5d1e0f99856878a4f456959c5d2403a9674521308280527020b08787"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "updated",
+      "reason": "Authored bounded installed-package guidance for the implemented shortcut and existing shared-control integration; sources and public examples match.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "skill:packages/picodash/skills/bind-controls/SKILL.md": {
+      "fingerprint": "30c65d26ff9f0f8fe2f5bd1311c1481108b0b6cc8758e60f69f8b0c13ef06b21",
+      "snapshot": {
+        "docs/development/consumer-recipes.md": "87f76f251a9e2e700323c2243386c2e053d39cf8d6ac1e8c7a775b371c11d81d",
+        "packages/picodash/skills/bind-controls/SKILL.md": "786bf8656810d9772f38654ae5d1af5b1ab5d4336316beb335110761af0a040d",
+        "packages/picodash/src/index.ts": "c62056bb9c1b60b8c0e4d3955542de223f7521a4fdb1f4635feaecba8f0c85d5",
+        "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "updated",
+      "reason": "Authored bounded installed-package guidance for the implemented shortcut and existing shared-control integration; sources and public examples match.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "planning:_artifacts": {
+      "fingerprint": "fa34be8d57b183225e732d0988c1488f8605f9f388f043a73f0c946341de7f58",
+      "snapshot": {
+        "_artifacts/domain_map.yaml": "3b0eda77983b863d7b8f1228eeb0a2e533cd7a8cdbc94f78f477523806022256",
+        "_artifacts/skill_spec.md": "84b1fd4946838cee45953bd42ecb37357ae74da39a1f45e69b2b041a90de4f94",
+        "_artifacts/skill_tree.yaml": "126d3245f943048b00de3d1d7ff4954ba0a07e0104403e9c9a228de731c9d267",
+        "docs/development/consumer-recipes.md": "87f76f251a9e2e700323c2243386c2e053d39cf8d6ac1e8c7a775b371c11d81d",
+        "docs/reference/dashpanel.md": "3103d56b839b172c2bdebc2412746bcda7e12b0d44092dc9fffa0f6eaa6f75ec",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "7cdbc23a28adc808e94da5a09912c5115685645eab4b1431dabe76daa518c0d9",
+        "packages/dashpanel/src/index.tsx": "3a1aa7974b80610d9cf4cb1fabe59f7d16dcbdaa71c49d2d6995f01b8ab03270",
+        "packages/dashpanel/src/panel-hotkey.tsx": "4af248ec5d1e0f99856878a4f456959c5d2403a9674521308280527020b08787",
+        "packages/picodash/skills/bind-controls/SKILL.md": "786bf8656810d9772f38654ae5d1af5b1ab5d4336316beb335110761af0a040d",
+        "packages/picodash/src/index.ts": "c62056bb9c1b60b8c0e4d3955542de223f7521a4fdb1f4635feaecba8f0c85d5",
+        "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "updated",
+      "reason": "Domain map, task specification and skill tree record the two-task batch, package ownership, version stamping and explicit discovery evidence limits.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:apps/lab/src/components/contract-lab/specimen.tsx": {
+      "fingerprint": "39f92e7ba48076feba2a9987a4ce31a4c731005c2b50490874cfb9ff9725b244",
+      "snapshot": {
+        "apps/lab/src/components/contract-lab/specimen.tsx": "0aaef8b10525953dc507b2bd916d695621f390a73ec45283d71c684e92f3a0e6"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:apps/lab/tests/contract-lab.spec.ts": {
+      "fingerprint": "ff0eda6b284085f58e84718329f9ac7b3543cfadf33ebdd4186748ccd905a733",
+      "snapshot": {
+        "apps/lab/tests/contract-lab.spec.ts": "ed5d9b3483edb0bc3e73a035de691963d1ad26dc481c99e2d73a52168ef8a763"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:docs/development/dogfooding.md": {
+      "fingerprint": "1d93a5777fdb352c6ec5a6265afb228b1fe2aaf51ce2d72ba93aef85add229ae",
+      "snapshot": {
+        "docs/development/dogfooding.md": "c475f49633db20213b86ae544ca90a66a2a83a17a58cc907bd30254e50f65f46"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:docs/reference/contract-conformance.md": {
+      "fingerprint": "01dc2a80e8080fff53f4246b748ccf526ccd8c2a2ec8752648a54a4cdef2fa30",
+      "snapshot": {
+        "docs/reference/contract-conformance.md": "dd428371fc928dd9b7a66483dd39c5552f68c17ac9f5a1170e7b7637d4411ad7"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:docs/reference/dashpanel-contract-decisions.md": {
+      "fingerprint": "38aa9a3707db6cd254c81139ba8b91aaceeb0a6f201bc917710222dead7f0999",
+      "snapshot": {
+        "docs/reference/dashpanel-contract-decisions.md": "91286e5378078e3a20aa22e4393291d1cdb01ce3cd5e8636e4efee4d9b2d26e7"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:docs/reference/nexus-contract-decisions.md": {
+      "fingerprint": "adccfd827bbcb1e240bf500c4265c64a877e441b434205bd75cce3485944b548",
+      "snapshot": {
+        "docs/reference/nexus-contract-decisions.md": "2314ca6c943f81433f22cc862d67d50bc85a7c2dcfb1189e55b15c8c30f724e9"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:docs/reference/nexus.md": {
+      "fingerprint": "7576438606545fcc9074af26e13238f13977a39cab3d26b3723ee2d00210d7ec",
+      "snapshot": {
+        "docs/reference/nexus.md": "4ef9e439d8ff94d9a53a134e8398cae36a260d37097502ec5e217c30ed535e56"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:packages/dashpanel/src/style.css": {
+      "fingerprint": "2e32900bf582c2ff1866c7debe845579e20d1a1864e4e1d10566cf06f4513aa0",
+      "snapshot": {
+        "packages/dashpanel/src/style.css": "484f6e1cab4cff57e07e22232daad45d9d7698c5dc28ba9a23670ddb2382b8b0"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:packages/dashpanel/tests/hotkey.test.tsx": {
+      "fingerprint": "5539c98415bd506df59b3a1031eff2b2802aff0cc8298736b12fbfddaa487e89",
+      "snapshot": {
+        "packages/dashpanel/tests/hotkey.test.tsx": "8ed0043067d62d710dfa1ca22017ab3bbc4b697cc9dde7d32ce57759b50130df"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:packages/dashpanel/tests/package-artifacts.mjs": {
+      "fingerprint": "596df3271d812e46b329678841a13a9430e567783ad0b2b410551a8558060a72",
+      "snapshot": {
+        "packages/dashpanel/tests/package-artifacts.mjs": "64b1a6aa393e019a104803956ec0f0d68255c08d558ffef41098efc392c4aeae"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:packages/nexus/src/kernel/index.ts": {
+      "fingerprint": "db4e108fc41f75cfd9edd134a75828adfbf7274dcc07cca3d62295050ad6a803",
+      "snapshot": {
+        "packages/nexus/src/kernel/index.ts": "a3eb9e7f540edfc9113be3e9da1a20d767303ffca3b0bf4fae651ab99bb6f4c7"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:packages/nexus/src/metadata.ts": {
+      "fingerprint": "c009b2dfff195a57bce302078f70ef213b95f17ce3261d5aec5827140fdad489",
+      "snapshot": {
+        "packages/nexus/src/metadata.ts": "92f7e006fe2538afc1901a181dd00fec9256a1ba793ac7e6d6f0dece3d683995"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:packages/nexus/tests/metadata.test.ts": {
+      "fingerprint": "e34f7ba2650381c6f54a91821b87e17eb4601a3e6125201fcde7463ab6313bd5",
+      "snapshot": {
+        "packages/nexus/tests/metadata.test.ts": "e020ed3a5fb396971ffa5ba544f65cbc4fa467a245d51321c114417307f981a8"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:packages/nexus/tests/scope-metadata.test.ts": {
+      "fingerprint": "f990069b867a520ea26c2770c64da5077ba48da71f45244bf8574c90efd2975f",
+      "snapshot": {
+        "packages/nexus/tests/scope-metadata.test.ts": "4075436df713861f9f64eb74699164ab8b745538bc0b95da41edf7b9c27530a5"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:packages/picodash/tests/dogfood/Shortcuts.tsx": {
+      "fingerprint": "bf1fc60cb5cc84d4009071cd0ec9ab0bbc72a964dfe945453d4caa159f234909",
+      "snapshot": {
+        "packages/picodash/tests/dogfood/Shortcuts.tsx": "98a688df189583bbc7f69ba259e6e95bacc52284c72336eed11a0d1a824f59bf"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:packages/picodash/tests/dogfood/shortcuts.test.tsx": {
+      "fingerprint": "776cc4ff2e69c3ddc8ce74fca9131a62f50066c6820c16e21f28deedf5922d62",
+      "snapshot": {
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx": "95e370c297e5b08a3f56b452800961d6e619b3d7459ae10bc400f7f4039d89bc"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:scripts/dogfood/pack.mjs": {
+      "fingerprint": "f0b6f7f5e33bfe365221a4628c0ff9141aa313b0445051961cd1c08add57b786",
+      "snapshot": {
+        "scripts/dogfood/pack.mjs": "277ed7cfeef28a3a32e6bbfdeb87dc023d52fb2df8bb662e61ca2fd685733852"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:scripts/dogfood/smoke.mjs": {
+      "fingerprint": "0e21b829e1ff2ec675235ad74d3a7c9079732b23fc524fdf1eabadc9340d0e47",
+      "snapshot": {
+        "scripts/dogfood/smoke.mjs": "7105a9bbdd28708b2aeed98fd7b4b10918ff92f45d9642e5d88f173dfe5211c1"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:tests/skills/README.md": {
+      "fingerprint": "6cb8a8cf24722688b9410c9294a000d05a3250ef7db50219c256c445eae7990d",
+      "snapshot": {
+        "tests/skills/README.md": "6f4869bb28c65523662e51c9f9bced48cdb56a7b0a683a4b59b9df9440817a48"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:tests/skills/consumer-solution.tsx.txt": {
+      "fingerprint": "c24365baff76960908d57ad3abceb11960885035861f1de311c805bc728e7876",
+      "snapshot": {
+        "tests/skills/consumer-solution.tsx.txt": "7e0edac4c25c510b9e3b4d837ad6a04b4f7c7595b06e745b90b820c983f40e42"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:tests/skills/task.md": {
+      "fingerprint": "43e747599a420e765c22a322c078f230977d9d64db771f66e1bf11d9ad051d25",
+      "snapshot": {
+        "tests/skills/task.md": "0c8ab5bd271d216cc99c2e9b095b66c35f2c9a2cd6cf098c06fbdcecb52749fb"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "evidence": [
+        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
+        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
+        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
+        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
+        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+      ]
+    },
+    "source:packages/picodash/tests/package-artifacts.mjs": {
+      "fingerprint": "f70fd56c4bfe20a3cea88fe01aebce22c3c431174bcc828213741a4a91770c5e",
+      "snapshot": {
+        "packages/picodash/tests/package-artifacts.mjs": "7aefd3c6ec94df77ca7ce0e2e6da7f15e9080efd3a4b6d155fab59ae77290c4c"
+      },
+      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "outcome": "no-change",
+      "reason": "The facade artifact allowlist now includes the already documented and validated bind-controls guide; its release check passes. No consumer guidance or planning changes are needed.",
+      "evidence": [
+        "Changed: packages/picodash/tests/package-artifacts.mjs at 3f6f4e994d43108d6d39856216e897318588da2c"
+      ]
+    }
+  }
+}

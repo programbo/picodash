@@ -12,7 +12,7 @@ const exists = (file) =>
   )
 const manifest = JSON.parse(await readFile(path.join(packageRoot, 'package.json'), 'utf8'))
 
-assert.deepEqual(manifest.files, ['dist', 'style.css'])
+assert.deepEqual(manifest.files, ['dist', 'style.css', 'skills/bind-controls'])
 assert.deepEqual(manifest.exports, {
   '.': './dist/index.mjs',
   './ui': './dist/ui.mjs',

@@ -73,9 +73,12 @@
     "dogfood:pack": "bun run release:check && node scripts/dogfood/pack.mjs",
     "dogfood:test": "node --test scripts/dogfood/dogfood.test.mjs",
     "dogfood:check": "node scripts/dogfood/smoke.mjs",
-    "dogfood:locate": "node scripts/dogfood/locate.mjs"
+    "dogfood:locate": "node scripts/dogfood/locate.mjs",
+    "skills:check": "intent maintainer check",
+    "skills:sync": "intent maintainer sync"
   },
   "devDependencies": {
+    "@tanstack/intent": "0.5.5",
     "@testing-library/react": "catalog:",
     "@tsdown/css": "catalog:",
     "@types/react": "catalog:",

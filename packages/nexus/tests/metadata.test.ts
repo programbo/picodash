@@ -462,3 +462,10 @@ describe('Nexus built-in metadata codec', () => {
     expect(JSON.stringify(encodeDurableScopeMetadata(decoded))).toBe(JSON.stringify(encoded))
   })
 })
+
+it('round-trips panel hotkeys independently and rejects malformed serialized preferences', () => {
+  const metadata = { dashPanelHotkey: 'Mod+Shift+[KeyK]' }
+  expect(encodeDurableScopeMetadata(decodeDurableScopeMetadata(metadata))).toEqual(metadata)
+  for (const invalid of [undefined, null, '', 'x'.repeat(129), ' key ', 3])
+    expect(() => decodeDurableScopeMetadata({ dashPanelHotkey: invalid })).toThrow()
+})

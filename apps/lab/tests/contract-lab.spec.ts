@@ -2822,6 +2822,40 @@ test('persists, restores, resets, and safely recovers settled DashPanel layout',
     await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
   }
 
+  // A recorded key is a durable preference, independent of layout and ephemeral visibility.
+  await page.getByRole('button', { name: 'Fixed', exact: true }).click()
+  const recorder = panel.getByRole('button', { name: 'Record shortcut for Placement Panel' })
+  await recorder.click()
+  await page.keyboard.press('Control+Shift+K')
+  await expect(recorder).toHaveAttribute('aria-pressed', 'false')
+  await expect
+    .poll(async () => {
+      const current = await placementSession()
+      if (!current) return undefined
+      const snapshot = await client.inspect(current)
+      return snapshot.snapshot.scopes?.find((scope) => scope.id === focusedPlacementPanelScopeId)
+        ?.metadata
+    })
+    .toMatchObject({ dashPanelHotkey: expect.stringContaining('[KeyK]') })
+  await page.keyboard.press('Control+Shift+K')
+  const reveal = page.getByRole('button', { name: 'Reveal panel Placement Panel' })
+  await expect(reveal).toBeFocused()
+  await page.keyboard.press('Control+Shift+K')
+  await expect(panel.getByRole('button', { name: 'Minimize panel Placement Panel' })).toBeFocused()
+  await page.reload()
+  await expect(recorder).toBeVisible()
+  await expect(recorder).toContainText('K')
+  await page.keyboard.press('Control+Shift+K')
+  await expect(reveal).toBeFocused()
+  await page.keyboard.press('Control+Shift+K')
+  await panel.getByRole('button', { name: 'Reset panel layout' }).click()
+  await expect(recorder).toBeHidden()
+  await page.getByRole('button', { name: 'Fixed', exact: true }).click()
+  await expect(recorder).toContainText('K')
+  await recorder.click()
+  await page.keyboard.press('Backspace')
+  await expect(recorder).not.toContainText('K')
+
   await page.evaluate(
     ({ storageKey, scopeId }) => {
       localStorage.setItem(
