@@ -425,7 +425,10 @@ describe('DashPanel portal ownership', () => {
         [
           {
             target,
-            type: changedNodes ? 'childList' : 'attributes',
+            type: changedNodes || target.nodeType !== 1 ? 'childList' : 'attributes',
+            attributeName: 'data-geometry-test',
+            attributeNamespace: null,
+            oldValue: 'before',
             addedNodes: changedNodes?.added ?? [],
             removedNodes: changedNodes?.removed ?? [],
           } as unknown as MutationRecord,
@@ -1607,6 +1610,57 @@ describe('DashPanel portal ownership', () => {
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('ignores restored measurement attributes across hidden panels but observes real changes', async () => {
+    const nexus = makeNexus()
+    const external = document.createElement('input')
+    external.type = 'checkbox'
+    document.body.append(external)
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+    try {
+      await render(
+        <DashPanelProvider nexus={nexus}>
+          <DashPanel id="first" title="First" defaultVisible={false} />
+          <DashPanel id="second" title="Second" defaultVisible={false} />
+        </DashPanelProvider>,
+      )
+      const panels = [...document.querySelectorAll<HTMLElement>('[data-picodash-panel]')]
+      expect(panels).toHaveLength(2)
+      rect.mockClear()
+      await act(async () => {
+        // Intrinsic probes temporarily expose hidden shells, then restore their styles.
+        for (const panel of panels) {
+          const style = panel.getAttribute('style') ?? ''
+          panel.hidden = false
+          panel.style.maxBlockSize = 'none'
+          panel.setAttribute('style', style)
+          panel.hidden = true
+        }
+        // React also restores controlled checkbox attributes without changing their value.
+        external.setAttribute('type', 'checkbox')
+        external.setAttribute('name', '')
+        external.removeAttribute('name')
+      })
+      expect(rect).not.toHaveBeenCalled()
+      expect(panels.every((panel) => panel.hidden)).toBe(true)
+
+      await act(async () => {
+        external.style.width = '200px'
+      })
+      expect(rect).toHaveBeenCalled()
+      rect.mockClear()
+      await act(async () => {
+        panels[0]?.style.setProperty('--picodash-panel-width', '160px')
+      })
+      expect(rect).toHaveBeenCalled()
+      expect(panels.every((panel) => panel.hidden)).toBe(true)
+    } finally {
+      await act(async () => root.unmount())
+      external.remove()
+      rect.mockRestore()
+      nexus.destroy()
+    }
   })
 
   it('reserves a hidden corner after an external placement transition', async () => {

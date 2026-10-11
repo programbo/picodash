@@ -1331,3 +1331,23 @@ control-desk browser journey verifies light/dark computed styles, selected and w
 states, read-only distinction, keyboard skipping, and forced colors; its screenshots were visually
 reviewed. All eight stylesheet tests and the Lab build pass. The source and live Lab include the
 fix; dogfood `.28` is unchanged and does not include it.
+
+### Hidden Panel mutation feedback (2026-10-11)
+
+DashPanel's root layout observer compares each attribute's first old value with its settled
+value at delivery. Temporary intrinsic-measurement style/hidden writes and unchanged controlled
+input attributes no longer trigger another geometry measurement. Genuine attribute changes,
+child changes and text changes remain observable. This preserves hidden Panels and their dock
+reservations without treating probe writes as application layout changes.
+
+The native MutationObserver regression in `packages/dashpanel/src/portal.test.tsx` fails before
+the fix with 18 unnecessary geometry reads and passes afterward. All 196 DashPanel tests and
+owning formatting, lint and type checks pass, including hidden corner width, inherited styles,
+portal relocation and retained content. In an isolated Gearset Designer production build, the
+reported eight-planet document reproduces a freeze when Canvas hides both Panels after Preview
+cycles. A paused Chromium stack identifies root-observer geometry work; two observers deliver
+hundreds of callbacks without another rendered frame. The fixed build completes Preview cycles,
+hide-both, hidden-boundary resize and alternating reopen at 1280, 1000 and 390px, without the
+bounded diagnostic guard intervening. A second replay with native observers and no guard also
+completes at all three widths, without browser errors. The original report of freezing on Preview expansion alone
+has not been reproduced; it is not claimed as the same confirmed trigger.

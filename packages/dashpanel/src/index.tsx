@@ -53,6 +53,7 @@ import {
 import { DashPanelProviderPolicyProvider } from './runtime/provider-policy-context.tsx'
 import type { DashPanelBoundary, DashPanelBoundaryInset } from './geometry/boundary.ts'
 import { resolveDashPanelBoundary } from './geometry/boundary.ts'
+import { settledMutationRecords } from './geometry/mutation-records.ts'
 import { resolveDashPanelBoundaryInset } from './geometry/inset.ts'
 import {
   DashPanelRuntimeProvider,
@@ -1239,7 +1240,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
     const mutationObserver =
       mutationRoot && typeof MutationObserver === 'function'
-        ? new MutationObserver((records) => {
+        ? new MutationObserver((observedRecords) => {
+            const records = settledMutationRecords(observedRecords)
+            if (records.length === 0) return
             const panelChanged = records.some((record) => {
               const target = record.target
               const targetElement =
@@ -1324,6 +1327,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         : undefined
     const mutationOptions = {
       attributes: true,
+      attributeOldValue: true,
       characterData: true,
       childList: true,
       subtree: true,
@@ -1361,7 +1365,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         let ancestor: Element | null = panel.parentElement
         while (ancestor) {
           inheritedMutationTargets.add(ancestor)
-          mutationObserver.observe(ancestor, { attributes: true })
+          mutationObserver.observe(ancestor, { attributes: true, attributeOldValue: true })
           if (ancestor.parentElement) {
             ancestor = ancestor.parentElement
             continue
