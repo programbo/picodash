@@ -1351,3 +1351,9 @@ hide-both, hidden-boundary resize and alternating reopen at 1280, 1000 and 390px
 bounded diagnostic guard intervening. A second replay with native observers and no guard also
 completes at all three widths, without browser errors. The original report of freezing on Preview expansion alone
 has not been reproduced; it is not claimed as the same confirmed trigger.
+
+Clean snapshot `0.1.0-dogfood.30` records source `c4c5aba2472b95f89bf5c1da0442f1e0cbbd7baa`.
+All 1,135 package release tests pass. Isolated repeat/frozen installation, update/rollback with
+`.29`, 13 consumer tests, public types and Vite/Next CSS builds pass. The actual installed `.30`
+tarballs also complete the Gearset Designer freeze sequence at all three viewport widths using
+native observers, with no browser errors. The consumer source and live preview remain Maz-owned.
