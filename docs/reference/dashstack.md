@@ -586,8 +586,9 @@ non-text React node, the Dashlet requires an explicit `aria-label`. This require
 when reordering is disabled because diagnostics and state reporting still need a human-readable
 identity.
 
-`inline` places the label and content in one row. `block` places content below the label while
-retaining the shared affordance inset. Block is reserved for content that needs the extra space. The shell,
+`inline` places the label and content in one row. `block` places content below a visible label while
+retaining the shared affordance inset. Without a rendered label (for example, `label={undefined}`
+with no help heading), block content starts in column two on row one alongside the affordance. Block is reserved for content that needs the extra space. The shell,
 not its children, owns the reorder rail and standard error region.
 
 #### Authored visual emphasis
@@ -1143,7 +1144,7 @@ value. The first track contains a drag thumb, group disclosure, or inert square 
 Dashlet. Read-only and disabled are independent attributes of every Dashlet, never layout variants. Rows without a trailing value span the final two tracks. Slider outputs share the trailing
 track so sibling Slider controls retain equal track widths.
 
-`layout="inline"` is the default and retains the four shared tracks at narrow widths. `layout="block"` always places content below the label while preserving the handle inset.
+`layout="inline"` is the default and retains the four shared tracks at narrow widths. `layout="block"` places content below a visible label while preserving the handle inset; without a rendered label, content starts in column two on row one.
 There is no full-width layout variant. Label/actions,
 content, description, and issues retain their DOM and focus order under every visual arrangement.
 Content-cell wrappers establish subgrid cells only for inline layout; in block layout they

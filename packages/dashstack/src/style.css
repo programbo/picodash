@@ -1185,6 +1185,16 @@
   grid-row: 2;
 }
 
+/* Without a visible label, the content shares the first row with the affordance. */
+[data-picodash-dashlet-shell][data-layout='block']:not(:has(> [data-picodash-dashlet-label])) {
+  grid-template-rows: auto;
+}
+
+[data-picodash-dashlet-shell][data-layout='block']:not(:has(> [data-picodash-dashlet-label]))
+  > [data-picodash-dashlet-content] {
+  grid-row: 1;
+}
+
 [data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-description],
 [data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-binding-issues],
 [data-picodash-dashlet-shell][data-layout='block'] > [data-picodash-dashlet-issues],

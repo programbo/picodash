@@ -1490,3 +1490,13 @@ Clean snapshot `0.1.0-dogfood.35` records source `7cd0fef407dbd4f4c126a638aeb6da
 All 1,140 package release tests and 13 isolated consumer tests pass, along with repeat/frozen
 installation, .34 update/rollback, public types and Vite/Next builds. The candidate preview and
 owned browser processes exited. Live designer adoption remains with Maz.
+
+### Unlabeled block placement (2026-10-12)
+
+A block shell without a rendered label uses one initial grid row, with content in column two
+on row one beside the affordance. Labeled/help-heading blocks retain their second content row.
+The existing accessible-name requirement is unchanged. Owning formatting/lint/types and build
+pass. In an owned browser on Gearset Designer, loading the built candidate stylesheet moves the
+unlabeled Playback content from row two to row one and from a 35px to 5px top inset; its shell
+shrinks from 104px to 74px. The labeled block remains on row two. This is candidate-stylesheet
+proof, not live deployment.
