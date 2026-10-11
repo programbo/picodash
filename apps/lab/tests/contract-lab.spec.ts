@@ -103,6 +103,34 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
     await phone.goto('/lab')
     await expect(phone.getByRole('heading', { name: 'Dashlet Lab', exact: true })).toBeVisible()
     await expect(phone.locator('[data-layout="full"]')).toHaveCount(0)
+    // Touch envelopes must not become the visible thumb.
+    const touchThumbs = phone.locator(
+      '[data-picodash-dashstack-slider-thumb], [data-picodash-dashstack-range-slider-thumb]',
+    )
+    await expect(touchThumbs).not.toHaveCount(0)
+    for (const thumb of await touchThumbs.all()) {
+      const paint = await thumb.evaluate((element) => {
+        const hit = element.getBoundingClientRect()
+        const style = getComputedStyle(element, '::before')
+        return {
+          hitWidth: hit.width,
+          hitHeight: hit.height,
+          width: Number.parseFloat(style.width),
+          height: Number.parseFloat(style.height),
+          clip: style.clipPath,
+          pointerEvents: style.pointerEvents,
+        }
+      })
+      expect(paint.hitWidth).toBeGreaterThanOrEqual(44)
+      expect(paint.hitHeight).toBeGreaterThanOrEqual(44)
+      expect(paint.width).toBeGreaterThan(0)
+      expect(paint.width).toBeLessThan(20)
+      expect(paint.height).toBeGreaterThan(paint.width)
+      expect(paint.height).toBeLessThan(24)
+      expect(paint.clip).toContain('polygon(')
+      expect(paint.pointerEvents).toBe('none')
+    }
+
     for (const name of ['SearchDashlet', 'TextDashlet', 'NumberDashlet']) {
       const region = phone.locator(`[data-picodash-dashlet="${name}"]`)
       const geometry = await region.evaluate((row) => {

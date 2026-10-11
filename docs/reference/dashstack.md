@@ -1172,7 +1172,10 @@ the owner document, so root-font-size changes update the threshold independently
 persistence. Drag-preview measurement separately preserves captured geometry during reorder.
 
 The package avoids horizontal page overflow at 320 CSS pixels and under 200% zoom. Segmented choices
-may wrap, and coarse-pointer targets retain the accepted minimum size.
+may wrap, and coarse-pointer targets retain the accepted minimum size. Slider, Range, TargetSlider and
+detent thumbs keep their compact pointed paint inside transparent 44px touch envelopes. Range
+paint anchors its flat inward edge at the value in either text direction. Target fields follow
+the painted thumb, while endpoint insets continue to reserve the full touch envelope.
 
 ## Reading effective order
 

@@ -1395,3 +1395,24 @@ shipping tarballs repeat the hover benchmark at 16.8ms p95 in every unsuppressed
 324–648 real transition events and unchanged solves. The shipping startup capture also starts
 and remains at the final top-right geometry without animation. Owned browser sessions and the
 isolated preview are closed; live consumer adoption remains with Maz.
+
+### Compact slider paint on touch devices (2026-10-11)
+
+Coarse-pointer Slider, Range, TargetSlider and detent thumbs retain 44x44px interaction envelopes
+but paint only the compact pointed shapes. Range flat edges align at the value in LTR and RTL.
+Target fields attach to the painted thumb; track endpoint insets still reserve the touch area.
+Fine-pointer geometry is unchanged.
+
+Gearset Designer on dogfood .31 reproduced the reported squares with real coarse-pointer
+emulation: all six thumb pseudo-elements measured 44x44px with no clip. Applying the built
+candidate stylesheet gives 12x18px Slider and 12x16px Range paint inside unchanged 44x44px targets.
+A CDP touch drag beginning 15px outside the painted thumb changed the bore from 9.8 to 15.5.
+LTR/RTL inner-edge alignment and restored desktop 12px thumb geometry pass. A 390px capture
+verifies target-field attachment and readout placement under reduced motion. This is Chromium
+touch emulation, not physical-device or Dia verification.
+
+The existing phone gallery journey now asserts compact clipped paint independently from its
+44px hit targets. Those assertions pass against the rebuilt production Lab; the later journey
+cannot complete without the development host's .picodash/dev-bridge.json. The unrelated Themes
+journey stops earlier at a pre-existing fixed-panel boundary assertion. Owning stylesheet tests,
+formatting, lint, types and package/Lab builds pass.

@@ -2959,10 +2959,58 @@
   [data-picodash-dashstack-range-slider-thumb]::before {
     content: '';
     position: absolute;
-    inset: 0;
+    /* Keep the 44px touch envelope transparent; only this compact shape is painted. */
+    inline-size: var(--picodash-space-3);
+    block-size: calc(
+      var(--picodash-control-height-xs) / 2 + var(--picodash-space-1) + var(--picodash-space-0-5)
+    );
+    left: calc(50% - var(--picodash-space-3) / 2);
+    inset-block-start: calc(50% - var(--picodash-control-height-xs) / 2);
     background: var(--picodash-color-accent);
-    border-radius: inherit;
+    border-radius: var(--picodash-radius-control) var(--picodash-radius-control) 0 0;
+    clip-path: polygon(
+      0 0,
+      100% 0,
+      100% calc(100% - var(--picodash-space-1)),
+      50% 100%,
+      0 calc(100% - var(--picodash-space-1))
+    );
     pointer-events: none;
+  }
+  .picodash-dashstack-range-slider [data-picodash-dashstack-range-slider-thumb]::before {
+    inset-block-start: calc(
+      50% - var(--picodash-control-height-xs) / 2 + var(--picodash-space-0-5)
+    );
+    block-size: calc(var(--picodash-control-height-xs) / 2 + var(--picodash-space-1));
+  }
+  .picodash-dashstack-range-slider:dir(ltr) [data-picodash-range-end='start']::before,
+  .picodash-dashstack-range-slider:dir(rtl) [data-picodash-range-end='end']::before {
+    left: calc(50% - var(--picodash-space-3));
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 calc(100% - var(--picodash-space-1)));
+    transform-origin: 100% 100%;
+  }
+  .picodash-dashstack-range-slider:dir(ltr) [data-picodash-range-end='end']::before,
+  .picodash-dashstack-range-slider:dir(rtl) [data-picodash-range-end='start']::before {
+    left: 50%;
+    clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--picodash-space-1)), 0 100%);
+    transform-origin: 0 100%;
+  }
+  .picodash-dashstack-target-slider [data-picodash-target-track] {
+    --_picodash-target-thumb-half: calc(var(--picodash-space-3) / 2);
+    /* The inset still reserves the touch envelope, while labels follow the painted thumb. */
+    --_picodash-target-edge: calc(max(44px, var(--picodash-control-height-md)) / 2);
+    --_picodash-target-thumb-rise: calc(var(--picodash-control-height-xs) / 2);
+    --_picodash-target-label-lift: calc(
+      (var(--picodash-control-height-xs) / 2 + var(--picodash-space-1) + var(--picodash-space-0-5)) *
+        0.25
+    );
+  }
+  .picodash-dashstack-target-slider [data-picodash-dashstack-slider-thumb]::before {
+    border-start-start-radius: 0;
+    border-start-end-radius: 0;
+  }
+  [data-picodash-detent-track] {
+    --_picodash-detent-thumb-half: calc(var(--picodash-space-3) / 2);
   }
 }
 
