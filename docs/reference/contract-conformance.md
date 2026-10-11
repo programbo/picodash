@@ -1543,3 +1543,8 @@ phone boundary-contraction journey now verifies the same cue states and forced-c
 against the rebuilt production Lab. Its start-fade assertion now accepts overflow shorter than
 the existing 96px fade range. The journey passes, as do all 81 owning UI tests and type/lint checks.
 Motion policy and the design detector pass; the owned browser exited.
+
+Clean snapshot `0.1.0-dogfood.38` records source `e88f703c962ac57fb8e9a56b7a2e2dc78e162d7b`.
+All 1,140 package release tests and 13 isolated consumer tests pass, including repeat/frozen
+installation, .37 update/rollback, public types and Vite/Next builds. Live designer adoption remains
+with Maz.
