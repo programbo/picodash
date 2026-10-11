@@ -1446,3 +1446,8 @@ outside-paint touch dragging. Its production CSS processor rewrites native :dir 
 language selectors, so an English-language document switched to dir=rtl does not receive RTL
 thumb paint there. The prior native package-stylesheet RTL proof does not establish that consumer
 build seam; it remains open separately from the mobile size corrections.
+
+Clean snapshot `0.1.0-dogfood.33` records source `f16fbdb036d69e1f6f3854d684345fbfca9a4b88`.
+All 1,138 package release tests pass. Isolated repeat/frozen installs, .32 update/rollback,
+13 consumer tests, public types and Vite/Next CSS builds pass. The candidate test preview and
+owned browser processes exited. Live designer adoption remains with Maz.
