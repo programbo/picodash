@@ -1416,3 +1416,10 @@ The existing phone gallery journey now asserts compact clipped paint independent
 cannot complete without the development host's .picodash/dev-bridge.json. The unrelated Themes
 journey stops earlier at a pre-existing fixed-panel boundary assertion. Owning stylesheet tests,
 formatting, lint, types and package/Lab builds pass.
+
+Clean snapshot `0.1.0-dogfood.32` records source `6f8ea56ee82634d41bf0faa1a988e224671e7d23`.
+All 1,137 package release tests pass. Isolated repeat/frozen installs, .31 update/rollback,
+13 consumer tests, public types and Vite/Next CSS builds pass. The packed DashStack stylesheet
+has the same SHA-256 as the built stylesheet used for the touch/RTL/desktop browser checks.
+The owned browser session and its processes exited. Live Gearset Designer adoption remains
+with Maz.
