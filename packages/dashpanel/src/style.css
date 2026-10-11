@@ -347,7 +347,7 @@
 
 /* Compact paint; shared Button retains its separate coarse-pointer hit target. */
 .picodash-dashpanel [data-picodash-panel-hotkey] {
-  position: relative;
+  position: static;
   z-index: 2;
   flex: none;
   margin-inline-start: 0.5em;
@@ -367,8 +367,8 @@
   display: none;
   position: absolute;
   inset-block-start: calc(100% + 0.4em);
-  inset-inline-end: 0;
-  inline-size: min(17rem, 65vw);
+  inset-inline-start: 0;
+  inline-size: min(17rem, 100%);
   padding: 0.5em 0.75em;
   background: var(--picodash-color-surface);
   color: var(--picodash-color-text);

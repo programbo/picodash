@@ -179,19 +179,15 @@
       ]
     },
     "source:packages/dashpanel/src/style.css": {
-      "fingerprint": "2e32900bf582c2ff1866c7debe845579e20d1a1864e4e1d10566cf06f4513aa0",
+      "fingerprint": "067d5c7949f62d7d233d60c51bef7105f3d5a5495fb3e684b3e425cab7a482d7",
       "snapshot": {
-        "packages/dashpanel/src/style.css": "484f6e1cab4cff57e07e22232daad45d9d7698c5dc28ba9a23670ddb2382b8b0"
+        "packages/dashpanel/src/style.css": "cafe4a50f29a9695858f120e277a270795fa6e83865c5f3a83bd665d127a2bde"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "head": "8f8ef2e6b6428482afd740813366e5352cedfaa4",
       "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "reason": "Recording feedback now uses the title column as its containing block. Browser checks confirm containment at 1280px and 390px viewport widths; shortcut semantics and both guides remain unchanged.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "Changed: packages/dashpanel/src/style.css at 8f8ef2e6b6428482afd740813366e5352cedfaa4"
       ]
     },
     "source:packages/dashpanel/tests/hotkey.test.tsx": {
