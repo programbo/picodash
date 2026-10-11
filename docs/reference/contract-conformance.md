@@ -1357,3 +1357,33 @@ All 1,135 package release tests pass. Isolated repeat/frozen installation, updat
 `.29`, 13 consumer tests, public types and Vite/Next CSS builds pass. The actual installed `.30`
 tarballs also complete the Gearset Designer freeze sequence at all three viewport widths using
 native observers, with no browser errors. The consumer source and live preview remain Maz-owned.
+
+### Settled layout events and initial dock geometry (2026-10-11)
+
+DashPanel filters paint-only transition properties and unrelated event origins before measuring.
+A relevant event is handled once per affected Panel across its capture targets. Content layout,
+font size, custom properties, image loads, unknown animations, composed shadow content and
+ancestor transforms remain observable. Paint-only ancestor motion does not cancel dragging.
+Hidden inherited-context changes now perform one intrinsic/minimum measurement pair, rather than
+falling through to repeat the same work. Dock allocation motion waits for positioned geometry
+measured against the resolved boundary; provisional viewport measurements while a declared
+boundary ref mounts cannot become animation baselines. Later allocation changes still animate.
+
+All 198 DashPanel tests and owning checks pass. Regressions fail before their fixes: one fill-opacity
+event causes 14 boundary reads, one hidden inherited change measures each Panel four times instead
+of twice, and initial docking requests a translation from an unpositioned rectangle. The motion
+test verifies initial and mounting-boundary transitions do not animate, followed by a real
+allocation change that does.
+
+The same Gearset Designer production fixture (80mm, 58/30/118 teeth, eight planets, 1920x1200)
+was measured with the same automated hover and real fill-opacity transitions. Baseline `.30`
+normal/repeat p95 frame gaps were 233/217ms paused, 250/233ms playing and 433/417ms with panels
+hidden. The candidate's normal/repeat samples are 16.7–16.8ms across all scenarios, with at least
+300 transition events and unchanged solve IDs per sample. Captured settled-handler time falls
+from 2.75–5.17 seconds per sample to 0.2–0.7ms. These are local Chromium measurements, not a
+hardware-independent performance guarantee. The unchanged fade remains enabled.
+
+A saved top-right startup capture at 1280x800 records 97 frames at x910/y63, 370x469.33px, with
+no startup animation. Before the fix the first painted Panel was translated far outside the
+boundary. This proves the captured Chrome startup path; a separate report of two flights in the
+in-app browser is not independently reproduced.

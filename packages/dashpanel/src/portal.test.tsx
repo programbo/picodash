@@ -229,7 +229,7 @@ describe('DashPanel portal ownership', () => {
 
     boundaryLeft = 30
     await act(async () => {
-      document.dispatchEvent(new Event('transitionend'))
+      boundary.dispatchEvent(new Event('transitionend'))
     })
     expect(panel.style.left).toBe('70px')
     expect(requestAnimationFrame).not.toHaveBeenCalled()
@@ -285,6 +285,13 @@ describe('DashPanel portal ownership', () => {
 
     await act(async () => {
       move.dispatchEvent(new Event('transitionrun', { bubbles: true }))
+    })
+    expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
+
+    await act(async () => {
+      const fade = new Event('transitionrun')
+      Object.defineProperty(fade, 'propertyName', { value: 'opacity' })
+      boundary.dispatchEvent(fade)
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free-preview')
 
@@ -817,6 +824,60 @@ describe('DashPanel portal ownership', () => {
     await act(async () => root.unmount())
     vi.restoreAllMocks()
     expect(() => nexus.destroy()).not.toThrow()
+  })
+
+  it('measures each relevant settled layout event once and ignores unrelated or paint-only motion', async () => {
+    const nexus = makeNexus()
+    const boundary = document.createElement('main')
+    const wrapper = document.createElement('div')
+    const portal = document.createElement('div')
+    const outside = document.createElement('div')
+    document.body.append(boundary, outside)
+    boundary.append(wrapper)
+    wrapper.append(portal)
+    const measure = vi.spyOn(boundary, 'getBoundingClientRect')
+    try {
+      await render(
+        <DashPanelProvider nexus={nexus} boundary={boundary} portalContainer={portal}>
+          <DashPanel id="first" title="First">
+            <div data-layout-content="first" />
+          </DashPanel>
+          <DashPanel id="second" title="Second" defaultVisible={false}>
+            <div data-layout-content="second" />
+          </DashPanel>
+        </DashPanelProvider>,
+      )
+      const first = portal.querySelector('[data-layout-content="first"]')!
+      const second = portal.querySelector('[data-layout-content="second"]')!
+      const shadowContent = document.createElement('div')
+      await act(async () => first.attachShadow({ mode: 'open' }).append(shadowContent))
+      for (const [target, type, propertyName, expected] of [
+        [first, 'transitionend', 'fill-opacity', 0],
+        [wrapper, 'transitioncancel', 'opacity', 0],
+        [outside, 'transitionend', 'width', 0],
+        [first, 'transitionend', 'height', 1],
+        [first, 'transitionend', 'font-size', 1],
+        [shadowContent, 'transitionend', 'height', 1],
+        [second, 'transitioncancel', 'width', 1],
+        [wrapper, 'transitionend', 'transform', 2],
+        [boundary, 'transitionend', 'padding-top', 2],
+        [first, 'transitionend', '--content-size', 1],
+        [first, 'animationend', undefined, 1],
+        [first, 'load', undefined, 1],
+      ] as const) {
+        measure.mockClear()
+        const event = new Event(type, { bubbles: true, composed: true })
+        if (propertyName) Object.defineProperty(event, 'propertyName', { value: propertyName })
+        await act(async () => target.dispatchEvent(event))
+        expect(measure.mock.calls.length, `${type}: ${propertyName ?? 'unknown'}`).toBe(expected)
+      }
+    } finally {
+      await act(async () => root.unmount())
+      measure.mockRestore()
+      boundary.remove()
+      outside.remove()
+      nexus.destroy()
+    }
   })
 
   it('ignores content scroll and scroll-fade events while still measuring window scroll', async () => {
@@ -1644,6 +1705,13 @@ describe('DashPanel portal ownership', () => {
       })
       expect(rect).not.toHaveBeenCalled()
       expect(panels.every((panel) => panel.hidden)).toBe(true)
+      await act(async () => {
+        document.body.setAttribute('data-dashpanel-test-layout', 'changed')
+      })
+      // One intrinsic/minimum pair per hidden Panel for this inherited change.
+      for (const panel of panels)
+        expect(rect.mock.contexts.filter((element) => element === panel)).toHaveLength(2)
+      rect.mockClear()
 
       await act(async () => {
         external.style.width = '200px'
@@ -1658,6 +1726,7 @@ describe('DashPanel portal ownership', () => {
     } finally {
       await act(async () => root.unmount())
       external.remove()
+      document.body.removeAttribute('data-dashpanel-test-layout')
       rect.mockRestore()
       nexus.destroy()
     }

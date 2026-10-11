@@ -54,6 +54,7 @@ import { DashPanelProviderPolicyProvider } from './runtime/provider-policy-conte
 import type { DashPanelBoundary, DashPanelBoundaryInset } from './geometry/boundary.ts'
 import { resolveDashPanelBoundary } from './geometry/boundary.ts'
 import { settledMutationRecords } from './geometry/mutation-records.ts'
+import { isPaintOnlyTransition } from './geometry/layout-events.ts'
 import { resolveDashPanelBoundaryInset } from './geometry/inset.ts'
 import {
   DashPanelRuntimeProvider,
@@ -403,6 +404,7 @@ function panelStyle(
 }
 
 interface PanelGeometryState {
+  readonly boundaryElement: Element | null
   readonly boundary: DashPanelRect
   readonly minimumHeight: number
   readonly size: DashPanelSize
@@ -963,6 +965,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       const boundaryRect = target?.getBoundingClientRect?.() ?? viewportRect(element.ownerDocument)
       const insetBoundary = insetDashPanelRect(boundaryRect, resolvedBoundaryInset)
       const next = {
+        boundaryElement: target,
         boundary: insetBoundary,
         minimumHeight,
         size: { width: Math.max(0, panelRect.width), height: Math.max(0, panelRect.height) },
@@ -1000,6 +1003,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         cancelObservedMoveRef.current()
       setGeometry((current) =>
         current &&
+        current.boundaryElement === next.boundaryElement &&
         sameMeasuredLength(current.boundary.left, next.boundary.left) &&
         sameMeasuredLength(current.boundary.top, next.boundary.top) &&
         sameMeasuredLength(current.boundary.right, next.boundary.right) &&
@@ -1140,7 +1144,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         return false
       }
     }
+    const handledLayoutEvents = new WeakSet<Event>()
     const cancelForLayoutMotion = (event: Event) => {
+      if (handledLayoutEvents.has(event) || isPaintOnlyTransition(event)) return
+      handledLayoutEvents.add(event)
       const origin = event.composedPath()[0] ?? event.target
       if (origin instanceof Node && panel.contains(origin)) return
       if (
@@ -1151,6 +1158,18 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         cancelObservedMoveRef.current()
     }
     const refreshForSettledLayout = (event: Event) => {
+      if (handledLayoutEvents.has(event) || isPaintOnlyTransition(event)) return
+      const path = event.composedPath()
+      const origin = path[0] ?? event.target
+      if (
+        origin === null ||
+        (!path.includes(panel) &&
+          !containsTarget(panel, origin) &&
+          ![...relevantLayoutAncestors].some((ancestor) => ancestor === origin))
+      )
+        return
+      // One event crosses several registered capture targets, including shadow hosts.
+      handledLayoutEvents.add(event)
       // UI's scroll-driven mask cannot change layout. Measuring intrinsic size here would
       // temporarily remove overflow and reset the scroll position that just drove the mask.
       if (
@@ -1312,6 +1331,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             ) {
               refreshGeometry()
               mutationObserver?.takeRecords()
+              return
             }
             if (
               records.every((record) => {
@@ -2128,6 +2148,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const renderedMapped = renderedRect
     ? mapRectToContainingBlock(asideRef.current, renderedRect)
     : null
+  // A provisional viewport measurement is not a baseline for a still-mounting boundary ref.
+  const dockGeometryReady =
+    renderedRect !== null &&
+    renderedMapped !== null &&
+    geometry?.boundaryElement === observedBoundary &&
+    (!tracksBoundaryReference || observedBoundary !== null)
   const dockAllocationPosition = renderedDockPosition
   const dockAllocationKey = renderedDockPosition
     ? [
@@ -2151,7 +2177,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         ? dockedMinimizePresentation.exitTransform
         : (resolvedStyle?.transform ?? '')
     }
-    if (!visible || dockedMinimized) {
+    if (!visible || dockedMinimized || !dockGeometryReady) {
       previousAnimation?.cancel()
       dockAllocationAnimationRef.current = null
       dockAllocationGeometryRef.current = null
@@ -2280,6 +2306,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     )
     dockAllocationAnimationRef.current = animation
   }, [
+    dockGeometryReady,
     dockAllocationPosition,
     dockAllocationKey,
     dockedMinimized,
@@ -2289,7 +2316,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   ])
   useLayoutEffect(() => {
     const panel = asideRef.current
-    if (!panel || !visible || dockedMinimized || dockAllocationAnimationRef.current) return
+    if (
+      !panel ||
+      !visible ||
+      dockedMinimized ||
+      !dockGeometryReady ||
+      dockAllocationAnimationRef.current
+    )
+      return
     const rect = panel.getBoundingClientRect()
     dockAllocationGeometryRef.current =
       dockAllocationPosition && dockAllocationKey
