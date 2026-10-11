@@ -2305,6 +2305,25 @@
   background: transparent;
 }
 
+/* Feedback clears the painted thumb; touch keeps its full 44px interaction envelope. */
+.picodash-dashstack-slider,
+.picodash-dashstack-range-slider,
+.picodash-dashstack-target-slider {
+  --_picodash-feedback-clearance: 0px;
+  --_picodash-slider-row-height: var(--picodash-control-height-md);
+}
+@media (pointer: coarse) {
+  .picodash-dashstack-slider,
+  .picodash-dashstack-range-slider,
+  .picodash-dashstack-target-slider {
+    --_picodash-feedback-clearance: calc(
+      max(44px, var(--picodash-control-height-md)) / 2 + var(--picodash-space-1) / 2 -
+        var(--picodash-space-2)
+    );
+    --_picodash-slider-row-height: max(44px, var(--picodash-control-height-md));
+  }
+}
+
 /* A target and an achieved outcome share a scale but retain separate roles. */
 .picodash-dashstack-target-slider {
   min-inline-size: 0;
@@ -2318,19 +2337,34 @@
   display: none;
 }
 .picodash-dashstack-target-slider [data-picodash-target-track] {
-  padding-block-end: calc(var(--picodash-font-size-sm) * 1.25 + var(--picodash-space-3));
+  padding-block-end: calc(
+    var(--picodash-font-size-sm) * 1.25 + var(--picodash-space-1) + var(--picodash-space-2) +
+      var(--_picodash-feedback-clearance)
+  );
 }
 .picodash-dashstack-target-slider
   .picodash-dashstack-slider:has([data-picodash-dashstack-slider-marks]) {
   padding-block-end: 0;
 }
+/* Dot/stem feedback sits one spacing step closer than the arrow or status message. */
+.picodash-dashstack-target-slider[data-feedback-marker='stem'] [data-picodash-target-track] {
+  padding-block-end: calc(
+    var(--picodash-font-size-sm) * 1.25 + var(--picodash-space-2) +
+      var(--_picodash-feedback-clearance)
+  );
+}
 .picodash-dashstack-target-slider[data-mark-labels] [data-picodash-target-track] {
-  padding-block-end: calc(var(--picodash-font-size-sm) * 2.25 + var(--picodash-space-5));
+  padding-block-end: calc(
+    var(--picodash-font-size-sm) * 2.25 + var(--picodash-space-5) +
+      var(--_picodash-feedback-clearance)
+  );
 }
 [data-picodash-achieved-marker] {
   position: absolute;
   inset-inline-start: var(--_picodash-achieved-position, 0%);
-  inset-block-start: calc(100% + var(--picodash-space-1));
+  inset-block-start: calc(
+    100% + var(--picodash-space-1) + var(--_picodash-feedback-clearance, 0px)
+  );
   inline-size: 0;
   pointer-events: none;
 }
@@ -2357,7 +2391,10 @@
   font-variant-numeric: tabular-nums;
 }
 .picodash-dashstack-target-slider [data-picodash-target-marks] {
-  inset-block-start: calc(100% + var(--picodash-space-4) + var(--picodash-font-size-sm));
+  inset-block-start: calc(
+    100% + var(--picodash-space-4) + var(--picodash-font-size-sm) +
+      var(--_picodash-feedback-clearance)
+  );
 }
 .picodash-dashstack-target-slider p {
   margin: 0;
@@ -2689,13 +2726,20 @@
 }
 /* Feedback shares the achieved readout's row instead of reserving another line. */
 [data-picodash-target-result-message] {
+  line-height: 1.25;
   position: absolute;
   inset-inline: 0;
-  inset-block-start: calc(100% + var(--picodash-space-1) + var(--picodash-space-2));
+  inset-block-start: calc(
+    100% + var(--picodash-space-1) + var(--picodash-space-2) + var(--_picodash-feedback-clearance)
+  );
   font-size: var(--picodash-font-size-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.picodash-dashstack-target-slider[data-feedback-marker='stem']
+  [data-picodash-target-result-message] {
+  inset-block-start: calc(100% + var(--picodash-space-2) + var(--_picodash-feedback-clearance));
 }
 @media (prefers-reduced-motion: reduce) {
   [data-picodash-target-label-slot] > .picodash-dashstack-field,
@@ -2708,10 +2752,28 @@
 .picodash-dashstack-slider[data-detents] {
   grid-template-columns: minmax(0, 1fr);
   grid-column: 1 / -1;
-  padding-block-end: calc(var(--picodash-font-size-sm) + var(--picodash-space-1));
+  /* The track's lower margin already contributes to the readout row. */
+  padding-block-end: max(
+    0px,
+    calc(
+      var(--picodash-font-size-sm) * 1.25 + var(--picodash-space-2) +
+        var(--_picodash-feedback-clearance) -
+        (var(--_picodash-slider-row-height) - var(--picodash-space-1)) / 2
+    )
+  );
 }
 .picodash-dashstack-slider[data-detents][data-reference-labels] {
-  padding-block-end: calc(2 * var(--picodash-font-size-sm) + var(--picodash-space-4));
+  padding-block-end: max(
+    0px,
+    calc(
+      var(--picodash-font-size-sm) * 2.25 + var(--picodash-space-4) +
+        var(--_picodash-feedback-clearance) -
+        (var(--_picodash-slider-row-height) - var(--picodash-space-1)) / 2
+    )
+  );
+}
+.picodash-dashstack-slider[data-detents] .picodash-dashstack-slider-track {
+  margin-block: calc((var(--_picodash-slider-row-height) - var(--picodash-space-1)) / 2);
 }
 [data-picodash-detent-track] {
   --_picodash-detent-thumb-half: calc(max(44px, var(--picodash-control-height-md)) / 2);
@@ -2781,16 +2843,19 @@
 [data-picodash-detent-readout],
 [data-picodash-detent-mark] {
   position: absolute;
-  inset-block-start: calc(100% + var(--picodash-space-2));
+  inset-block-start: calc(100% + var(--picodash-space-2) + var(--_picodash-feedback-clearance));
   font-size: var(--picodash-font-size-sm);
-  line-height: var(--picodash-line-height-normal);
+  line-height: 1.25;
   color: var(--picodash-color-text);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   pointer-events: none;
 }
 [data-picodash-detent-mark] {
-  inset-block-start: calc(100% + var(--picodash-space-4) + var(--picodash-font-size-sm));
+  inset-block-start: calc(
+    100% + var(--picodash-space-4) + var(--picodash-font-size-sm) +
+      var(--_picodash-feedback-clearance)
+  );
   color: var(--picodash-color-text-muted);
 }
 [data-picodash-detent-readout],
@@ -3027,7 +3092,18 @@
 
 /* Optional outcomes share the range scale, not its editable bounds. */
 .picodash-dashstack-range-slider[data-result] {
-  padding-block-end: calc(var(--picodash-font-size-sm) * 1.25 + var(--picodash-space-4));
+  padding-block-end: max(
+    0px,
+    calc(
+      var(--picodash-font-size-sm) * 1.25 + var(--picodash-space-1) + var(--picodash-space-2) +
+        var(--_picodash-feedback-clearance) -
+        (var(--_picodash-slider-row-height) - var(--picodash-space-1)) / 2
+    )
+  );
+}
+.picodash-dashstack-range-slider[data-result] .picodash-dashstack-range-slider-track {
+  /* Match the slider's first-row envelope so enlarged thumbs remain inside the row. */
+  margin-block: calc((var(--_picodash-slider-row-height) - var(--picodash-space-1)) / 2);
 }
 [data-picodash-range-result-scale] {
   --_picodash-target-thumb-half: 0px;
@@ -3041,7 +3117,7 @@
 }
 [data-picodash-range-result-message] {
   position: absolute;
-  inset-block-start: calc(100% + var(--picodash-space-2));
+  inset-block-start: calc(100% + var(--picodash-space-2) + var(--_picodash-feedback-clearance));
   inset-inline: 0;
   font-size: var(--picodash-font-size-sm);
   line-height: 1.25;

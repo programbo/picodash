@@ -346,6 +346,43 @@ test('reorders the long control desk with glass drag surfaces and fixed pin lane
     await countRange.scrollIntoViewIfNeeded()
     await countRange.screenshot({ path: resolve(directory, `range-actual-${width}.png`) })
   }
+  // Feedback ends at the control boundary instead of reserving an unused second margin.
+  for (const density of ['regular', 'compact']) {
+    if (density === 'compact')
+      await page.getByRole('button', { name: 'Compact', exact: true }).click()
+    for (const id of ['RangeDashlet', 'range-detents', 'endpoint-detents']) {
+      const row = page.locator(`[data-picodash-dashlet="${id}"]`)
+      const spacing = await row.evaluate((node) => {
+        const text = node.querySelector(
+          '[data-picodash-achieved-readout], [data-picodash-detent-readout]',
+        )!
+        const control = text.closest(
+          '.picodash-dashstack-slider, .picodash-dashstack-range-slider',
+        )!
+        const thumb = control.querySelector(
+          '[data-picodash-dashstack-slider-thumb], [data-picodash-dashstack-range-slider-thumb]',
+        )!
+        return {
+          unused: control.getBoundingClientRect().bottom - text.getBoundingClientRect().bottom,
+          gap: text.getBoundingClientRect().top - thumb.getBoundingClientRect().bottom,
+        }
+      })
+      expect(Math.abs(spacing.unused), `${id} ${density} unused feedback space`).toBeLessThan(1)
+      expect(spacing.gap).toBeGreaterThanOrEqual(2)
+    }
+    const target = page.getByRole('textbox', { name: 'Target Bore', exact: true })
+    await target.focus()
+    await expect
+      .poll(() =>
+        target.evaluate((input) => {
+          const field = input.closest('[data-picodash-target-label-slot]')!.firstElementChild!
+          const shell = input.closest('[data-picodash-dashlet-shell]')!
+          return field.getBoundingClientRect().top - shell.getBoundingClientRect().top
+        }),
+      )
+      .toBeGreaterThan(3)
+  }
+  await page.getByRole('button', { name: 'Compact', exact: true }).click()
   const segmented = page.locator('[data-picodash-dashlet="disabled-segment"]')
   const unavailable = segmented
     .locator('[data-picodash-dashstack-segment]')

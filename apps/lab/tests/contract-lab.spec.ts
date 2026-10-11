@@ -223,6 +223,31 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
     await expect(
       phone.locator('.picodash-dashstack-target-slider [data-picodash-achieved-marker]'),
     ).toHaveCSS('--_picodash-achieved-position', '0%')
+    // Coarse-pointer feedback must clear the full touch thumb, including at endpoints.
+    expect(await phone.evaluate(() => matchMedia('(pointer: coarse)').matches)).toBe(true)
+    for (const id of ['RangeDashlet', 'range-detents', 'endpoint-detents', 'target-bore']) {
+      const geometry = await phone.locator(`[data-picodash-dashlet="${id}"]`).evaluate((node) => {
+        const text = node
+          .querySelector('[data-picodash-achieved-readout], [data-picodash-detent-readout]')!
+          .getBoundingClientRect()
+        const thumb = node
+          .querySelector(
+            '[data-picodash-dashstack-slider-thumb], [data-picodash-dashstack-range-slider-thumb]',
+          )!
+          .getBoundingClientRect()
+        const shell = node.querySelector('[data-picodash-dashlet-shell]')!.getBoundingClientRect()
+        return {
+          gap: text.top - thumb.bottom,
+          size: thumb.height,
+          top: thumb.top - shell.top,
+          bottom: shell.bottom - text.bottom,
+        }
+      })
+      expect(geometry.size).toBeGreaterThanOrEqual(43.9)
+      expect(geometry.gap, `${id} readout clears touch thumb`).toBeGreaterThanOrEqual(3)
+      expect(geometry.top).toBeGreaterThanOrEqual(0)
+      expect(geometry.bottom).toBeGreaterThanOrEqual(4)
+    }
     const detent = phone.getByRole('slider', { name: 'Detents', exact: true })
     await detent.scrollIntoViewIfNeeded()
     const detentTrack = detent.locator('xpath=ancestor::*[@data-picodash-detent-track]')

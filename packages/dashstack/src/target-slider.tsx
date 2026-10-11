@@ -261,6 +261,7 @@ export function TargetSlider({
     <div
       className="picodash-dashstack-target-slider"
       data-result={result.status}
+      data-feedback-marker={marks?.length ? 'stem' : 'arrow'}
       data-singleton={singleton || undefined}
       data-mark-labels={marks?.some((mark) => mark.label !== '') || undefined}
       aria-busy={result.status === 'pending'}
