@@ -1523,3 +1523,8 @@ collapse/expand, retained drafts, drag cancellation, one-gesture return, collaps
 reduced-motion interruption and mobile fallback. It passes against the production Lab. A paused
 midpoint verifies visible translation without vertical text distortion. Owning types/lint/build
 and all 27 facade tests pass.
+
+Clean snapshot `0.1.0-dogfood.37` records source `a2608ca280135aa0022bd9eeb786e036bfe01249`.
+All 1,140 package release tests and 13 isolated consumer tests pass, including repeat/frozen
+installation, .36 update/rollback, public types and Vite/Next builds. The owned browser exited.
+Live designer adoption remains with Maz.
