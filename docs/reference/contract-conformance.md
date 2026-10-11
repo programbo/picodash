@@ -1460,3 +1460,8 @@ The facade stylesheet sizes both icons with the shared medium icon token; Lab im
 stylesheet so its integration-owned styles are exercised. Picodash's 25 owning tests,
 lint/types, artifact checks and production Lab build pass. A rendered browser round trip
 verifies both SVG identities, 16px theme sizing and restoration of the inline icon after return.
+
+Clean snapshot `0.1.0-dogfood.34` records source `f5f1d9686f2a0380c1704c09b2e41e10e190d0ab`.
+All 1,138 package release tests pass. Isolated repeat/frozen installs, .33 update/rollback,
+13 consumer tests, public types and Vite/Next CSS builds pass. The owned browser session and
+its processes exited. Live designer adoption remains with Maz.
