@@ -1451,3 +1451,12 @@ Clean snapshot `0.1.0-dogfood.33` records source `f16fbdb036d69e1f6f3854d684345f
 All 1,138 package release tests pass. Isolated repeat/frozen installs, .32 update/rollback,
 13 consumer tests, public types and Vite/Next CSS builds pass. The candidate test preview and
 owned browser processes exited. Live designer adoption remains with Maz.
+
+### Detachable group action icons (2026-10-12)
+
+The home heading uses Lucide `picture-in-picture-2` while inline and `picture-in-picture`
+while detached. Existing Detach/Show accessible names and return behavior are preserved.
+The facade stylesheet sizes both icons with the shared medium icon token; Lab imports that
+stylesheet so its integration-owned styles are exercised. Picodash's 25 owning tests,
+lint/types, artifact checks and production Lab build pass. A rendered browser round trip
+verifies both SVG identities, 16px theme sizing and restoration of the inline icon after return.

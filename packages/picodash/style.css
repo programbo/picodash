@@ -1,3 +1,10 @@
 @import '@picodash/ui/style.css';
 @import '@picodash/dashpanel/style.css';
 @import '@picodash/dashstack/style.css';
+
+[data-picodash-detach-icon] {
+  display: block;
+  inline-size: var(--picodash-icon-md);
+  block-size: var(--picodash-icon-md);
+  margin-inline: auto;
+}

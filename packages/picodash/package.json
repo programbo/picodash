@@ -32,6 +32,7 @@
     "@picodash/dashstack": "workspace:*",
     "@picodash/nexus": "workspace:*",
     "@picodash/ui": "workspace:*",
+    "lucide-react": "catalog:",
     "motion": "catalog:"
   },
   "devDependencies": {

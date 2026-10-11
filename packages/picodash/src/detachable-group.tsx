@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useLayoutEffect, useReducer, useRef, useState, useId } from 'react'
 import { createPortal } from 'react-dom'
+import { PictureInPicture, PictureInPicture2 } from 'lucide-react'
 import { createGroupTransferMotion } from './group-transfer-motion.js'
 import { createPicodashNexus, type DashPanelLayoutRecord } from '@picodash/nexus'
 import { DashPanel, useDashPanel, type DashPanelDefaultLayout } from '@picodash/dashpanel'
@@ -357,7 +358,11 @@ export function DetachableGroup(props: DashGroupHostProps) {
               aria-label={detached ? `Show panel ${name}` : `Detach group ${name}`}
               onClick={() => (detached ? show() : detach())}
             >
-              <span aria-hidden="true">{detached ? '↗' : '⤢'}</span>
+              {detached ? (
+                <PictureInPicture aria-hidden="true" data-picodash-detach-icon />
+              ) : (
+                <PictureInPicture2 aria-hidden="true" data-picodash-detach-icon />
+              )}
             </button>,
             actionsRef.current,
           )
