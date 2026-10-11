@@ -1528,3 +1528,18 @@ Clean snapshot `0.1.0-dogfood.37` records source `a2608ca280135aa0022bd9eeb786e0
 All 1,140 package release tests and 13 isolated consumer tests pass, including repeat/frozen
 installation, .36 update/rollback, public types and Vite/Next builds. The owned browser exited.
 Live designer adoption remains with Maz.
+
+### Foreground scroll cues (2026-10-12)
+
+The shared scroll-fade stylesheet adds a 10×6px foreground triangle centred in each faded edge,
+pointing toward unseen content. Parent pseudo-elements anchor to the actual scrollport outside
+its mask, ignore pointer input and add no layout space. Local anchor/timeline scopes isolate
+nested and adjacent scrollers. The progressive enhancement needs CSS anchors and scroll
+timelines; unsupported anchors retain the existing fade. Forced colors use CanvasText.
+
+An owned browser on the designer verified start, middle, end and overflow removal against the
+candidate stylesheet, including the foreground colour and pointer pass-through. The existing
+phone boundary-contraction journey now verifies the same cue states and forced-colors behavior
+against the rebuilt production Lab. Its start-fade assertion now accepts overflow shorter than
+the existing 96px fade range. The journey passes, as do all 81 owning UI tests and type/lint checks.
+Motion policy and the design detector pass; the owned browser exited.

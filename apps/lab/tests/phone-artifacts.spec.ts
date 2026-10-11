@@ -335,8 +335,16 @@ test('captures phone-sized boundary contraction with start and end lanes', async
           mask: style.maskImage,
         }
       })
+    const cues = () =>
+      list.evaluate((element) => ({
+        top: getComputedStyle(element, '::before').opacity,
+        bottom: getComputedStyle(element, '::after').opacity,
+        pointerEvents: getComputedStyle(element, '::after').pointerEvents,
+      }))
+    await expect.poll(cues).toEqual({ top: '0', bottom: '1', pointerEvents: 'none' })
     await expect.poll(async () => (await fade()).start).toBe(0)
-    await expect.poll(async () => (await fade()).end).toBe(0)
+    // A short overflow can already be inside the final 96px fade range.
+    await expect.poll(async () => (await fade()).end).toBeLessThan(1)
     expect((await fade()).mask).toContain('linear-gradient')
     for (const band of ['start', 'end']) {
       expect(
@@ -351,12 +359,14 @@ test('captures phone-sized boundary contraction with start and end lanes', async
     })
     await expect.poll(async () => (await fade()).start).toBeGreaterThan(0)
     await expect.poll(async () => (await fade()).end).toBeLessThan(1)
+    await expect.poll(cues).toMatchObject({ top: '1', bottom: '1' })
     await capture(page, testInfo, 'boundary-scroll-middle.png')
     expect(await automatic.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
     await automatic.evaluate((element) => {
       element.scrollTop = element.scrollHeight
     })
     await expect.poll(async () => (await fade()).end).toBe(1)
+    await expect.poll(cues).toMatchObject({ top: '1', bottom: '0' })
     await capture(page, testInfo, 'boundary-scroll-end.png')
     expect(
       await automatic.evaluate(
@@ -365,7 +375,13 @@ test('captures phone-sized boundary contraction with start and end lanes', async
     ).toBeLessThanOrEqual(1)
     await page.emulateMedia({ forcedColors: 'active' })
     await expect.poll(async () => (await fade()).mask).toBe('none')
+    await expect.poll(cues).toMatchObject({ top: '1', bottom: '0' })
     await page.emulateMedia({ forcedColors: 'none' })
+    // Content shrinking below the viewport must clear both cues, including after an end scroll.
+    await automatic.evaluate((element) => {
+      for (const child of element.children) if (child instanceof HTMLElement) child.hidden = true
+    })
+    await expect.poll(cues).toMatchObject({ top: '0', bottom: '0' })
     await writeEvidence(testInfo, 'boundary-contraction.json', {
       viewport: phoneViewport,
       panel: panelBox,

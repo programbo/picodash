@@ -83,7 +83,9 @@ describe('@picodash/ui stylesheet contract', () => {
     expect(fade).toContain('@property --_picodash-scroll-fade-bottom')
     expect(fade.match(/initial-value: 0px/g)).toHaveLength(2)
     expect(fade.match(/min\(25%, 40px\)/g)).toHaveLength(2)
-    expect(fade).not.toMatch(/--picodash-[a-z0-9-]+/)
+    expect(new Set(fade.match(/--picodash-[a-z0-9-]+/g))).toEqual(
+      new Set(['--picodash-color-text']),
+    )
     expect(fade.indexOf('mask-image:')).toBeGreaterThan(fade.indexOf('@supports'))
     expect(fade).toContain('@media (forced-colors: active)')
     expect(fade).toContain('mask-image: none')

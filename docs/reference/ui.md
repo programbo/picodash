@@ -974,7 +974,12 @@ This is a reviewed CSS-keyframe exception to the Motion default: CSS scroll time
 directly from scroll position, with no elapsed-time choreography. It remains enabled with reduced
 motion for that reason. Forced-colors mode removes the mask. Browsers without CSS scroll timelines
 retain ordinary scrolling with no fade, rather than permanently obscuring content at either end.
-The private mask variables are implementation details, not additional public theme tokens.
+Where CSS anchor positioning is supported, a solid foreground triangle is centred in each faded
+edge and points toward the unseen content. The triangles sit outside the mask, ignore pointer
+input, add no layout space or accessible content, and disappear when their direction has no
+remaining content. Local anchor and timeline scopes isolate adjacent and nested scrollports.
+Forced-colors mode uses CanvasText for the cues. Browsers without anchor positioning keep the
+existing fade. The private mask variables are implementation details, not additional public theme tokens.
 
 ### CSS verification
 

@@ -15,21 +15,40 @@
   initial-value: 0px;
 }
 
+@property --_picodash-scroll-cue {
+  syntax: '<number>';
+  inherits: false;
+  initial-value: 0;
+}
+
 @keyframes picodash-scroll-fade-start {
   from {
     --_picodash-scroll-fade-top: 0px;
+    --_picodash-scroll-cue: 0;
+  }
+  0.01% {
+    --_picodash-scroll-cue: 1;
   }
   to {
     --_picodash-scroll-fade-top: min(25%, 40px);
+    --_picodash-scroll-cue: 1;
   }
 }
 
 @keyframes picodash-scroll-fade-end {
   from {
     --_picodash-scroll-fade-bottom: min(25%, 40px);
+    --_picodash-scroll-cue: 1;
+  }
+  49.98% {
+    --_picodash-scroll-cue: 1;
+  }
+  49.99% {
+    --_picodash-scroll-cue: 0;
   }
   to {
     --_picodash-scroll-fade-bottom: 0px;
+    --_picodash-scroll-cue: 0;
   }
 }
 
@@ -57,5 +76,59 @@
 @media (forced-colors: active) {
   [data-picodash-scroll-fade] {
     mask-image: none;
+  }
+}
+
+/* Paint outside the mask, anchored to the actual scrollport rather than its shell.
+ * Local anchor/timeline scopes keep nested and neighbouring scrollers independent. */
+@supports (anchor-scope: --_picodash-scrollport) and (animation-timeline: scroll()) {
+  :has(> [data-picodash-scroll-fade]) {
+    anchor-scope: --_picodash-scrollport;
+    timeline-scope: --_picodash-scrollport;
+  }
+
+  [data-picodash-scroll-fade] {
+    anchor-name: --_picodash-scrollport;
+    scroll-timeline: --_picodash-scrollport y;
+  }
+
+  :has(> [data-picodash-scroll-fade])::before,
+  :has(> [data-picodash-scroll-fade])::after {
+    content: '';
+    position: absolute;
+    position-anchor: --_picodash-scrollport;
+    left: anchor(center);
+    width: 10px;
+    height: 6px;
+    margin: 0;
+    translate: -50% -50%;
+    background: var(--picodash-color-text);
+    pointer-events: none;
+    z-index: 3;
+    opacity: var(--_picodash-scroll-cue);
+    animation: picodash-scroll-fade-start auto linear;
+    animation-timeline: --_picodash-scrollport;
+    /* Keep the scroll end inside the active interval; no fill means inactive
+     * timelines clear their cues when resizing removes overflow. */
+    animation-range: 0% 200%;
+  }
+
+  :has(> [data-picodash-scroll-fade])::before {
+    top: calc(anchor(top) + min(anchor-size(height) * 0.125, 20px));
+    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  }
+
+  :has(> [data-picodash-scroll-fade])::after {
+    top: calc(anchor(bottom) - min(anchor-size(height) * 0.125, 20px));
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    animation-name: picodash-scroll-fade-end;
+  }
+}
+
+@media (forced-colors: active) {
+  :has(> [data-picodash-scroll-fade])::before,
+  :has(> [data-picodash-scroll-fade])::after {
+    background: CanvasText;
+    forced-color-adjust: none;
   }
 }
