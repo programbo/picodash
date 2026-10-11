@@ -115,19 +115,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "01dc2a80e8080fff53f4246b748ccf526ccd8c2a2ec8752648a54a4cdef2fa30",
+      "fingerprint": "e95ff4376d956f874cd6307b7717ab84e5c7158fabba9af8c7fa37ec192e2723",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "dd428371fc928dd9b7a66483dd39c5552f68c17ac9f5a1170e7b7637d4411ad7"
+        "docs/reference/contract-conformance.md": "f5e441409498c3a40d23d9ade534723005d1c758926f816708d190823d46b9b5"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "head": "d157c7915f62b853e5324d6a1d3cf19a4173b3c8",
       "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "reason": "Recorded clean dogfood.40 release evidence and clarified Intent 0.5.5 installed-tarball code-block typechecking limits. Source guide validation, strict installed consumer types, 14 consumer tests and Vite/Next builds pass; runtime behavior and task guidance are unchanged.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "Changed: docs/reference/contract-conformance.md at d157c7915f62b853e5324d6a1d3cf19a4173b3c8"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -351,20 +347,14 @@
       ]
     },
     "source:tests/skills/README.md": {
-      "fingerprint": "6cb8a8cf24722688b9410c9294a000d05a3250ef7db50219c256c445eae7990d",
+      "fingerprint": "7b1b438c47cf4c4ed1f474c9dbf370228415d0aa7e00208625a8908585d15f9c",
       "snapshot": {
-        "tests/skills/README.md": "6f4869bb28c65523662e51c9f9bced48cdb56a7b0a683a4b59b9df9440817a48"
+        "tests/skills/README.md": "9ecd59766e336ae83f640d5a9b3bd9887fe295c8b39865c20a9c325905a37f19"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "head": "d157c7915f62b853e5324d6a1d3cf19a4173b3c8",
       "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
-      "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
-      ]
+      "reason": "Recorded clean dogfood.40 release evidence and clarified Intent 0.5.5 installed-tarball code-block typechecking limits. Source guide validation, strict installed consumer types, 14 consumer tests and Vite/Next builds pass; runtime behavior and task guidance are unchanged.",
+      "evidence": ["Changed: tests/skills/README.md at d157c7915f62b853e5324d6a1d3cf19a4173b3c8"]
     },
     "source:tests/skills/consumer-solution.tsx.txt": {
       "fingerprint": "c24365baff76960908d57ad3abceb11960885035861f1de311c805bc728e7876",
@@ -408,6 +398,18 @@
       "reason": "The facade artifact allowlist now includes the already documented and validated bind-controls guide; its release check passes. No consumer guidance or planning changes are needed.",
       "evidence": [
         "Changed: packages/picodash/tests/package-artifacts.mjs at 3f6f4e994d43108d6d39856216e897318588da2c"
+      ]
+    },
+    "source:docs/development/recommended-snapshot.json": {
+      "fingerprint": "5daf137616fae6f8bb460282180685d8ac2aa6d8c7f67e2da6fce05e345a2139",
+      "snapshot": {
+        "docs/development/recommended-snapshot.json": "121abd70d5f23689cae5184a8b2fe51aaac880aaa6a0d76c42cfeb9a99965c19"
+      },
+      "head": "d157c7915f62b853e5324d6a1d3cf19a4173b3c8",
+      "outcome": "no-change",
+      "reason": "Recorded clean dogfood.40 release evidence and clarified Intent 0.5.5 installed-tarball code-block typechecking limits. Source guide validation, strict installed consumer types, 14 consumer tests and Vite/Next builds pass; runtime behavior and task guidance are unchanged.",
+      "evidence": [
+        "Changed: docs/development/recommended-snapshot.json at d157c7915f62b853e5324d6a1d3cf19a4173b3c8"
       ]
     }
   }

@@ -32,3 +32,11 @@ passed after correction. Final release verification uses the clean-source .40 bu
 The unchanged grader also ran against a separate incorrect candidate with the persistence driver
 removed. It failed at the restored shortcut assertion (`⌨` instead of `K`), confirming that an
 ephemeral-only implementation does not pass the task. The successful candidate was left intact.
+
+Installed Intent 0.5.5 validation proves skill structure but skips code-block typechecking: its
+`libraryEntry` requires a Git-tracked declared type entry, which installed tarballs cannot supply.
+Adding a manifest `types` field does not change that condition. Source-level Intent validation
+checks the guide blocks; the installed consumer's separate strict typecheck and interaction grader
+check the delivered API. The final .40 bundle passes 14 installed tests, both guide discovery and
+version assertions, and Vite/Next builds. Do not report installed structural validation as a
+second independent code-block typecheck.

@@ -1584,3 +1584,11 @@ with package discovery, validation and source-review records. The fresh installe
 loaded both guides and passed the task, including browser checks. A driver-less negative candidate
 fails the same grader at restored binding. See `tests/skills/README.md` for evidence limits and
 reproduction. No automatic discovery reliability rate is claimed.
+
+Clean snapshot `0.1.0-dogfood.40` records source `d157c7915f62b853e5324d6a1d3cf19a4173b3c8`.
+All 1,151 package release tests and 14 isolated consumer tests pass, including repeat/frozen
+installation, .39 update/rollback, public types, Vite/Next builds and both installed Intent guides'
+discovery/version metadata. Intent validates guide code in the authoring repository; its 0.5.5
+validator skips code typechecking inside installed tarballs because it requires Git-tracked source.
+Separate installed consumer typechecks and interaction tests cover that boundary. Recording help
+stays inside Panel bounds at 1280px and 390px widths. Live designer adoption remains with Maz.
