@@ -433,6 +433,14 @@ test('detaches one retained group surface and returns it through keyboard, drag 
   const detach = page.getByRole('button', { name: 'Detach group Target feedback', exact: true })
   const panel = page.getByRole('complementary', { name: 'Target feedback', exact: true })
   const editor = page.getByRole('textbox', { name: 'Target Bore', exact: true })
+  const content = group.locator(
+    ':scope > [role="group"] > [data-picodash-group-home] > [data-picodash-group-surface] > [data-picodash-dashgroup-list]',
+  )
+  const rail = () => content.evaluate((node) => getComputedStyle(node).backgroundImage)
+  await header.hover()
+  await expect.poll(rail).toContain('linear-gradient(to right')
+  await page.mouse.move(0, 0)
+  await expect.poll(rail).toBe('none')
   const original = await editor.elementHandle()
   await editor.fill('7.')
   await detach.focus()
@@ -453,6 +461,10 @@ test('detaches one retained group surface and returns it through keyboard, drag 
   await expect(group.getByRole('button', { name: 'Collapse group Target feedback' })).toBeFocused()
   expect(await editor.inputValue()).toBe(value)
   expect(await editor.evaluate((node, original) => node === original, original)).toBe(true)
+  await header.hover()
+  await expect.poll(rail).toContain('linear-gradient(to right')
+  await page.mouse.move(0, 0)
+  await expect.poll(rail).toBe('none')
   // A header click toggles once; a drag still owns movement instead of disclosure.
   await header.locator('[data-picodash-dashgroup-label]').click()
   await expect(group).toHaveAttribute('data-collapsed', 'true')

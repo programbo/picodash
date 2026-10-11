@@ -2250,6 +2250,11 @@
 /* A header hover shows the extent of its group without lighting up every control. */
 .picodash-dashstack-group-item[data-collapsible]
   > [data-picodash-dashgroup]:has(> [data-slot='dash-header']:hover)
+  > [data-picodash-dashgroup-list],
+.picodash-dashstack-group-item[data-collapsible]
+  > [data-picodash-dashgroup]:has(> [data-slot='dash-header']:hover)
+  > [data-picodash-group-home]
+  > [data-picodash-group-surface]
   > [data-picodash-dashgroup-list] {
   background-image: linear-gradient(
     to right,
@@ -2260,6 +2265,12 @@
 [dir='rtl']
   .picodash-dashstack-group-item[data-collapsible]
   > [data-picodash-dashgroup]:has(> [data-slot='dash-header']:hover)
+  > [data-picodash-dashgroup-list],
+[dir='rtl']
+  .picodash-dashstack-group-item[data-collapsible]
+  > [data-picodash-dashgroup]:has(> [data-slot='dash-header']:hover)
+  > [data-picodash-group-home]
+  > [data-picodash-group-surface]
   > [data-picodash-dashgroup-list] {
   background-image: linear-gradient(
     to left,

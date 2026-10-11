@@ -1548,3 +1548,13 @@ Clean snapshot `0.1.0-dogfood.38` records source `e88f703c962ac57fb8e9a56b7a2e2d
 All 1,140 package release tests and 13 isolated consumer tests pass, including repeat/frozen
 installation, .37 update/rollback, public types and Vite/Next builds. Live designer adoption remains
 with Maz.
+
+### Detachable group header hover parity (2026-10-12)
+
+The group-header hover rail now reaches the immediate content list through the detachable
+home/surface wrappers, preserving the same first-column highlight as ordinary groups in both
+text directions. It does not broaden hover styling to nested lists or detached surfaces.
+The existing retained-group browser journey verifies hover entry/exit before detachment and
+after reattachment, alongside its draft, focus, drag and reduced-motion checks. It passes
+against the rebuilt Lab; a candidate stylesheet in the designer confirms the visible rail.
+DashStack types/lint and the design detector pass. The owned browser was closed.
