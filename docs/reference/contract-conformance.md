@@ -1505,3 +1505,21 @@ Clean snapshot `0.1.0-dogfood.36` records source `e37dab353638afa41cb2d1e9572354
 All 1,140 package release tests and 13 isolated consumer tests pass, including repeat/frozen
 installation, .35 update/rollback, public types and Vite/Next builds. The owned browser exited.
 Live designer adoption remains with Maz.
+
+### Sticky footer, header click and button transfer feedback (2026-10-12)
+
+Populated sticky end lanes remove the root list's 3px trailing padding. An owned browser on
+Gearset Designer verifies the gap from the end band to the list bottom changes from 3px to 0px
+with the built candidate stylesheet, preserving sticky positioning. Detachable header clicks
+toggle collapse once when movement stays below the drag threshold; grip/action clicks remain
+independent.
+
+Button transfers use an actual-Panel 240ms Motion transform, with proportional scaling and no
+duplicate editor. Return has an explicit transient phase, completing on arrival, interaction or
+a reduced-motion preference change. Motion setup now runs after parent refs attach; previously
+the feedback controller could remain absent because its child layout effect ran too early.
+The existing native-browser detach journey verifies both live compositor flights, header
+collapse/expand, retained drafts, drag cancellation, one-gesture return, collapsed restoration,
+reduced-motion interruption and mobile fallback. It passes against the production Lab. A paused
+midpoint verifies visible translation without vertical text distortion. Owning types/lint/build
+and all 27 facade tests pass.

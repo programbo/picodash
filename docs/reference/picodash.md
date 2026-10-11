@@ -508,16 +508,20 @@ host to floating placement. The value is not an array of placement modes. Subgro
 groups reject this opt-in. Reordering and pinning do not determine whether a group can detach.
 
 The header's right action detaches the group and focuses a control in the Panel. The left disclosure
-still collapses inline content. Header title/whitespace can be dragged vertically to reorder or
+still collapses inline content, as does a single click on the header title/whitespace. A drag
+handle click does not toggle disclosure. Header title/whitespace can be dragged vertically to reorder or
 pulled sideways by 48 CSS pixels to detach. A provisional reorder is cancelled before transfer;
-Escape cancels the pull. After releasing a detached Panel, dragging its header into the original
-Stack highlights the return target and opens an empty preview slot. Dropping returns the group to
+Escape cancels the pull. Leaving and re-entering the original Stack can return during that same
+gesture; a settled Panel can also be dragged home. Entering the original Stack highlights the return target and opens an empty preview slot. Dropping returns the group to
 its logical home, with its previous collapsed/expanded state. No other Stack accepts it.
 
 The Panel's Return to stack action offers the same return without dragging. The retained home
 heading has a Show panel action that reveals, expands and activates its host. Minimizing a Panel
 keeps it detached. The source heading and subsequent inline controls retain their own tab sequence;
-Panel controls live at the Panel portal. Return restores focus to the home disclosure or action.
+Panel controls live at the Panel portal. Button actions animate the actual Panel between its home
+and detached position with a 240ms proportional transform. During button return, the one editor
+remains in its Panel until the flight completes, then restores focus to the home disclosure or action.
+Reduced motion skips the flight; enabling it during a flight completes the transfer immediately.
 
 The first action-based placement is beside the heading, constrained by the Provider boundary.
 Subsequent detach actions reuse session placement. Detachment is available with a fine pointer at

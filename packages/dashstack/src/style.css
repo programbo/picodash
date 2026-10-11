@@ -3156,6 +3156,12 @@
   > [data-picodash-dashstack-band='automatic'] {
   overflow: visible;
 }
+/* A sticky end band paints through the list's bottom edge, without a content leak. */
+:is([data-picodash-sticky-lanes='both'], [data-picodash-sticky-lanes='end'])
+  > [data-picodash-dashstack-list]:has(> [data-picodash-dashstack-band='end']:not(:empty)) {
+  padding-block-end: 0;
+}
+
 [data-picodash-sticky-lanes='start']
   > [data-picodash-dashstack-list]
   > [data-picodash-dashstack-band='start'],

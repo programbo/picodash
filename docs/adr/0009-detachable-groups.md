@@ -15,7 +15,8 @@ A stable portal container moves between an inline slot and the Panel body, prese
 and drafts without a second editor. DashStack reports presentation location and actual visibility;
 explicit reveal activates the detached host instead of changing the inline collapse preference.
 
-Header whitespace/title are a pointer drag surface; disclosure and actions remain separate.
+Header whitespace/title toggle inline collapse on a click without dragging and form a pointer
+drag surface; the drag grip, disclosure and actions remain separate.
 Vertical movement previews reordering. At 48px horizontal travel from pickup, cancel the reorder
 preview and continue as a Panel. Release settles; Escape/pointer cancellation restores the original
 presentation without committing order or discarding drafts. Only the home Stack accepts return.
@@ -31,7 +32,9 @@ opens reuse session placement. Drag opens retain the grab offset. Return release
 Detachment is enabled on fine-pointer desktop viewports at least 768px wide. Entering unsupported
 layout returns inline without automatically detaching again. This is an initial integration policy,
 not an automatic DashPanel breakpoint. Source removal tears down the host. Hidden source Panels do
-not imply Return. Reduced motion changes no focus or state outcomes.
+not imply Return. Button transfers animate the actual Panel; button return retains its editor in a transient
+returning phase until completion, then restores inline presentation and focus. Reduced motion
+skips or immediately completes the flight without changing focus or final state outcomes.
 
 ## Foundation seams
 

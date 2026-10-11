@@ -1513,7 +1513,8 @@ only when the effective container policy permits reordering and at least two vis
 that band. Multiple pinned siblings can reorder among themselves; a pin is not an absolute index.
 
 `DashStack.stickyLanes?: "start" | "end" | "both" | "none"` defaults to `"both"`.
-This controls root-lane visibility during scrolling independently of ordering:
+This controls root-lane visibility during scrolling independently of ordering. A populated sticky
+end lane sits flush with the list bottom, without trailing list padding:
 
 - `"both"`: start and end lanes retain natural heights outside the middle scrollport.
 - `"start"`: the start lane stays visible; the middle and end scroll together.

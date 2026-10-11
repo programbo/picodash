@@ -156,6 +156,10 @@ it('explicit transitions cancel only provisional detachment and keep settled pan
   expect(transitionGroup('detached', 'enter-home')).toBe('return-preview')
   expect(transitionGroup('return-preview', 'cancel')).toBe('detached')
   expect(transitionGroup('return-preview', 'return')).toBe('inline')
+  const returning = transitionGroup('detached', 'begin-return')
+  expect(returning).toBe('returning')
+  expect(transitionGroup(returning, 'enter-home')).toBe('returning')
+  expect(transitionGroup(returning, 'return')).toBe('inline')
 })
 
 it('retains a pinned non-reorderable group through Strict Mode and isolates two detached hosts', async () => {

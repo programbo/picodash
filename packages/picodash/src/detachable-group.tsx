@@ -30,6 +30,7 @@ type Pickup = {
   rect: DOMRect
   header: HTMLElement
   reordering: boolean
+  toggleOnClick: boolean
 }
 
 /** One stable portal target carries the original React tree between two empty host slots. */
@@ -58,6 +59,7 @@ export function DetachableGroup(props: DashGroupHostProps) {
   const lastLayout = useRef<DashPanelLayoutRecord | undefined>(undefined)
   const height = useRef(0)
   const returnRect = useRef<DOMRect | null>(null)
+  const departRect = useRef<DOMRect | null>(null)
   const motion = useRef<ReturnType<typeof createGroupTransferMotion> | null>(null)
   const focusOnOpen = useRef(false)
   const [initialLayout, setInitialLayout] = useState<DashPanelDefaultLayout>({
@@ -83,11 +85,12 @@ export function DetachableGroup(props: DashGroupHostProps) {
     p.activate()
     requestAnimationFrame(focusContent)
   }
-  const returnHome = (motion = true) => {
-    if (stateRef.current === 'inline') return
+  const returnHome = (animated = true, fly = false) => {
+    if (stateRef.current === 'inline' || (animated && stateRef.current === 'returning')) return
     const current = layoutNexus.getState().scope?.dashPanel
     if (current) lastLayout.current = current
-    returnRect.current = motion ? (panelRef.current?.getBoundingClientRect() ?? null) : null
+    returnRect.current =
+      animated && !fly ? (panelRef.current?.getBoundingClientRect() ?? null) : null
     pending.current = null
     pickup.current = null
     const s = latest.current.source
@@ -95,7 +98,21 @@ export function DetachableGroup(props: DashGroupHostProps) {
     s.expand()
     s.activate()
     groupRef.current?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' })
-    send('return')
+    const panelElement = panelRef.current
+    const home = groupRef.current
+    if (animated && fly && panelElement && home && motion.current) {
+      send('begin-return')
+      latest.current.panel.activate()
+      const to = home.getBoundingClientRect()
+      motion.current.returning(panelElement, to, () => {
+        if (stateRef.current !== 'returning') return
+        latest.current.source.activate()
+        send('return')
+      })
+    } else {
+      motion.current?.cancelFlight()
+      send('return')
+    }
   }
   const detach = (point?: DashPanelTransferPoint, rect?: DOMRect, origin?: Pickup) => {
     if (!latest.current.desktop || stateRef.current !== 'inline') return
@@ -124,6 +141,7 @@ export function DetachableGroup(props: DashGroupHostProps) {
       const top = point && origin ? box.top + point.clientY - origin.y : box.top
       pending.current = { left, top, ...(point ? { point } : {}) }
     }
+    departRect.current = point ? null : box
     focusOnOpen.current = !point
     send(point ? 'pull' : 'detach')
   }
@@ -141,11 +159,15 @@ export function DetachableGroup(props: DashGroupHostProps) {
       target.remove()
     }
   }, [homeRef])
-  useLayoutEffect(() => {
+  // Parent refs attach after child layout effects. Set up feedback once all refs exist.
+  useEffect(() => {
     if (!container || !homeRef.current || !groupRef.current) return
     const feedback = createGroupTransferMotion(homeRef.current, groupRef.current)
     motion.current = feedback
-    return () => feedback.dispose()
+    return () => {
+      feedback.dispose()
+      if (motion.current === feedback) motion.current = null
+    }
   }, [container, homeRef, groupRef])
   useEffect(() => {
     const media = homeRef.current?.ownerDocument.defaultView?.matchMedia(desktopQuery)
@@ -242,6 +264,7 @@ export function DetachableGroup(props: DashGroupHostProps) {
         rect: group.getBoundingClientRect(),
         header,
         reordering: false,
+        toggleOnClick: !target.closest('[data-picodash-reorder-handle]'),
       }
       header.setPointerCapture?.(event.pointerId)
     }
@@ -266,7 +289,19 @@ export function DetachableGroup(props: DashGroupHostProps) {
       if (!p || p.pointerId !== event.pointerId) return
       header.style.removeProperty('translate')
       if (stateRef.current === 'inline' && p.reordering) latest.current.props.reorder.end(event)
+      const click =
+        stateRef.current === 'inline' &&
+        !p.reordering &&
+        p.toggleOnClick &&
+        Math.hypot(event.clientX - p.x, event.clientY - p.y) < 4
       pickup.current = null
+      if (click) {
+        const disclosure = header.querySelector<HTMLButtonElement>(
+          '[data-picodash-group-disclosure]',
+        )
+        disclosure?.focus({ preventScroll: true })
+        disclosure?.click()
+      }
     }
     const cancel = () => {
       if (!pickup.current) return
@@ -302,7 +337,7 @@ export function DetachableGroup(props: DashGroupHostProps) {
     layoutNexus,
     returnLabel: `Return ${name} to stack`,
     returnIcon: <PictureInPicture aria-hidden="true" data-picodash-detach-icon />,
-    returnHome: () => returnHome(),
+    returnHome: () => returnHome(true, true),
     register(next) {
       driver.current = next
       const opening = pending.current
@@ -318,13 +353,20 @@ export function DetachableGroup(props: DashGroupHostProps) {
       }
       if (focusOnOpen.current) {
         focusOnOpen.current = false
-        requestAnimationFrame(show)
+        requestAnimationFrame(() => {
+          if (stateRef.current !== 'detached') return
+          const from = departRect.current
+          departRect.current = null
+          show()
+          if (from && panelRef.current) motion.current?.depart(panelRef.current, from)
+        })
       }
       return () => {
         if (driver.current === next) driver.current = null
       }
     },
     pointer(phase, point) {
+      if (stateRef.current === 'returning') return true
       if (phase === 'cancel') {
         if (isDetaching(stateRef.current)) returnHome(false)
         else send('cancel')
