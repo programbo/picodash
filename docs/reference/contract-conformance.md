@@ -1500,3 +1500,8 @@ pass. In an owned browser on Gearset Designer, loading the built candidate style
 unlabeled Playback content from row two to row one and from a 35px to 5px top inset; its shell
 shrinks from 104px to 74px. The labeled block remains on row two. This is candidate-stylesheet
 proof, not live deployment.
+
+Clean snapshot `0.1.0-dogfood.36` records source `e37dab353638afa41cb2d1e9572354b149a9b4a2`.
+All 1,140 package release tests and 13 isolated consumer tests pass, including repeat/frozen
+installation, .35 update/rollback, public types and Vite/Next builds. The owned browser exited.
+Live designer adoption remains with Maz.
