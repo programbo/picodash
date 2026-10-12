@@ -206,7 +206,7 @@ describe('DashStack stylesheet contract', () => {
       /(?:^|[;{]\s*)(?:left|right|margin-left|margin-right|padding-left|padding-right)\s*:/,
     )
     expect(css).toMatch(
-      /\.picodash-dashlet-help-popover\s*\{[^}]*max-inline-size:[^;]+;[^}]*border:[^;]+;[^}]*background:\s*var\(--picodash-color-surface-raised\);[^}]*box-shadow:\s*var\(--picodash-shadow-elevated\);/s,
+      /\.picodash-dashlet-help-popover\s*\{[^}]*max-inline-size:[^;]+;[^}]*border:[^;]+;[^}]*background:\s*color-mix\(in oklab, var\(--picodash-color-surface-raised\) 88%, transparent\);[^}]*backdrop-filter:\s*blur\(var\(--picodash-blur-surface\)\);[^}]*box-shadow:\s*var\(--picodash-shadow-elevated\);/s,
     )
     expect(css).toMatch(
       /@media\s*\(forced-colors:\s*active\)[\s\S]*\[data-picodash-dashlet-shell\]:focus-visible,[\s\S]*\[data-picodash-dashlet-help\]\[data-focus-visible\]\s*\{[^}]*outline-color:\s*Highlight;/s,

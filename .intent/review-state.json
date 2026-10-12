@@ -629,6 +629,18 @@
       "evidence": [
         "Changed: packages/ui/tests/css-contract.test.ts at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
       ]
+    },
+    "source:packages/dashstack/tests/style.test.ts": {
+      "fingerprint": "74f97f04f2e4cc19b44dda73d64a8c02c33bab4b1c71ae902d9accad93291b53",
+      "snapshot": {
+        "packages/dashstack/tests/style.test.ts": "9390edc177a1ad94c0058b1c319354919dd13950ce8b168130af2483b775901a"
+      },
+      "head": "ee2ed6ab20034f516d20b62f37d26dd55bd92be7",
+      "outcome": "no-change",
+      "reason": "Align the existing supplementary-help CSS contract test with the authorized semantic glass background and blur; all 8 stylesheet tests pass. No source behavior, public API, developer guide or planning record changes.",
+      "evidence": [
+        "Changed: packages/dashstack/tests/style.test.ts at ee2ed6ab20034f516d20b62f37d26dd55bd92be7"
+      ]
     }
   }
 }
