@@ -141,8 +141,19 @@ export async function startPicodashDevBridgeRelay(
     closed = true
     credentials.clear()
     for (const session of active.values()) disconnect(session, new Error('session_disconnected'))
-    await new Promise<void>((resolve) => server.close(() => resolve()))
-    await new Promise<void>((resolve) => wss.close(() => resolve()))
+    const deadline = setTimeout(() => {
+      server.closeAllConnections()
+      for (const socket of wss.clients) socket.terminate()
+    }, 1000)
+    deadline.unref()
+    try {
+      await Promise.all([
+        new Promise<void>((resolve) => server.close(() => resolve())),
+        new Promise<void>((resolve) => wss.close(() => resolve())),
+      ])
+    } finally {
+      clearTimeout(deadline)
+    }
   }
   function accept(
     socket: WebSocket,
@@ -165,6 +176,8 @@ export async function startPicodashDevBridgeRelay(
       registrationId: registration.registrationId,
       browserTabId: registration.browserTabId,
       ...(registration.label === undefined ? {} : { label: registration.label }),
+      ...(registration.buildId === undefined ? {} : { buildId: registration.buildId }),
+      disclosedObservationNames: [...(registration.disclosure.observationNames ?? [])],
       origin,
       fieldKeys: [...registration.fieldKeys],
       disclosedValueFields: [...registration.disclosure.valueFields],
@@ -333,6 +346,13 @@ export async function startPicodashDevBridgeRelay(
       !session.descriptor.disclosedValueFields.includes(command.condition.field)
     )
       return Promise.resolve(err('capability_denied', 'Field is not disclosed.', command.requestId))
+    if (
+      command.condition.type === 'observation_equals' &&
+      !session.descriptor.disclosedObservationNames.includes(command.condition.name)
+    )
+      return Promise.resolve(
+        err('capability_denied', 'Observation is not disclosed.', command.requestId),
+      )
     const immediate = matches(session, command.condition)
     if (immediate) return Promise.resolve(waitResult(session, command.requestId, 'satisfied'))
     return new Promise((resolve) => {
@@ -369,6 +389,13 @@ export async function startPicodashDevBridgeRelay(
     if (condition.type === 'sequence_after') return session.sequence > condition.sequence
     if (condition.afterSequence !== undefined && session.sequence <= condition.afterSequence)
       return false
+    if (condition.type === 'observation_equals') {
+      const observation = session.snapshot.observations?.[condition.name]
+      return (
+        observation?.status === 'available' &&
+        canonicalJson(observation.value) === canonicalJson(condition.value)
+      )
+    }
     return (
       canonicalJson(session.snapshot.values?.[condition.field]) === canonicalJson(condition.value)
     )
@@ -454,7 +481,7 @@ function validateRegistration(
   if (
     !value ||
     value.type !== 'register' ||
-    value.protocolVersion !== 2 ||
+    value.protocolVersion !== 3 ||
     !value.registration ||
     typeof value.registration !== 'object'
   )
@@ -464,8 +491,16 @@ function validateRegistration(
     !exactKeys(value, ['type', 'protocolVersion', 'token', 'registration']) ||
     !exactKeys(
       r,
-      ['registrationId', 'browserTabId', 'label', 'fieldKeys', 'disclosure', 'permissions'],
-      ['label'],
+      [
+        'registrationId',
+        'browserTabId',
+        'label',
+        'buildId',
+        'fieldKeys',
+        'disclosure',
+        'permissions',
+      ],
+      ['label', 'buildId'],
     )
   )
     return
@@ -484,13 +519,21 @@ function validateRegistration(
   const d = r.disclosure as Record<string, unknown>,
     p = r.permissions as Record<string, unknown>
   if (
-    !exactKeys(d, ['valueFields', 'scopeIds', 'diagnostics']) ||
+    !exactKeys(
+      d,
+      ['valueFields', 'scopeIds', 'diagnostics', 'observationNames'],
+      ['observationNames'],
+    ) ||
     !exactKeys(p, ['writableFields'])
   )
     return
   if (
     !arr(d.valueFields) ||
     !arr(d.scopeIds) ||
+    (d.observationNames !== undefined &&
+      (!Array.isArray(d.observationNames) ||
+        !arr(d.observationNames) ||
+        d.observationNames.length > 64)) ||
     typeof d.diagnostics !== 'boolean' ||
     !arr(p.writableFields)
   )
@@ -500,6 +543,7 @@ function validateRegistration(
     (p.writableFields as string[]).some((x) => !(d.valueFields as string[]).includes(x))
   )
     return
+  if (r.buildId !== undefined && !strings(r.buildId, 256)) return
   if (r.label !== undefined && !strings(r.label, 512)) return
   return value as unknown as PicodashDevBridgeRegistration
 }
@@ -519,11 +563,28 @@ function isDisclosureSnapshot(value: unknown, d: PicodashDevBridgeSessionDescrip
   if (!isRecord(value)) return false
   const v = value
   const expected = [
+    ...(d.disclosedObservationNames.length ? ['observations'] : []),
     ...(d.disclosedValueFields.length ? ['values'] : []),
     ...(d.disclosedScopeIds.length ? ['scopes'] : []),
     ...(d.diagnosticsDisclosed ? ['diagnostics'] : []),
   ]
   if (!exactKeys(v, expected)) return false
+  if (expected.includes('observations')) {
+    if (!isRecord(v.observations) || !exactKeys(v.observations, d.disclosedObservationNames))
+      return false
+    for (const item of Object.values(v.observations)) {
+      if (!isRecord(item)) return false
+      if (item.status === 'unavailable') {
+        if (!exactKeys(item, ['status'])) return false
+      } else if (
+        item.status !== 'available' ||
+        !exactKeys(item, ['status', 'value']) ||
+        !boundedObservation(item.value) ||
+        Buffer.byteLength(JSON.stringify(item.value)) > 64000
+      )
+        return false
+    }
+  }
   if (expected.includes('values')) {
     const values = v.values
     if (!isRecord(values)) return false
@@ -579,6 +640,26 @@ function isDisclosureSnapshot(value: unknown, d: PicodashDevBridgeSessionDescrip
   }
   return true
 }
+function boundedObservation(value: unknown): boolean {
+  const stack: { value: unknown; depth: number }[] = [{ value, depth: 0 }]
+  let visited = 0
+  while (stack.length) {
+    const item = stack.pop()!
+    if (++visited > 10000 || item.depth > 24) return false
+    if (item.value === null || typeof item.value === 'string' || typeof item.value === 'boolean')
+      continue
+    if (typeof item.value === 'number') {
+      if (!Number.isFinite(item.value)) return false
+      continue
+    }
+    if (!item.value || typeof item.value !== 'object') return false
+    stack.push(
+      ...Object.values(item.value).map((child) => ({ value: child, depth: item.depth + 1 })),
+    )
+  }
+  return true
+}
+
 function jsonValue(value: unknown): boolean {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return true
   if (typeof value === 'number') return Number.isFinite(value)
@@ -748,6 +829,13 @@ function validWaitCondition(value: unknown): value is PicodashDevBridgeWaitComma
   if (!isRecord(value) || typeof value.type !== 'string') return false
   if (value.type === 'sequence_after')
     return exactKeys(value, ['type', 'sequence']) && validSequence(value.sequence)
+  if (value.type === 'observation_equals')
+    return (
+      exactKeys(value, ['type', 'name', 'value', 'afterSequence'], ['afterSequence']) &&
+      validRequestId(value.name) &&
+      jsonValue(value.value) &&
+      (value.afterSequence === undefined || validSequence(value.afterSequence))
+    )
   if (value.type !== 'value_equals') return false
   return (
     exactKeys(value, ['type', 'field', 'value', 'afterSequence'], ['afterSequence']) &&

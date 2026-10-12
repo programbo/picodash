@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url'
 const names = ['nexus', 'ui', 'dashpanel', 'dashstack', 'picodash'].map(
   (name) => `@picodash/${name}`,
 )
+const bridgeName = '@picodash/dev-bridge'
 const hash = (bytes) => createHash('sha256').update(bytes).digest('hex')
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value)
 
@@ -22,14 +23,14 @@ export async function readSnapshot(bundle) {
     !/^[a-f0-9]{40}$/.test(manifest.sourceCommit) ||
     typeof manifest.dirty !== 'boolean' ||
     !Array.isArray(manifest.packages) ||
-    manifest.packages.length !== names.length
+    ![names.length, names.length + 1].includes(manifest.packages.length)
   )
     throw new Error('Invalid snapshot manifest')
   const seen = new Set()
   for (const pkg of manifest.packages) {
     if (
       !object(pkg) ||
-      !names.includes(pkg.name) ||
+      (!names.includes(pkg.name) && pkg.name !== bridgeName) ||
       seen.has(pkg.name) ||
       pkg.file !== `${pkg.name.replace('@', '').replace('/', '-')}-${manifest.version}.tgz` ||
       !/^[a-f0-9]{64}$/.test(pkg.sha256)
@@ -39,10 +40,11 @@ export async function readSnapshot(bundle) {
     if (hash(await readFile(join(bundle, pkg.file))) !== pkg.sha256)
       throw new Error(`Checksum mismatch: ${pkg.name}`)
   }
+  if (!names.every((name) => seen.has(name))) throw new Error('Invalid snapshot package set')
   return manifest
 }
 
-export function consumerManifest(source, snapshot) {
+export function consumerManifest(source, snapshot, options = {}) {
   if (!object(source) || source.workspaces)
     throw new Error(
       'Target must be a standalone project package.json; workspace installation is not supported yet.',
@@ -57,7 +59,42 @@ export function consumerManifest(source, snapshot) {
   const result = structuredClone(source)
   result.dependencies ??= {}
   result.overrides ??= {}
+  const ownedBridgePath = (value) =>
+    typeof value === 'string' &&
+    /^file:\.\/vendor\/picodash\/(0\.\d+\.\d+-dogfood\.[1-9]\d*)\/picodash-dev-bridge-\1\.tgz$/.test(
+      value,
+    )
+  const bridgeEntries = ['dependencies', 'devDependencies', 'optionalDependencies', 'overrides']
+    .map((key) => result[key]?.[bridgeName])
+    .filter((value) => value !== undefined)
+  const previouslyOwned = bridgeEntries.length > 0 && bridgeEntries.every(ownedBridgePath)
+  if (options.devBridge && !snapshot.packages.some((pkg) => pkg.name === bridgeName))
+    throw new Error('This snapshot does not include Dev Bridge.')
+  const includeBridge =
+    snapshot.packages.some((pkg) => pkg.name === bridgeName) &&
+    (options.devBridge || previouslyOwned)
+  if (
+    (options.devBridge || previouslyOwned) &&
+    bridgeEntries.some((value) => !ownedBridgePath(value))
+  )
+    throw new Error(
+      'Existing Dev Bridge installation is not bundle-owned; resolve it explicitly before opting in.',
+    )
+  if (previouslyOwned && !includeBridge)
+    for (const key of ['dependencies', 'devDependencies', 'optionalDependencies', 'overrides'])
+      if (result[key]) delete result[key][bridgeName]
   for (const pkg of snapshot.packages) {
+    if (pkg.name === bridgeName) {
+      if (includeBridge) {
+        result.devDependencies ??= {}
+        const path = `file:./vendor/picodash/${snapshot.version}/${pkg.file}`
+        result.devDependencies[bridgeName] = path
+        result.overrides[bridgeName] = path
+        delete result.dependencies[bridgeName]
+        if (result.optionalDependencies) delete result.optionalDependencies[bridgeName]
+      }
+      continue
+    }
     const path = `file:./vendor/picodash/${snapshot.version}/${pkg.file}`
     result.dependencies[pkg.name] = path
     result.overrides[pkg.name] = path
@@ -68,10 +105,17 @@ export function consumerManifest(source, snapshot) {
 }
 
 async function main() {
-  const [target, ...extra] = process.argv.slice(2)
-  if (!target || extra.length)
-    throw new Error('Usage: bun /path/to/bundle/install.mjs /path/to/consumer')
-  const bundle = dirname(fileURLToPath(import.meta.url))
+  const [target, ...flags] = process.argv.slice(2)
+  let devBridge = false
+  let bundle = dirname(fileURLToPath(import.meta.url))
+  for (let index = 0; index < flags.length; index++) {
+    if (flags[index] === '--dev-bridge' && !devBridge) devBridge = true
+    else if (flags[index] === '--snapshot' && flags[index + 1]) bundle = resolve(flags[++index])
+    else
+      throw new Error('Usage: bun CURRENT/install.mjs CONSUMER [--dev-bridge] [--snapshot BUNDLE]')
+  }
+  if (!target)
+    throw new Error('Usage: bun CURRENT/install.mjs CONSUMER [--dev-bridge] [--snapshot BUNDLE]')
   const snapshot = await readSnapshot(bundle)
   const consumer = resolve(target)
   // Bun can otherwise discover an enclosing workspace and modify its lockfile.
@@ -88,7 +132,7 @@ async function main() {
   }
   const manifestPath = join(consumer, 'package.json')
   const source = JSON.parse(await readFile(manifestPath, 'utf8'))
-  const next = consumerManifest(source, snapshot)
+  const next = consumerManifest(source, snapshot, { devBridge })
   const vendor = join(consumer, 'vendor/picodash', snapshot.version)
   // Refuse silently replacing a previously installed version with different bytes.
   try {

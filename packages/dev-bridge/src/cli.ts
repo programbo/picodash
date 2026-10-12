@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { randomUUID } from 'node:crypto'
-import { realpathSync } from 'node:fs'
+import { realpathSync, readFileSync, statSync } from 'node:fs'
 import { stdin, stdout, stderr } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import type { PicodashJsonValue } from '@picodash/nexus'
@@ -57,14 +57,22 @@ class CliFailure extends Error {
 
 export async function runPicodashDevBridgeCli(argv = process.argv.slice(2)): Promise<number> {
   let parsed: Parsed
+  let credentialFile: string | undefined
   try {
+    const index = argv.indexOf('--credential-file')
+    if (index !== -1) {
+      credentialFile = argv[index + 1]
+      if (!credentialFile || argv.lastIndexOf('--credential-file') !== index)
+        throw new CliFailure('usage_error', 2)
+      argv = [...argv.slice(0, index), ...argv.slice(index + 2)]
+    }
     parsed = parseArgs(argv)
   } catch (error) {
     return reportLocal(error instanceof CliFailure ? error : new CliFailure('usage_error', 2))
   }
   let credentials: { baseUrl: string; token: string }
   try {
-    credentials = readCredentials()
+    credentials = readCredentials(credentialFile)
   } catch (error) {
     return reportLocal(
       error instanceof CliFailure ? error : new CliFailure('configuration_error', 2),
@@ -186,9 +194,34 @@ function parseArgs(argv: readonly string[]): Parsed {
   return { command, sessionId, generation }
 }
 
-function readCredentials() {
-  const baseUrl = process.env.PICODASH_DEV_BRIDGE_URL
-  const token = process.env.PICODASH_DEV_BRIDGE_TOKEN
+function readCredentials(file?: string) {
+  let baseUrl: unknown = process.env.PICODASH_DEV_BRIDGE_URL
+  let token: unknown = process.env.PICODASH_DEV_BRIDGE_TOKEN
+  if (file) {
+    try {
+      const stat = statSync(file)
+      if (
+        !stat.isFile() ||
+        stat.size > 4096 ||
+        (process.platform !== 'win32' && (stat.mode & 0o077) !== 0)
+      )
+        throw new Error()
+      const credential: unknown = JSON.parse(readFileSync(file, 'utf8'))
+      if (
+        !credential ||
+        typeof credential !== 'object' ||
+        !('type' in credential) ||
+        credential.type !== 'picodash_dev_bridge_agent_credential' ||
+        !('url' in credential) ||
+        !('token' in credential)
+      )
+        throw new Error()
+      baseUrl = credential.url
+      token = credential.token
+    } catch {
+      throw new CliFailure('configuration_error', 2)
+    }
+  }
   if (typeof baseUrl !== 'string' || typeof token !== 'string')
     throw new CliFailure('configuration_error', 2)
   let parsed: URL
@@ -366,6 +399,16 @@ function validCondition(value: unknown): value is Record<string, any> {
   if (!isPlainObject(value) || typeof value.type !== 'string') return false
   if (value.type === 'sequence_after')
     return exactKeys(value, ['type', 'sequence']) && validSequence(value.sequence)
+  if (value.type === 'observation_equals')
+    return (
+      exactKeys(value, ['type', 'name', 'value', 'afterSequence'], ['afterSequence']) &&
+      typeof value.name === 'string' &&
+      value.name.length > 0 &&
+      value.name.length <= 256 &&
+      !hasControl(value.name) &&
+      jsonValue(value.value) &&
+      (value.afterSequence === undefined || validSequence(value.afterSequence))
+    )
   if (value.type !== 'value_equals') return false
   return (
     exactKeys(value, ['type', 'field', 'value', 'afterSequence'], ['afterSequence']) &&
@@ -555,6 +598,8 @@ function isSessionDescriptor(value: unknown): value is PicodashDevBridgeSessionD
         'registrationId',
         'browserTabId',
         'label',
+        'buildId',
+        'disclosedObservationNames',
         'origin',
         'fieldKeys',
         'disclosedValueFields',
@@ -563,7 +608,7 @@ function isSessionDescriptor(value: unknown): value is PicodashDevBridgeSessionD
         'diagnosticsDisclosed',
         'capabilities',
       ],
-      ['label'],
+      ['label', 'buildId'],
     ) &&
     typeof value.sessionId === 'string' &&
     Number.isSafeInteger(value.generation) &&
@@ -573,6 +618,8 @@ function isSessionDescriptor(value: unknown): value is PicodashDevBridgeSessionD
     typeof value.browserTabId === 'string' &&
     typeof value.origin === 'string' &&
     (value.label === undefined || typeof value.label === 'string') &&
+    (value.buildId === undefined || typeof value.buildId === 'string') &&
+    stringArray(value.disclosedObservationNames) &&
     stringArray(value.fieldKeys) &&
     stringArray(value.disclosedValueFields) &&
     stringArray(value.writableFields) &&
@@ -604,7 +651,27 @@ function isSessionRef(value: unknown): value is PicodashDevBridgeSessionRef {
 
 function isSnapshot(value: unknown): value is PicodashDevBridgeSnapshot {
   if (!isPlainObject(value)) return false
-  if (!exactKeys(value, ['values', 'scopes', 'diagnostics'], ['values', 'scopes', 'diagnostics']))
+  if (
+    !exactKeys(
+      value,
+      ['values', 'scopes', 'diagnostics', 'observations'],
+      ['values', 'scopes', 'diagnostics', 'observations'],
+    )
+  )
+    return false
+  if (
+    value.observations !== undefined &&
+    (!isPlainObject(value.observations) ||
+      Object.values(value.observations).some(
+        (item) =>
+          !isPlainObject(item) ||
+          (item.status === 'unavailable'
+            ? !exactKeys(item, ['status'])
+            : item.status !== 'available' ||
+              !exactKeys(item, ['status', 'value']) ||
+              !jsonValue(item.value)),
+      ))
+  )
     return false
   if (
     value.values !== undefined &&

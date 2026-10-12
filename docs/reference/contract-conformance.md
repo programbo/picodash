@@ -1772,3 +1772,19 @@ The production Lab rebuild and focused placement journey against the restored su
 pass (1 test, 16.0 seconds), including public free movement while committed dock and persistence
 remain unchanged until release. Broader browser limitations recorded above remain separate;
 actual Gearmo readout adoption and camera behavior are consumer-owned verification.
+
+External Dev Bridge protocol3 adds deliberately named read-only app observations, redacted
+available/unavailable envelopes, exact observation waits and optional build identity. Nexus writes
+remain atomic and allowlisted; solver revision/readiness and public Panel projections stay owned
+by the app. The public development host owns relay/broker/private files and its process group;
+normal lifetime follows the owner, optional maximum is explicit, and finished means cleanup done.
+Abort, start/stop/exit/failure, abrupt parent loss, live locks and orphaned descendants are verified
+by real host tests. Malformed/oversized/cyclic observation recovery, synchronous subscriptions,
+equality no-ops, disclosure narrowing, generation fencing and quiet disabled defaults are verified
+by protocol tests. Optional dev-dependency delivery and current-installer legacy rollback have
+focused ownership/hash tests. Public DevBridge and DockReactive examples are typed and delivered.
+The existing Lab Bridge browser journey passes (1 test,3.5 seconds). Its second tab now opens
+Contract tools through the existing helper; its style probe filters the intended Number warning
+rather than counting unrelated result statuses, retaining text/count/live/atomic assertions.
+These two navigation/locator fixture corrections are separate from protocol behavior. Actual
+external application integration and first-use friction are recorded after consumer acceptance.

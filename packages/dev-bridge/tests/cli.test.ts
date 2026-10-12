@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, test } from 'vite-plus/test'
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:http'
-import { access } from 'node:fs/promises'
+import { access, mkdtemp, writeFile, chmod, rm } from 'node:fs/promises'
 import path from 'node:path'
+import { tmpdir } from 'node:os'
 import WebSocket from 'ws'
 import { createPicodashNexus } from '@picodash/nexus'
 import { connectPicodashDevBridge } from '../src/browser.js'
@@ -82,6 +83,7 @@ const mockDescriptor = (overrides: Record<string, unknown> = {}) => ({
   writableFields: ['count'],
   disclosedScopeIds: [],
   diagnosticsDisclosed: false,
+  disclosedObservationNames: [],
   capabilities: ['inspect', 'set_values', 'wait'],
   ...overrides,
 })
@@ -560,4 +562,57 @@ describe('dev bridge CLI', () => {
     expect(code).toBe(130)
     expect(Buffer.concat(output).toString()).toContain('aborted')
   }, 30_000)
+})
+
+test('CLI reads private credential files and accepts exact read-only observation waits', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'picodash-cli-credential-'))
+  const relay = await mockRelay(async (url, request, response) => {
+    const selected = mockDescriptor({ disclosedObservationNames: ['solverSettledRevision'] })
+    response.setHeader('content-type', 'application/json')
+    if (url === '/v1/sessions')
+      response.end(JSON.stringify({ type: 'sessions', sessions: [selected] }))
+    else {
+      const chunks: Buffer[] = []
+      for await (const chunk of request) chunks.push(Buffer.from(chunk))
+      const command = JSON.parse(Buffer.concat(chunks).toString())
+      response.end(
+        JSON.stringify({
+          type: 'wait_result',
+          requestId: command.requestId,
+          outcome: 'satisfied',
+          session: { sessionId: selected.sessionId, generation: selected.generation, sequence: 1 },
+          snapshot: { observations: { solverSettledRevision: { status: 'available', value: 4 } } },
+        }),
+      )
+    }
+  })
+  try {
+    const credential = path.join(directory, 'credential.json')
+    await writeFile(
+      credential,
+      JSON.stringify({
+        type: 'picodash_dev_bridge_agent_credential',
+        url: relay.url,
+        token: 'A'.repeat(43),
+      }),
+      { mode: 0o600 },
+    )
+    const sessions = await run(['sessions', '--credential-file', credential], {})
+    expect(sessions.code).toBe(0)
+    const waited = await run(
+      ['wait', '--session-id', 'session', '--generation', '1', '--credential-file', credential],
+      {},
+      JSON.stringify({
+        timeoutMs: 100,
+        condition: { type: 'observation_equals', name: 'solverSettledRevision', value: 4 },
+      }),
+    )
+    expect(waited.code).toBe(0)
+    expect(waited.stdout).toContain('"observations"')
+    await chmod(credential, 0o644)
+    expect((await run(['sessions', '--credential-file', credential], {})).code).toBe(2)
+  } finally {
+    await relay.close()
+    await rm(directory, { recursive: true, force: true })
+  }
 })

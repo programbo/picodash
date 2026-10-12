@@ -3,7 +3,7 @@
 `@picodash/dev-bridge` is a development-only, adapter-like consumer of the public
 `@picodash/nexus` contract. It lets a local agent discover explicitly disclosed Nexus sessions,
 inspect disclosed values/scopes/diagnostics, set allowlisted values, and wait for a value or
-sequence change while the Contract Lab is running. It is not a Nexus extension, application API,
+sequence change while an explicitly enabled development host is running. It is not a Nexus extension, application API,
 or production transport.
 
 ## Current surface
@@ -14,23 +14,30 @@ or production transport.
   Its optional abort signal cancels registration and closes the connection during host teardown;
   see the operational guide for ownership and cleanup.
 - The relay serves an authenticated HTTP client API and an origin-bound, single-use browser
-  credential over the `picodash.dev-bridge.v2` WebSocket subprotocol. Version 2 names Nexus in
-  redacted operation failures; the subprotocol cutover prevents version-1 peers from silently
-  accepting an incompatible error contract.
+  credential over the `picodash.dev-bridge.v3` WebSocket subprotocol. Version 3 adds explicit read-only observations and build identity; the subprotocol cutover
+  prevents version 1/2 peers from silently accepting an incompatible snapshot contract.
 - Browser registrations disclose value fields, scope IDs, and diagnostics explicitly; writable
   fields must be a subset of disclosed value fields.
 
 The baseline supports `sessions`, `inspect`, `set-values`, and `wait`. The exact local setup,
 credential handling, and exit codes are in [the operational guide](../../docs/development/agent-dev-bridge.md).
 
-## External consumer status
+## External development consumers
 
-The verified host workflow is currently Contract Lab-only. The private package is excluded from
-public dogfood snapshots, including `.28`; no external Vite adapter or supported external install
-command is shipped. The [external-app boundary](../../docs/development/agent-dev-bridge.md#external-apps-current-support-boundary)
-explains distribution, host-owned relay/broker lifecycle, and disclosure. A production preview does
-not activate the Bridge. [Sequence waits](../../docs/development/agent-dev-bridge.md#a-bridge-sequence-is-not-solver-readiness)
-observe disclosed Nexus snapshots, not completion of a solver running outside Nexus.
+Dogfood .53 and later deliver this private package as an opt-in development dependency:
+`bun /path/to/CURRENT/install.mjs /path/to/app --dev-bridge`. A portable `/host` export and the
+`picodash-dev-bridge-host --origin http://127.0.0.1:PORT -- COMMAND [ARGS...]` launcher own the
+relay, broker, development child/process group and private credentials. The browser entry exports
+`connectPicodashDevBridgeFromBroker`; missing broker or disabled development quietly returns a
+no-op result. Production previews remain unchanged. [Copyable external setup](../../docs/development/agent-dev-bridge.md#external-development-apps)
+includes lifecycle, selection, credentials and rollback through the current installer.
+
+Explicitly disclosed named application observations stay read-only and outside Nexus. Their
+available/unavailable envelope and `observation_equals` wait can correlate an app-owned terminal
+solver revision with requested preferences and solved actuals. Public Panel metadata can join the
+same app projection. This does not add solver authority or app commands. The v3 subprotocol fences
+older peers. [Observation and revision recipe](../../docs/development/agent-dev-bridge.md#correlate-solver-completion-with-the-accepted-request)
+explains no-op/presentation writes, terminal no-fit/error, and retained stale results.
 
 ## Development boundary
 

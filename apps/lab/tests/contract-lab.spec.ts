@@ -3148,7 +3148,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   await page.reload()
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
   const persistencePage = await page.context().newPage()
-  await persistencePage.goto('/lab')
+  await openLab(persistencePage)
   await expect(persistencePage.locator('[data-contract-lab-status]')).toHaveAttribute(
     'data-ready',
     'true',
@@ -3458,6 +3458,7 @@ test('connects the real browser specimen through the dev bridge and rejects the 
   const styleBasicsStatus = page
     .getByRole('complementary', { name: 'Basics & readout' })
     .locator('[data-picodash-dashstack] [role="status"]')
+    .filter({ hasText: numberWarning })
   await expect(styleBasicsStatus).toHaveCount(1)
   await expect(styleBasicsStatus).toHaveText(numberWarning)
   await expect(styleBasicsStatus).toHaveAttribute('aria-live', 'polite')

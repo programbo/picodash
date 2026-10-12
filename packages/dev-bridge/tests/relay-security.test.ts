@@ -12,15 +12,24 @@ import {
 } from './support/raw.js'
 
 describe('dev bridge relay security boundaries', () => {
-  test('rejects retired version-one peers during the WebSocket handshake', async () => {
-    const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
-    const credential = relay.issueBrowserCredential('http://localhost')
-    const socket = openSocket(credential.webSocketUrl, credential.origin, 'picodash.dev-bridge.v1')
-    socket.on('error', () => undefined)
-    await new Promise<void>((resolve) => socket.once('close', resolve))
-    expect(socket.protocol).toBe('')
-    await relay.close()
-  })
+  test.each([1, 2])(
+    'rejects retired version-%s peers during the WebSocket handshake',
+    async (version) => {
+      const relay = await startPicodashDevBridgeRelay({
+        allowedBrowserOrigins: ['http://localhost'],
+      })
+      const credential = relay.issueBrowserCredential('http://localhost')
+      const socket = openSocket(
+        credential.webSocketUrl,
+        credential.origin,
+        `picodash.dev-bridge.v${version}`,
+      )
+      socket.on('error', () => undefined)
+      await new Promise<void>((resolve) => socket.once('close', resolve))
+      expect(socket.protocol).toBe('')
+      await relay.close()
+    },
+  )
 
   test('browser credentials are origin-bound and single-use', async () => {
     const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })

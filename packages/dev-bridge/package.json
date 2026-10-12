@@ -4,7 +4,8 @@
   "private": true,
   "description": "Private authenticated loopback bridge for Nexus inspection and automation.",
   "bin": {
-    "picodash-dev-bridge": "dist/cli.mjs"
+    "picodash-dev-bridge": "dist/cli.mjs",
+    "picodash-dev-bridge-host": "dist/host-cli.mjs"
   },
   "files": [
     "dist"
@@ -20,7 +21,11 @@
       "types": "./dist/browser.d.mts",
       "import": "./dist/browser.mjs"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./host": {
+      "types": "./dist/host.d.mts",
+      "import": "./dist/host.mjs"
+    }
   },
   "scripts": {
     "build": "vp pack",

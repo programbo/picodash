@@ -45,6 +45,7 @@
     "motion": "catalog:"
   },
   "devDependencies": {
+    "@picodash/dev-bridge": "workspace:*",
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",

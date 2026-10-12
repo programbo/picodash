@@ -34,7 +34,7 @@ more cheaply below the facade.
 
 Read [the dogfooding guide](../development/dogfooding.md) before changing snapshot delivery.
 `bun run dogfood:test` owns manifest and installer regression checks. `bun run dogfood:pack
-<version>` runs release checks and creates an immutable five-package bundle.
+<version>` runs release checks and creates an immutable bundle of five runtime packages plus optional private Dev Bridge tooling.
 `bun run dogfood:check <bundle-directory>` verifies consumption outside the monorepo.
 Keep Dev Bridge private, preserve source manifests, and do not publish snapshots to a registry
 without explicit authorization.

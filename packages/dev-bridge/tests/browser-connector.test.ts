@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'vite-plus/test'
+import { afterEach, describe, expect, test, vi } from 'vite-plus/test'
 import WebSocket from 'ws'
 import { createPicodashNexus } from '@picodash/nexus'
 import { connectPicodashDevBridge } from '../src/browser.js'
@@ -46,6 +46,7 @@ const connections: Array<{ close(): Promise<void> }> = []
 const stores: Array<{ destroy(): void }> = []
 
 afterEach(async () => {
+  vi.unstubAllGlobals()
   await Promise.all(connections.splice(0).map((connection) => connection.close()))
   await Promise.all(relays.splice(0).map((relay) => relay.close()))
   stores.splice(0).forEach((nexus) => nexus.destroy())
@@ -358,4 +359,186 @@ describe('browser connector', () => {
       outcome: { type: 'contract_error', code: 'use-after-destroy' },
     })
   })
+})
+
+test('named observations stay read-only, recover unavailable values, correlate terminal revisions and unsubscribe', async () => {
+  vi.stubGlobal('WebSocket', BrowserWebSocket)
+  const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { count: { defaultValue: 1 } } })
+  stores.push(nexus)
+  const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
+  relays.push(relay)
+  const listeners = new Set<() => void>()
+  let revision = 2
+  let invalid = false
+  let completion: number | null = null
+  let firstRead = true
+  const observations = {
+    getSnapshot: () => {
+      if (firstRead) {
+        firstRead = false
+        revision = 3
+        listeners.forEach((listener) => listener())
+      }
+      if (invalid) throw new Error('private worker failure')
+      return {
+        solver: { requestRevision: revision, status: completion === null ? 'pending' : 'ready' },
+        solverSettledRevision: completion,
+        secret: 'not disclosed',
+      }
+    },
+    subscribe: (listener: () => void) => {
+      listeners.add(listener)
+      revision = 3
+      listener()
+      return () => listeners.delete(listener)
+    },
+  }
+  const abort = new AbortController()
+  const connection = await connectPicodashDevBridge({
+    nexus,
+    credential: relay.issueBrowserCredential('http://localhost'),
+    registrationId: 'external',
+    buildId: 'build-a',
+    disclosure: { valueFields: ['count'], observationNames: ['solver', 'solverSettledRevision'] },
+    permissions: { writableFields: ['count'] },
+    observations,
+    signal: abort.signal,
+  })
+  connections.push(connection)
+  const client = createPicodashDevBridgeClient(relay.agentCredential)
+  await expect
+    .poll(async () => (await client.inspect(connection.session)).snapshot.observations?.solver)
+    .toEqual({ status: 'available', value: { requestRevision: 3, status: 'pending' } })
+  const before = await client.inspect(connection.session)
+  expect(before.session.buildId).toBe('build-a')
+  expect(before.snapshot.observations?.secret).toBeUndefined()
+  listeners.forEach((listener) => listener())
+  await new Promise((resolve) => setTimeout(resolve, 10))
+  expect((await client.inspect(connection.session)).session.sequence).toBe(before.session.sequence)
+  const pending = client.wait(connection.session, {
+    type: 'wait',
+    requestId: 'terminal',
+    timeoutMs: 1000,
+    condition: { type: 'observation_equals', name: 'solverSettledRevision', value: 3 },
+  })
+  completion = 2
+  listeners.forEach((listener) => listener())
+  await expect
+    .poll(
+      async () =>
+        (await client.inspect(connection.session)).snapshot.observations?.solverSettledRevision,
+    )
+    .toEqual({ status: 'available', value: 2 })
+  completion = 3
+  listeners.forEach((listener) => listener())
+  expect(await pending).toMatchObject({
+    outcome: 'satisfied',
+    snapshot: { observations: { solverSettledRevision: { status: 'available', value: 3 } } },
+  })
+  expect(
+    await client.wait(connection.session, {
+      type: 'wait',
+      requestId: 'denied',
+      timeoutMs: 10,
+      condition: { type: 'observation_equals', name: 'secret', value: 'not disclosed' },
+    }),
+  ).toMatchObject({ error: { code: 'capability_denied' } })
+  invalid = true
+  listeners.forEach((listener) => listener())
+  await expect
+    .poll(async () => (await client.inspect(connection.session)).snapshot.observations?.solver)
+    .toEqual({ status: 'unavailable' })
+  expect((await client.inspect(connection.session)).snapshot.values).toEqual({ count: 1 })
+  invalid = false
+  listeners.forEach((listener) => listener())
+  await expect
+    .poll(async () => (await client.inspect(connection.session)).snapshot.observations?.solver)
+    .toMatchObject({ status: 'available' })
+  abort.abort()
+  await connection.close()
+  expect(listeners.size).toBe(0)
+})
+
+test('malformed, cyclic and oversized observation results are redacted and recover without losing Nexus', async () => {
+  vi.stubGlobal('WebSocket', BrowserWebSocket)
+  const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { count: { defaultValue: 1 } } })
+  stores.push(nexus)
+  const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
+  relays.push(relay)
+  let notify = () => {}
+  let value: unknown = () => 'private function'
+  const source = {
+    getSnapshot: () => ({ bad: value }),
+    subscribe: (listener: () => void) => {
+      notify = listener
+      return () => {
+        notify = () => {}
+      }
+    },
+  }
+  const connection = await connectPicodashDevBridge({
+    nexus,
+    credential: relay.issueBrowserCredential('http://localhost'),
+    registrationId: 'malformed',
+    disclosure: { valueFields: ['count'], observationNames: ['bad'] },
+    // @ts-expect-error Exercise runtime data outside the public JSON source contract.
+    observations: source,
+  })
+  connections.push(connection)
+  const client = createPicodashDevBridgeClient(relay.agentCredential)
+  const cycle: Record<string, unknown> = {}
+  cycle.self = cycle
+  for (const bad of [() => {}, cycle, 'x'.repeat(65000), new Date(), Number.NaN]) {
+    value = bad
+    notify()
+    await expect
+      .poll(async () => (await client.inspect(connection.session)).snapshot.observations?.bad)
+      .toEqual({ status: 'unavailable' })
+    expect((await client.inspect(connection.session)).snapshot.values).toEqual({ count: 1 })
+  }
+  value = { safe: 1 }
+  notify()
+  await expect
+    .poll(async () => (await client.inspect(connection.session)).snapshot.observations?.bad)
+    .toEqual({ status: 'available', value: { safe: 1 } })
+  await connection.close()
+  const narrowed = await connectPicodashDevBridge({
+    nexus,
+    credential: relay.issueBrowserCredential('http://localhost'),
+    registrationId: 'malformed',
+    browserTabId: connection.session.browserTabId,
+    disclosure: { valueFields: ['count'] },
+  })
+  connections.push(narrowed)
+  expect(narrowed.session.generation).toBe(connection.session.generation + 1)
+  expect((await client.inspect(narrowed.session)).snapshot.observations).toBeUndefined()
+})
+
+test('broker helper quietly disables without development or a configured broker', async () => {
+  const { connectPicodashDevBridgeFromBroker } = await import('../src/browser.js')
+  const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: { count: { defaultValue: 1 } } })
+  stores.push(nexus)
+  const fetchBefore = globalThis.fetch
+  let requests = 0
+  globalThis.fetch = async () => {
+    requests++
+    throw new Error('must not fetch')
+  }
+  try {
+    for (const options of [
+      { development: false, brokerUrl: 'http://127.0.0.1:1/v1/browser-credential' },
+      { development: true },
+    ]) {
+      const result = await connectPicodashDevBridgeFromBroker({
+        ...options,
+        nexus,
+        registrationId: 'disabled',
+      })
+      expect(result.status).toBe('disabled')
+      await result.close()
+    }
+    expect(requests).toBe(0)
+  } finally {
+    globalThis.fetch = fetchBefore
+  }
 })

@@ -43,18 +43,41 @@ try {
     ),
   )
   await writeFile(join(consumer, 'bunfig.toml'), '[install]\nglobalStore = false\n')
-  run('bun', [join(bundle, 'install.mjs'), consumer])
+  run('bun', [
+    join(bundle, 'install.mjs'),
+    consumer,
+    ...(snapshot.packages.some((pkg) => pkg.name === '@picodash/dev-bridge')
+      ? ['--dev-bridge']
+      : []),
+  ])
   // Repeating installation must remain usable; no absolute paths back into this checkout.
-  run('bun', [join(bundle, 'install.mjs'), consumer])
+  run('bun', [
+    join(bundle, 'install.mjs'),
+    consumer,
+    ...(snapshot.packages.some((pkg) => pkg.name === '@picodash/dev-bridge')
+      ? ['--dev-bridge']
+      : []),
+  ])
   if (alternative) {
-    run('bun', [join(alternative, 'install.mjs'), consumer])
+    run('bun', [join(bundle, 'install.mjs'), consumer, '--snapshot', alternative])
+    if (!alternativeSnapshot.packages.some((pkg) => pkg.name === '@picodash/dev-bridge')) {
+      const rolledBack = JSON.parse(await readFile(join(consumer, 'package.json'), 'utf8'))
+      assert.equal(rolledBack.devDependencies?.['@picodash/dev-bridge'], undefined)
+      assert.equal(rolledBack.overrides?.['@picodash/dev-bridge'], undefined)
+    }
     for (const pkg of alternativeSnapshot.packages) {
       const installed = JSON.parse(
         await readFile(join(consumer, 'node_modules', pkg.name, 'package.json'), 'utf8'),
       )
       assert.equal(installed.version, alternativeSnapshot.version)
     }
-    run('bun', [join(consumer, 'vendor/picodash', snapshot.version, 'install.mjs'), consumer])
+    run('bun', [
+      join(bundle, 'install.mjs'),
+      consumer,
+      ...(snapshot.packages.some((pkg) => pkg.name === '@picodash/dev-bridge')
+        ? ['--dev-bridge']
+        : []),
+    ])
   }
   // Assert the delivered guides and examples, not merely the source checkout's fixtures.
   const vendor = join(consumer, 'vendor/picodash', snapshot.version)
@@ -136,6 +159,10 @@ try {
         'GroupedControls.tsx',
         'WorkspacePanel.tsx',
         'DockPreview.tsx',
+        'DockReactive.tsx',
+        ...(snapshot.packages.some((pkg) => pkg.name === '@picodash/dev-bridge')
+          ? ['DevBridge.tsx']
+          : []),
         'SubgroupPriorities.tsx',
       ],
     }),

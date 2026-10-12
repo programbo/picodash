@@ -18,29 +18,29 @@
       ]
     },
     "skill:packages/picodash/skills/bind-controls/SKILL.md": {
-      "fingerprint": "a97d131ae9a0ae99cedae4c070173c30076c6413119237321d43f77f8536b255",
+      "fingerprint": "924f4891486a17f52a6e2259f99417c68d5918fcf71850aa31548e835693cce4",
       "snapshot": {
-        "docs/development/consumer-recipes.md": "c9c0bea2a841ab09dc90f2dab5aeae35bd0b740199baa0c9087cddbed67a3591",
+        "docs/development/consumer-recipes.md": "f83a8f67d32e95efb901b6c5d6ea81154e92149bd61907c24ccc22fd71dc0cae",
         "packages/picodash/skills/bind-controls/SKILL.md": "f520bfeee1d185085760351a9596b5001331d43d889266a5a3b6299d2d7b27d3",
         "packages/picodash/src/detachable-group.tsx": "fd145e7903df7e83ae8986d2f8beafcc7a452f0db8ce183f26e32af2b705d147",
         "packages/picodash/src/index.ts": "c62056bb9c1b60b8c0e4d3955542de223f7521a4fdb1f4635feaecba8f0c85d5",
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
       "evidence": [
-        "Changed: docs/development/consumer-recipes.md at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: docs/development/consumer-recipes.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
       ]
     },
     "planning:_artifacts": {
-      "fingerprint": "dbc08e7badada7da93bc895257fe5de99c89a81b9a143ab55b91fa82afaac2c2",
+      "fingerprint": "a26fda6e546ff11230d266d8741ad8e64f485f7a8a0d799c01c7326dd3d79a49",
       "snapshot": {
         "_artifacts/domain_map.yaml": "7fae05e81d3660e56f32a0dc042c64b6f4b7c0718bcaf6917e2792371b333dc4",
         "_artifacts/skill_spec.md": "bc0e75e4b8b009a856e577f727fabb72628c78ef5720a343ba4db40b9decdde4",
         "_artifacts/skill_tree.yaml": "4c95e940102fbc17ad5c41ee7fa564f5bdb26150830ae2ef8e6430e23b48009e",
-        "docs/development/consumer-recipes.md": "c9c0bea2a841ab09dc90f2dab5aeae35bd0b740199baa0c9087cddbed67a3591",
+        "docs/development/consumer-recipes.md": "f83a8f67d32e95efb901b6c5d6ea81154e92149bd61907c24ccc22fd71dc0cae",
         "docs/reference/dashpanel.md": "fc5b794f0bf1c2b03849f162f4c24b494095bc529d366629b5edd5602a579f86",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
         "packages/dashpanel/src/index.tsx": "e02be4329b776d23f97c27b688fbb0bdab06c7372f387baf71e364231776d534",
@@ -51,11 +51,11 @@
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
       "outcome": "no-change",
-      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
       "evidence": [
-        "Changed: docs/reference/dashpanel.md, packages/dashpanel/src/index.tsx at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
+        "Changed: docs/development/consumer-recipes.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
       ]
     },
     "source:apps/lab/src/components/contract-lab/specimen.tsx": {
@@ -71,41 +71,39 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "f1193f7bb43f35c7a59d59495e5d9eb2a0abcf64898644a67e1eaa11f519905b",
+      "fingerprint": "c257ecf104943d8d04cb4e8f9f4917a4d4490f0e246ca29f89697d0fb3824b33",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "6f9f7ff613f7afe5dfeb72e17efd3c81757828ff5486b9717d342f9a72a81785"
+        "apps/lab/tests/contract-lab.spec.ts": "f054d077b0a99c9439c017c5443fb93cf7f6b7f5b6cd85e97636bb5d12559c15"
       },
-      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
       "outcome": "no-change",
-      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
       "evidence": [
-        "Changed: apps/lab/tests/contract-lab.spec.ts at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
+        "Changed: apps/lab/tests/contract-lab.spec.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
       ]
     },
     "source:docs/development/dogfooding.md": {
-      "fingerprint": "a47d1dcf2e7e0d92da915dbdfe70153015bd98c33d0145b7047698faa5d17ad0",
+      "fingerprint": "40d37d3955e3acc131331890d99a2222c3f2b30b3df0da3c8e88507219783eb2",
       "snapshot": {
-        "docs/development/dogfooding.md": "a361747c3dee5cc6d0827eae8ddcc91c01459d5d58bfd0710948d9e810ddf0b6"
+        "docs/development/dogfooding.md": "c27be1b592d2c27a93a4b00c4a9a87072519df295771aa80e2ad26a2538b7deb"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "Changed: docs/development/dogfooding.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "c23be51357a90dd0b64f8d6feb27d24510279b5a4b2092a4c160e940e6cf9675",
+      "fingerprint": "a93cb1879ec8abdde0ae71243c61337637b0edc06556ed6166e7331a7a3b08c5",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "d7fead310d77f4c5ee912a7c6263fce605c4a59f7ec7f3a361357c777e60da8c"
+        "docs/reference/contract-conformance.md": "cb1a593f5a131000b7c570d40a1beedfe8d2dcac2f52f6b880465784106014cb"
       },
-      "head": "595a283f4340d54d4fed371b61d080737691b2fc",
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
       "outcome": "no-change",
-      "reason": "Recommendation and conformance now record immutable .52 source595a283,1165 package tests,17 fresh isolated installed-consumer tests, strict public dragPreview example types, guide discovery/validation, .51 upgrade/rollback and Vite/Next builds. Restored supervised Lab production magnetic journey passes16.0s with public active free posture, blocked/available distinctions and no persistence writes before commit. Existing shortcut/binding guide tasks and all three planning documents remain accurate and unchanged; this additive metadata API does not change their workflows. Broader pre-existing browser limitations and actual consumer adoption remain explicitly separate.",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at 595a283f4340d54d4fed371b61d080737691b2fc"
+        "Changed: docs/reference/contract-conformance.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -275,24 +273,24 @@
       ]
     },
     "source:scripts/dogfood/pack.mjs": {
-      "fingerprint": "60d22744850e734ed3804280db3ab597c32fa957229a8ae35adff88b545bba0b",
+      "fingerprint": "e1a642e89cc276a5d19177c4fff031ed8686d78868a9bdeea1bbf97ea4fc06de",
       "snapshot": {
-        "scripts/dogfood/pack.mjs": "f6a8ec63ff97ee314dda8f0a636d3ce6a2fd4bdf5911666153d265acf14bfd86"
+        "scripts/dogfood/pack.mjs": "01f9d68c109068bb25bdfce98a88eebd96dd92fd846a4200dad05218d1ca18b5"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
-      "evidence": ["Changed: scripts/dogfood/pack.mjs at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"]
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": ["Changed: scripts/dogfood/pack.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"]
     },
     "source:scripts/dogfood/smoke.mjs": {
-      "fingerprint": "6d4803211583e51b9f683063cfdd268c8efcd074b2b08f9da87d75f307a709a3",
+      "fingerprint": "5a8ed8cbf8e02822cc07a1fc868142243f0daf2df1b10671794bfe4e55a8d6a1",
       "snapshot": {
-        "scripts/dogfood/smoke.mjs": "7d08efa9b053a2d665171cd95d83eec135973e827b39c31f8a21eeb057018f22"
+        "scripts/dogfood/smoke.mjs": "396fe35a10db9ffa5f7abb0129154fdfa400bfaf372c9eaca5082fc8c4d416be"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
-      "evidence": ["Changed: scripts/dogfood/smoke.mjs at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"]
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": ["Changed: scripts/dogfood/smoke.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"]
     },
     "source:tests/skills/README.md": {
       "fingerprint": "0da5af8c0e43230b2d6bfba071468b411c860ba9378e2dd97b4168fa0cb93fba",
@@ -848,6 +846,384 @@
       "reason": "Help-only trigger blur/toggle race repaired from ordered .50 production pointer trace: public trigger ref/context excludes its own trigger from outside dismissal while retaining caller policy elsewhere. Existing two shortcut/binding guides and all three planning files remain accurate; generic help composition is outside their bounded tasks. UI reference and conformance record normal same-trigger toggle behavior. All 15 scoped component/ownership/consumer-fixture tests, workspace check and both existing help/recorder browser journeys pass, including pointer second-close/third-reopen, Enter/Space, rapid handoff, exit layering, focus/Escape/outside, recording and themes/reduced motion. No coordinator or styling changes; temporary tracing removed. Fresh immutable installed check follows at release.",
       "evidence": [
         "Changed: packages/ui/tests/popover.test.tsx at 80902ac2aa834173309b5bc824b6be595f1c34da"
+      ]
+    },
+    "source:README.md": {
+      "fingerprint": "ffc8825bb357b27896023ca9d0422e91de4376b8496159a79b57a4261a89cfb8",
+      "snapshot": {
+        "README.md": "9a1c2f3d085eca407a199bb59a9aae6da425ed0df7e941ac08fb4de99d42df9b"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": ["Changed: README.md at b403b854604fbf2fad413a6e4c30c1da6593a662"]
+    },
+    "source:apps/lab/scripts/dev-host-process-fixture.mjs": {
+      "fingerprint": "b2097642919c6c11d10887226b610c4716ce18661d2e190fee8cff5783456de4",
+      "snapshot": {
+        "apps/lab/scripts/dev-host-process-fixture.mjs": null
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: apps/lab/scripts/dev-host-process-fixture.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:apps/lab/scripts/dev-host.mjs": {
+      "fingerprint": "99fc6b2296f6eea73e8f96b1183f795e35faae5a0e21b842ae7ab54f07d842f4",
+      "snapshot": {
+        "apps/lab/scripts/dev-host.mjs": "d2feb247848f11bbde8ef111c3007f876491c1a6635db1e9f8a5251b7b671325"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: apps/lab/scripts/dev-host.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:apps/lab/scripts/dev-host.test.mjs": {
+      "fingerprint": "54bd35677988a492368f5d79ce82e3adc7efc0f2aaa60edfe7483b5cc923c3da",
+      "snapshot": {
+        "apps/lab/scripts/dev-host.test.mjs": "88ac9060f0511849bb0b0863c6bdaec60b5dbc6d52ebd879e66d57ef39213cf1"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: apps/lab/scripts/dev-host.test.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:apps/lab/src/components/contract-lab/dev-bridge-connector.tsx": {
+      "fingerprint": "fca1735f76fc17eab7ed043366312c544ec664e9cdb61ccaa6048fd235ff11b1",
+      "snapshot": {
+        "apps/lab/src/components/contract-lab/dev-bridge-connector.tsx": "86c4974e217d6703dc507cdb832fe1dbc397ef509590be20130771873f534d48"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: apps/lab/src/components/contract-lab/dev-bridge-connector.tsx at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:docs/agents/picodash.md": {
+      "fingerprint": "f0092dfc24cd86ecb4071553280c0adb8605319f97517e27a342911f1756ed1a",
+      "snapshot": {
+        "docs/agents/picodash.md": "77d0c7c665dc42664ef1aa05fc97f0894b6873c7e4450ae7fa9b561348640a0b"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": ["Changed: docs/agents/picodash.md at b403b854604fbf2fad413a6e4c30c1da6593a662"]
+    },
+    "source:docs/development/agent-dev-bridge.md": {
+      "fingerprint": "1ec134929b7613bbab66322c6b3389831bb9309eb9a48083e7d7e93222cafdb8",
+      "snapshot": {
+        "docs/development/agent-dev-bridge.md": "e1e1d820fadf53f1c36a6e658f089ab1dca54b0d65697bb6db0159c093ca9e3d"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: docs/development/agent-dev-bridge.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:docs/development/dock-reactive-layout.md": {
+      "fingerprint": "84e223f5ea0dafc06318b899d33bd5b50bbfab6e5dcfa9df0e1f813a3657d3fd",
+      "snapshot": {
+        "docs/development/dock-reactive-layout.md": "48883c9f187e49aeed42984bca7249e64cd9f542238e123040d3e1e07a76b6a5"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: docs/development/dock-reactive-layout.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:docs/development/index.md": {
+      "fingerprint": "132f0a522af6f588b9209d8dd2cb5d2ac8b19b7b894590314f08e00eabafad4a",
+      "snapshot": {
+        "docs/development/index.md": "9d13ada3e045c71f88d40385c0d5600e52526b8347939d6966e78606927774ef"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": ["Changed: docs/development/index.md at b403b854604fbf2fad413a6e4c30c1da6593a662"]
+    },
+    "source:packages/dev-bridge/README.md": {
+      "fingerprint": "756dc7404d5f373741ebb39de43a8daf9913d4dd4bb27c542ed5f8a0279681bb",
+      "snapshot": {
+        "packages/dev-bridge/README.md": "2332bbae88058efdd51cc96a8947d8712ae693efb4a6fc9cf66fdb74f499f4d9"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/README.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/src/browser.ts": {
+      "fingerprint": "479f325b31900ea48941725643dde0c6bb40f6584c7f5d3353ead243471b20de",
+      "snapshot": {
+        "packages/dev-bridge/src/browser.ts": "47a20c47c9f432068f92f180bcecf086a2f568fd8929c00e6adc62039ccfaf31"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/src/browser.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/src/cli.ts": {
+      "fingerprint": "e8b4647432d47a091e7acc49e5fd7ee504708a56ce26717a769a3782d59404bb",
+      "snapshot": {
+        "packages/dev-bridge/src/cli.ts": "52c3120b3f485e348371affe349a571be35cfaae6daa964432b719a2375ae611"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/src/cli.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/src/host-cli.ts": {
+      "fingerprint": "3f359c8a95cec64a9afcfc7132cf232de0560141730104b759ab5672bc835d52",
+      "snapshot": {
+        "packages/dev-bridge/src/host-cli.ts": "fa27c52e71a788f52e26f8ca9c96776005c49a01eafbfe5ba061f2804b883c91"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/src/host-cli.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/src/host.ts": {
+      "fingerprint": "655343f03b72e21c583499f9c055689c24c8376a27f6b28e667ecb9625ca5ae1",
+      "snapshot": {
+        "packages/dev-bridge/src/host.ts": "6b8fc7718e25823b17e0d3b4c730ce50e168357ae4f3f57e17279f28cdad2e50"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/src/host.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/src/index.ts": {
+      "fingerprint": "32a7e1523d5d94b80860c32903deb3c311792d87af4a2cb062a8281161284129",
+      "snapshot": {
+        "packages/dev-bridge/src/index.ts": "c3fec7d668217d4d44fd4699b7a45e34f0cfa051dc732a742dc6f5d7ec1b5a2e"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/src/index.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/src/relay.ts": {
+      "fingerprint": "7248d1200f3599693637c8afcee014f5bd820df2720723f129d5acad21ae9823",
+      "snapshot": {
+        "packages/dev-bridge/src/relay.ts": "6a589754a03f022973b661ac23d35a3062473920d8c153fb203c05fd541a7e96"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/src/relay.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/src/serialization.ts": {
+      "fingerprint": "436161ea8a392a2fc7c9c06bccb0a4aa2c670257c5a853754a0eadd0cccc3a96",
+      "snapshot": {
+        "packages/dev-bridge/src/serialization.ts": "c17bb8ccf25ba80f7dbe514e30f67f4c94a3a4f32d4843a0078a1ea179f1b29e"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/src/serialization.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/src/types.ts": {
+      "fingerprint": "492e80727c40e8e8f041a6e1ec8780b5c2474853f3f49bc2f65638c54662a335",
+      "snapshot": {
+        "packages/dev-bridge/src/types.ts": "20b9131e4f60f697b98504a8015833784e4881764183b418392b010e7a2e7a8e"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/src/types.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/tests/browser-connector.test.ts": {
+      "fingerprint": "194d11f9d2e26d5723be1b8fb66d995ed774c4827a5ea93e3cb8f7f5a445d3a7",
+      "snapshot": {
+        "packages/dev-bridge/tests/browser-connector.test.ts": "41ee0db8b1d8e13e4a8aa70bb723b035ba9ac521734920cd2cbba29edd70497a"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/tests/browser-connector.test.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/tests/cli.test.ts": {
+      "fingerprint": "0cbe46d0eaaa1672c87d67fa7cbe7ef8d1efd2c2f3f65f5e35c9ff20f9536461",
+      "snapshot": {
+        "packages/dev-bridge/tests/cli.test.ts": "bdcc8f70484d13a1ca7e806934831cacb225c9c8bdfbf7430eb97d0685f7c17e"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/tests/cli.test.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/tests/host.test.ts": {
+      "fingerprint": "06a7a9c69fb88dd2ff3f46fe44dbdb97ec6fa201cbb7bc149522e5a5c6db958b",
+      "snapshot": {
+        "packages/dev-bridge/tests/host.test.ts": "29e981d05cf471539e9ed31adb80ef25d5699788a4155312061e0d14bfa7d5e6"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/tests/host.test.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/tests/package-artifacts.mjs": {
+      "fingerprint": "4fad16497e59f754a44ffb54b1d1e5896e626fa97a4da24c7fc59ddd8412b4e0",
+      "snapshot": {
+        "packages/dev-bridge/tests/package-artifacts.mjs": "3b3ae9c8f7651042c737ddab8b543bcf2c2264518fa55af04606a2e10723e7dc"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/tests/package-artifacts.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/tests/package-surface.test.ts": {
+      "fingerprint": "c951000351dfd0d63d12779e0080d187daa92d509f95fca3401266a6a552f25a",
+      "snapshot": {
+        "packages/dev-bridge/tests/package-surface.test.ts": "6b0905ac7fa4ab867c95cc41fce067b410a4caa8b4a845da830d8fcfb7e9b3e8"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/tests/package-surface.test.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/tests/relay-security.test.ts": {
+      "fingerprint": "cc11a420fad3004822ff68b48b3bd65feee6d9514f9cd91432ed6157065d3b8e",
+      "snapshot": {
+        "packages/dev-bridge/tests/relay-security.test.ts": "8f95477d9555ef964dd468fba797de819645573d14dafc194956f53603fbe086"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/tests/relay-security.test.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/tests/relay.test.ts": {
+      "fingerprint": "aac34e1feac859c2a6408ab688a18e6745aa3937b3cc5c90117e090816219889",
+      "snapshot": {
+        "packages/dev-bridge/tests/relay.test.ts": "b13a0cc0de1952970ab507d4718252308694ab51f0ff7e2a611c75449f8d018d"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/tests/relay.test.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/tests/support/raw.ts": {
+      "fingerprint": "4784ff7a77646343133e11aabf97f6fcd7dcc1cce384db23ce35a822ae1fd40e",
+      "snapshot": {
+        "packages/dev-bridge/tests/support/raw.ts": "0741ccd944b21356f0adb1802503e5fa89454312d26b6f5d38e2581a84167de4"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/tests/support/raw.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/dev-bridge/vite.config.ts": {
+      "fingerprint": "e865819ba626d2b61f6100ccb6bfdb72a00cfde7bde92e19479327aaf08880f1",
+      "snapshot": {
+        "packages/dev-bridge/vite.config.ts": "cf782982b6fbb7aecfe981888732fd9af734aa06b047974e2b18c50cf46312e1"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/dev-bridge/vite.config.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/picodash/tests/dogfood/DevBridge.tsx": {
+      "fingerprint": "4855e48bc80c1f3827b12fa556dddf88eeb6c93464cea109ca7d9ab05dcfddf1",
+      "snapshot": {
+        "packages/picodash/tests/dogfood/DevBridge.tsx": "57a72fdcb660cab496c6feb1e5ea17e58ff02300c0b6f9087c71a524efa97961"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/picodash/tests/dogfood/DevBridge.tsx at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/picodash/tests/dogfood/DockReactive.tsx": {
+      "fingerprint": "5749db3de99e347c7c2121d0ee0ec11910eac9ade5bf367bd31fc07894b9e440",
+      "snapshot": {
+        "packages/picodash/tests/dogfood/DockReactive.tsx": "a3df0fbc15ab034814f89aab0d9b927d95f4efa8e4738fd87ed40c2d8943394d"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/picodash/tests/dogfood/DockReactive.tsx at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:packages/picodash/tests/dogfood/dev-bridge.test.tsx": {
+      "fingerprint": "bd89ad95ef20f1671435dc300d721674debf4d3df264d109aec2e806f70f6a49",
+      "snapshot": {
+        "packages/picodash/tests/dogfood/dev-bridge.test.tsx": "6665c8e3545d2704156b3f4f2b855ec65c94f84ec3ac2c3f0dd39fc327d6c4ef"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: packages/picodash/tests/dogfood/dev-bridge.test.tsx at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:scripts/dogfood/dogfood.test.mjs": {
+      "fingerprint": "71a075e8dc2431dcbdf4ca0aff110154d047bea1c6aa436e3e783a5c0b1fdbec",
+      "snapshot": {
+        "scripts/dogfood/dogfood.test.mjs": "b71720a54080a50b6d74f88db5aaaf2ed508ad3523781431ffd45b34b52a1f46"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: scripts/dogfood/dogfood.test.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"
+      ]
+    },
+    "source:scripts/dogfood/install.mjs": {
+      "fingerprint": "0a103f7754b41b07a315cf2e22f5e1a30fc28003941e904b67b80cc8a94b35af",
+      "snapshot": {
+        "scripts/dogfood/install.mjs": "af400d39411011b81913c7cb288309c5baf972a6da915a4516961578c6774708"
+      },
+      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "outcome": "no-change",
+      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "evidence": [
+        "Changed: scripts/dogfood/install.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"
       ]
     }
   }

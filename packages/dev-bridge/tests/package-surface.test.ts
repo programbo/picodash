@@ -13,8 +13,8 @@ describe('dev bridge publication surface', () => {
     expect('Disclosure' in bridge).toBe(false)
     expect('Command' in bridge).toBe(false)
     expect('WireFrame' in bridge).toBe(false)
-    expect(bridge.PICODASH_DEV_BRIDGE_PROTOCOL_VERSION).toBe(2)
-    expect(bridge.PICODASH_DEV_BRIDGE_SUBPROTOCOL).toBe('picodash.dev-bridge.v2')
+    expect(bridge.PICODASH_DEV_BRIDGE_PROTOCOL_VERSION).toBe(3)
+    expect(bridge.PICODASH_DEV_BRIDGE_SUBPROTOCOL).toBe('picodash.dev-bridge.v3')
   })
 
   test('browser source and artifact do not import Node or ws modules', async () => {
@@ -28,10 +28,14 @@ describe('dev bridge publication surface', () => {
 
   test('manifest keeps exact package entries and does not publish compact aliases', async () => {
     const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
-    expect(manifest.bin).toEqual({ 'picodash-dev-bridge': 'dist/cli.mjs' })
+    expect(manifest.bin).toEqual({
+      'picodash-dev-bridge': 'dist/cli.mjs',
+      'picodash-dev-bridge-host': 'dist/host-cli.mjs',
+    })
     expect(manifest.exports).toEqual({
       '.': { types: './dist/index.d.mts', import: './dist/index.mjs' },
       './browser': { types: './dist/browser.d.mts', import: './dist/browser.mjs' },
+      './host': { types: './dist/host.d.mts', import: './dist/host.mjs' },
       './package.json': './package.json',
     })
     expect(manifest.exports['./client']).toBeUndefined()

@@ -9,10 +9,14 @@ const manifest = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf
 assert.deepEqual(manifest.exports, {
   '.': { types: './dist/index.d.mts', import: './dist/index.mjs' },
   './browser': { types: './dist/browser.d.mts', import: './dist/browser.mjs' },
+  './host': { types: './dist/host.d.mts', import: './dist/host.mjs' },
   './package.json': './package.json',
 })
 assert.equal(manifest.private, true)
-assert.deepEqual(manifest.bin, { 'picodash-dev-bridge': 'dist/cli.mjs' })
+assert.deepEqual(manifest.bin, {
+  'picodash-dev-bridge': 'dist/cli.mjs',
+  'picodash-dev-bridge-host': 'dist/host-cli.mjs',
+})
 await access(path.join(root, 'dist/index.mjs'))
 await access(path.join(root, 'dist/browser.mjs'))
 await access(path.join(root, 'dist/cli.mjs'))

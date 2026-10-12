@@ -6,10 +6,9 @@ a standalone installer, an executable example, and a source-commit record. Nothi
 a registry. External dependencies still download from your configured registry.
 
 These are development previews, not a promise of stable APIs or saved-data compatibility. Keep the
-previous snapshot while evaluating an update. Dev Bridge is private development tooling and is not
-included. The supported Bridge host workflow is currently Contract Lab-only; see the
-[external-app integration boundary](agent-dev-bridge.md#external-apps-current-support-boundary)
-before attempting to connect a separate Vite app. The experimental charts entry is not part of the
+previous snapshot while evaluating an update. Dev Bridge remains private development tooling, delivered as an optional sixth tarball from .53.
+Install it only with `--dev-bridge`; it is a development dependency, never a Provider feature.
+See [external Bridge setup](agent-dev-bridge.md#external-development-apps). The experimental charts entry is not part of the
 starter example.
 
 ## Find the recommended snapshot
@@ -33,6 +32,9 @@ On John's machine the source checkout is:
 A copied bundle already identifies itself in `snapshot.json`. Its source commit is provenance;
 its source checkout path is not needed after installation. The repository recommendation can move
 forward without changing an older immutable bundle.
+
+For readouts that move while a dock target is visible, see [dock-reactive layout](dock-reactive-layout.md).
+The [developer task index](index.md) links these starting points.
 
 For custom displays, shared UI/agent priority policy, compound invalid drafts, documents, and
 persistence boundaries, continue with [the application recipes](consumer-recipes.md).

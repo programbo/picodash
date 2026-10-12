@@ -2,7 +2,13 @@ import { defineConfig } from 'vite-plus'
 
 export default defineConfig({
   pack: {
-    entry: { index: 'src/index.ts', browser: 'src/browser.ts', cli: 'src/cli.ts' },
+    entry: {
+      index: 'src/index.ts',
+      browser: 'src/browser.ts',
+      cli: 'src/cli.ts',
+      host: 'src/host.ts',
+      'host-cli': 'src/host-cli.ts',
+    },
     dts: { generator: 'tsgo' },
     exports: false,
     sourcemap: true,

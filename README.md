@@ -35,7 +35,9 @@ Picodash integration follows after all three products are stable.
 
 Use a versioned local bundle to install and update the public packages together. The
 [dogfooding guide](docs/development/dogfooding.md) covers installation, a first control,
-updates, rollback, and returning findings to Picodash. No registry publication is required.
+updates, rollback, and returning findings to Picodash. The [developer task index](docs/development/index.md)
+links copyable recipes, including [dock-reactive readouts](docs/development/dock-reactive-layout.md).
+No registry publication is required.
 
 ## Start with the contract
 

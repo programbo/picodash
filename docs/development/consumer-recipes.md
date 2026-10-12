@@ -19,6 +19,10 @@ For Slider endpoint stops such as Off or Any, see
 [endpoint detents](linked-controls.md#endpoint-detents-off-any-or-application-defined-stops),
 available from dogfood.13. Output formatting remains application-owned.
 
+For transient dock/undock readout reservations with a fixed camera, copy the
+[dock-reactive layout recipe](dock-reactive-layout.md). For development-only app observation and
+allowlisted writes, use [Agent Dev Bridge](agent-dev-bridge.md#external-development-apps).
+
 ## Custom wrappers must expose their Stack node ID
 
 A component used directly inside `DashStack` or `DashGroup` must accept an explicit `id` at the

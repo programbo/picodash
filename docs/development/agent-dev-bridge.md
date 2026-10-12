@@ -1,58 +1,194 @@
 # Agent Dev Bridge
 
 The Agent Dev Bridge is a local development adapter for the public `@picodash/nexus` API. It gives
-an agent a narrow, authenticated view of explicitly disclosed Contract Lab state: discover a
+an agent a narrow, authenticated view of explicitly disclosed application state: discover a
 session, inspect values/scopes/diagnostics, set allowlisted values, and wait for a value or sequence
 change. It does not expose an arbitrary Nexus debugger and must never run in production.
 
-## External apps: current support boundary
+## External development apps
 
-The supported, end-to-end verified host workflow is currently **Contract Lab only**. The relay,
-client, and browser connector are reusable APIs, but there is no shipped external Vite integration
-or supported external install command yet. Dogfood `.28` excludes `@picodash/dev-bridge`; the
-current snapshot packer still ships only Nexus, UI, DashPanel, DashStack, and Picodash. The Bridge
-package is private and declares a `workspace:*` Nexus dependency. Copying its source or packing
-it alone is not the reproducible external distribution path used by the public snapshots.
+Dogfood .53 and later include an optional private `@picodash/dev-bridge` tarball alongside the five
+runtime packages. No registry publication or private-source copying is needed. Use Node 22.12+ and
+Bun 1.3.14+ in a standalone React application. The normal installer leaves Bridge out:
 
-A missing `.picodash/dev-bridge.json` does not mean that a preview is broken. The Lab development
-host creates that file when it starts the relay and credential broker. An ordinary Vite dev server,
-production preview, or installed Picodash Provider does not start them or register a Nexus session.
-The CLI consumes a running relay; it is not a host launcher.
+```sh
+bun /path/to/CURRENT/install.mjs /path/to/app --dev-bridge
+```
 
-For a production-preview consumer such as planetary designer, keep the preview unchanged. External
-Bridge support needs a separate, explicitly enabled development workflow, with a compatible Bridge
-package and a host adapter verified outside this monorepo. Changing `NODE_ENV` on a production
-preview is not that integration. Until those pieces are delivered, use the Lab quickstart below to
-try the protocol; it will inspect the Lab's own Nexus, not a separate application's state.
+This adds Bridge to `devDependencies` with a matching Nexus override. Later compatible updates
+retain that opt-in. To roll back to a five-package snapshot, use the **current installer**:
 
-### What the host adapter must own
+```sh
+bun /path/to/CURRENT/install.mjs /path/to/app --snapshot /path/to/older-bundle
+```
 
-The existing lifecycle is implemented by the
-[Lab development host](../../apps/lab/scripts/dev-host.mjs), not by `DashPanelProvider` or
-`PicodashProvider`. It is a reference implementation, not a Vite plugin:
+It verifies the older manifest and every tarball hash before mutation and removes only the
+bundle-owned Bridge dependency/override. A foreign Bridge installation remains untouched, or
+produces an explicit opt-in conflict. Old immutable installers do not understand this cleanup.
+Commit the resulting manifest, lockfile and vendor bundle. The host automatically appends narrow
+credential/lock/temp patterns to `.picodash/.gitignore`, preserving existing content. Tokens stay
+Git-ignored by default; no parent `.gitignore` mutation or remembered manual step is required.
 
-1. Start `startPicodashDevBridgeRelay` with the exact development browser origin and an ephemeral
-   loopback port. The relay rejects `NODE_ENV=production`. Acquire the private host lock and write
-   the agent URL/token to an owned `0600` credential file under a `0700` directory.
-2. Start an ephemeral loopback credential broker. Its bodyless POST endpoint validates the browser
-   origin and issues a separate, origin-bound, single-use browser credential. Pass only its URL to
-   the web development process; strip agent credentials from that process's environment. Never put
-   the agent bearer token in a `VITE_*` variable or browser bundle.
-3. Mount a development-only browser connector against the application's actual Nexus instance.
-   Fetch a fresh browser credential, then call `connectPicodashDevBridge` from the `/browser`
-   entrypoint with a stable registration ID, explicit disclosure and permissions, and an abort
-   signal. The Lab's `NEXT_PUBLIC_*` variable and Next.js launcher are host-specific plumbing.
-4. Abort registration/connection before destroying Nexus, including unmount and hot-reload cleanup.
-   Re-registration after browser reload creates a new generation; agents rediscover before writing.
-   This is not a persistent connection to an old page or a transparent retry of an old mutation.
-5. On shutdown, failed startup, or child exit, close the browser connection, broker, and relay;
-   terminate the owned development child; remove only credential/lock files whose ownership still
-   matches. Ignore credential files in Git and do not print tokens to logs.
+### One command owns the development host
 
-The Lab connector is gated on development mode; the low-level browser API does not itself supply
-that host gate. An external adapter must enforce its own opt-in development boundary. The verified
-origin is a local HTTP browser origin. A tailnet/HTTPS preview is not covered by this loopback
-recipe; credentials are bound to the exact origin, including scheme and port.
+Add an optional script alongside your ordinary development and production-preview scripts:
+
+```json
+{
+  "scripts": {
+    "dev:agent": "picodash-dev-bridge-host --origin http://127.0.0.1:6240 -- bun x --no-install vp dev --host 127.0.0.1 --port 6240 --strictPort"
+  }
+}
+```
+
+Use your application's reserved development port; 6240 is Gearmo's explicit development port.
+`bun run dev:agent` starts the loopback relay and ephemeral broker, creates the private
+`.picodash/dev-bridge.json`, and owns the direct development child/process group. Ctrl-C, parent
+loss, startup failure, child exit and stop converge on awaited cleanup of owned processes,
+sockets and files. The command prints only the credential file path. The bearer token never
+enters argv, the browser bundle or the child environment. Normal development has no automatic
+expiry; public `/host` options allow an explicit `lifetimeMs` when needed. Startup has bounded
+child spawn, and shutdown uses TERM then KILL with bounded owned-group exit verification.
+Host `finished` resolves only after cleanup. The host refuses production and non-local HTTP origins.
+
+The host supplies `VITE_PICODASH_DEV_BRIDGE_CREDENTIAL_URL` only to that child. Plain `vp dev`
+without it stays quiet and disabled. Keep your production preview (Gearmo 6241) unchanged.
+Applications with another framework can use `createPicodashDevBridgeHost` from
+`@picodash/dev-bridge/host` with `{origin,command:{file,args,cwd},browserCredentialEnv?}`; the Lab
+uses the same host with Next-specific argument and `NEXT_PUBLIC_*` plumbing. Host readiness means
+the relay/broker and child were started, not that the application has rendered or a solver settled.
+
+### Connect the actual Nexus and read-only application source
+
+Copy the bundled `example/DevBridge.tsx` and its `Controls.tsx` companion for the public import/opt-in call
+([source example](../../packages/picodash/tests/dogfood/DevBridge.tsx)). In your application effect, keep
+Nexus, disclosure, permissions and the observation source stable. Gate the dynamic import on
+`import.meta.env.DEV`; abort before destroying Nexus, including StrictMode/HMR cleanup:
+
+```tsx
+useEffect(() => {
+  if (!import.meta.env.DEV) return
+  const abort = new AbortController()
+  let close: (() => Promise<void>) | undefined
+  void import('@picodash/dev-bridge/browser')
+    .then(async ({ connectPicodashDevBridgeFromBroker }) => {
+      if (abort.signal.aborted) return
+      const connection = await connectPicodashDevBridgeFromBroker({
+        development: import.meta.env.DEV,
+        brokerUrl: import.meta.env.VITE_PICODASH_DEV_BRIDGE_CREDENTIAL_URL,
+        nexus,
+        registrationId: 'my-app',
+        label: 'My app',
+        buildId: 'development',
+        disclosure: {
+          valueFields: ['enabled'],
+          scopeIds: [],
+          diagnostics: false,
+          observationNames: ['solver', 'solverSettledRevision', 'panels'],
+        },
+        permissions: { writableFields: ['enabled'] },
+        observations,
+        signal: abort.signal,
+      })
+      if (abort.signal.aborted) await connection.close()
+      else close = connection.close
+    })
+    .catch(() => {
+      if (!abort.signal.aborted) console.warn('Development bridge unavailable; details redacted.')
+    })
+  return () => {
+    abort.abort()
+    void close?.()
+  }
+}, [nexus, observations])
+```
+
+Replace `enabled` and app identity with your actual allowlist. `development:false` or absent broker
+returns `{status:'disabled',close()}` without fetch or WebSocket registration; a live result is
+`{status:'connected',session,close()}`. There are no automatic retries. The connector validates the
+broker/credential and preserves AbortSignal cancellation during fetch and registration.
+
+`PicodashDevBridgeObservationSource` has public `getSnapshot()` and `subscribe(listener)` methods.
+It returns plain named JSON from the application's supported model/controller API. Subscribe
+callbacks mean a meaningful observation may have changed; no per-pointer consumer measurements
+or forced pointer updates are required. The connector subscribes before its first read, tolerates
+synchronous callbacks and suppresses equal snapshots. Unmount/abort/disconnect unsubscribes.
+Disclosure names are separate from Nexus value-field permissions. Never persist/mirror solver or
+Panel observations into Nexus to make them inspectable.
+
+A minimal source against an application's public solution model looks like this; extend its JSON
+projection with requested inputs, actuals and Panels according to your app's disclosure policy:
+
+```ts
+import type { PicodashDevBridgeObservationSource } from '@picodash/dev-bridge/browser'
+
+const observations: PicodashDevBridgeObservationSource = {
+  getSnapshot() {
+    const state = app.solutions.getSnapshot() // stable, application-owned public model
+    return {
+      solver: { requestRevision: state.id, status: state.status },
+      solverSettledRevision: state.status === 'pending' ? null : state.id,
+    }
+  },
+  subscribe(listener) {
+    return app.solutions.subscribe(listener)
+  },
+}
+```
+
+Inspect returns each disclosed observation as `{status:'available',value}` or `{status:'unavailable'}`.
+Only deliberately named results are read. Missing, throwing, non-JSON, cyclic or oversized source
+results become redacted unavailable observations; they do not disconnect Nexus or preserve stale
+values as current. A valid later notification restores availability. There are at most 64 names,
+24 nested levels, 10,000 visited values per observation, 64k UTF-8 bytes per value and 256k aggregate
+observation bytes. Names and build IDs are bounded. The wire accepts no projection expressions,
+arbitrary evaluation, filesystem access or application command RPC.
+
+### Correlate solver completion with the accepted request
+
+An application can disclose `solver` with requested inputs/priority, requestRevision, phase,
+current solved actuals and candidate identity/count/rank. If retained actuals belong to an older
+revision, label them stale explicitly. It can separately disclose `solverSettledRevision`: `null`
+while pending, otherwise the current revision when ready, no-fit or error. These meanings belong
+to the application; Bridge sequence is not a worker revision or readiness guarantee.
+
+Inspect requested inputs/priority and revision, perform the atomic allowlisted Nexus write, then
+inspect the resulting authoritative request revision. Verify `requestedDesign` and `requestedPriority`
+still match the intended accepted write before selecting that revision. A superseding application
+edit is a different request, even if its solver completes. Wait on the matching terminal revision:
+
+```json
+{
+  "timeoutMs": 1000,
+  "condition": { "type": "observation_equals", "name": "solverSettledRevision", "value": 42 }
+}
+```
+
+Then inspect phase and actuals. No-fit/error completes the same revision wait without waiting for
+ready forever. No-op and presentation-only writes need not increment solver revision: an already
+terminal same revision satisfies immediately. Use optional `afterSequence` only when a newer
+observation is actually required. Public Panel controllers can supply committed placement and
+`dragPreview` in the read-only `panels` projection; the [dock-reactive recipe](dock-reactive-layout.md)
+explains overlay behavior while camera transforms stay fixed.
+
+### Select a tab explicitly
+
+`registrationId` is stable application identity; each browser tab has a sessionStorage-owned
+`browserTabId`. Relay session IDs are scoped by origin/app/tab; reload reconnects with a new
+generation while keeping the same tab/session identity. `buildId`, label, server-bound origin,
+disclosure and permissions appear in session descriptors. List sessions, select the exact
+registrationId/browserTabId, then retain sessionId/generation together. Do not auto-pick the first
+session when several tabs match. Disconnected sessions leave discovery; old references receive
+explicit disconnected or stale-generation errors. Rediscover before another mutation.
+
+```sh
+picodash-dev-bridge sessions --credential-file .picodash/dev-bridge.json
+picodash-dev-bridge inspect --session-id SESSION_ID --generation 1 --credential-file .picodash/dev-bridge.json
+```
+
+The CLI reads a private credential file without putting its token in argv. Environment credentials
+remain supported. Its normal `set-values`/`wait` JSON stdin and exit meanings below are unchanged;
+protocol 3 adds named read-only observations and deliberately fences version 1/2 peers.
 
 ### Disclosure recipe
 
@@ -71,8 +207,7 @@ exposes two existing Lab fields and one scope, and allows writes only to the met
 }
 ```
 
-Use your own existing field keys, scope IDs, and registration ID when an external host becomes
-available. Begin with `writableFields: []`, then add only intended inputs; writable fields must be
+Use your own existing field keys, scope IDs, and registration ID with the external host. Begin with `writableFields: []`, then add only intended inputs; writable fields must be
 included in `valueFields`. Omitted disclosure lists and permissions default to empty, and diagnostics
 defaults to false. Scope disclosure exposes that scope's metadata for inspection; it does not grant
 metadata writes. Registration also enumerates Nexus field keys, so hiding a value does not hide the
@@ -111,8 +246,8 @@ export PICODASH_DEV_BRIDGE_TOKEN="$(node -e 'const fs=require("fs"); const c=JSO
 bun run --filter @picodash/dev-bridge build
 ```
 
-Use the built CLI with `node packages/dev-bridge/dist/cli.mjs`. It reads only
-`PICODASH_DEV_BRIDGE_URL` and `PICODASH_DEV_BRIDGE_TOKEN`; it never accepts credentials as flags.
+Use the built CLI with `node packages/dev-bridge/dist/cli.mjs`. It accepts a private path through `--credential-file`, or reads
+`PICODASH_DEV_BRIDGE_URL` and `PICODASH_DEV_BRIDGE_TOKEN`; it never accepts a token as a flag.
 
 ### Discover sessions
 

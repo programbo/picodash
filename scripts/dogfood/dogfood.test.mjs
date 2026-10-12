@@ -121,3 +121,35 @@ test('discovery uses the pinned clean version and never falls back to a trial', 
     await rm(root, { recursive: true, force: true })
   }
 })
+
+test('Bridge is optional development-only delivery with owned update and legacy rollback', () => {
+  const original = { dependencies: { react: '^19', 'react-dom': '^19' }, scripts: { dev: 'vite' } }
+  const current = snapshot('0.1.0-dogfood.53')
+  const plain = consumerManifest(original, current)
+  assert.equal(plain.dependencies['@picodash/dev-bridge'], undefined)
+  const enabled = consumerManifest(original, current, { devBridge: true })
+  assert.match(enabled.devDependencies['@picodash/dev-bridge'], /^file:/)
+  assert.equal(enabled.dependencies['@picodash/dev-bridge'], undefined)
+  const updated = consumerManifest(enabled, snapshot('0.1.0-dogfood.54'))
+  assert.match(updated.devDependencies['@picodash/dev-bridge'], /dogfood\.54/)
+  const legacy = {
+    ...snapshot('0.1.0-dogfood.52'),
+    packages: snapshot('0.1.0-dogfood.52').packages.filter(
+      (pkg) => pkg.name !== '@picodash/dev-bridge',
+    ),
+  }
+  const rolledBack = consumerManifest(enabled, legacy)
+  assert.equal(rolledBack.devDependencies['@picodash/dev-bridge'], undefined)
+  assert.equal(rolledBack.overrides['@picodash/dev-bridge'], undefined)
+  const foreign = {
+    ...original,
+    devDependencies: { '@picodash/dev-bridge': 'file:../foreign.tgz' },
+    overrides: { '@picodash/dev-bridge': '1.2.3' },
+  }
+  assert.equal(
+    consumerManifest(foreign, legacy).devDependencies['@picodash/dev-bridge'],
+    'file:../foreign.tgz',
+  )
+  assert.throws(() => consumerManifest(foreign, current, { devBridge: true }), /not bundle-owned/)
+  assert.throws(() => consumerManifest(original, legacy, { devBridge: true }), /does not include/)
+})

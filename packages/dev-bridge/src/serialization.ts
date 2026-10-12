@@ -34,6 +34,21 @@ export function validateDisclosure(
   const fieldKeys = Object.keys(nexus.fields).sort()
   const values = [...(disclosure.valueFields ?? [])]
   const scopeIds = [...(disclosure.scopeIds ?? [])]
+  const observationNames = [...(disclosure.observationNames ?? [])]
+  if (
+    observationNames.length > 64 ||
+    !observationNames.every(
+      (name) =>
+        typeof name === 'string' &&
+        name.length > 0 &&
+        name.length <= 256 &&
+        !name.split('').some((char) => {
+          const code = char.charCodeAt(0)
+          return code <= 31 || (code >= 127 && code <= 159)
+        }),
+    )
+  )
+    throw new Error('invalid observation disclosure')
   const unique = (items: readonly string[]) => [...new Set(items)]
   if (!values.every((key) => typeof key === 'string' && fieldKeys.includes(key)))
     throw new Error('invalid disclosure field')
@@ -43,6 +58,7 @@ export function validateDisclosure(
     fieldKeys,
     valueFields: unique(values),
     scopeIds: unique(scopeIds),
+    observationNames: unique(observationNames),
     diagnostics: disclosure.diagnostics === true,
   }
 }
@@ -50,6 +66,7 @@ export function validateDisclosure(
 export function makeSnapshot(
   nexus: NexusLike,
   disclosure: ReturnType<typeof validateDisclosure>,
+  source?: import('./types.js').PicodashDevBridgeObservationSource,
 ): PicodashDevBridgeSnapshot {
   const state = nexus.getState()
   const values = Object.fromEntries(
@@ -73,6 +90,9 @@ export function makeSnapshot(
       )
     : undefined
   return {
+    ...(disclosure.observationNames.length
+      ? { observations: readObservations(disclosure.observationNames, source) }
+      : {}),
     ...(disclosure.valueFields.length ? { values } : {}),
     ...(disclosure.scopeIds.length ? { scopes } : {}),
     ...(diagnostics ? { diagnostics } : {}),
@@ -154,4 +174,59 @@ function canonicalJson(value: unknown): string {
       .join(',')}}`
   }
   return 'null'
+}
+
+/** Validate and clone only deliberately disclosed values. Fail closed without leaking errors. */
+function readObservations(
+  names: readonly string[],
+  source?: import('./types.js').PicodashDevBridgeObservationSource,
+): Record<string, import('./types.js').PicodashDevBridgeObservation> {
+  let result: unknown
+  try {
+    result = source?.getSnapshot()
+  } catch {
+    result = undefined
+  }
+  let remaining = 256000
+  return Object.fromEntries(
+    names.map((name) => {
+      try {
+        if (
+          !result ||
+          typeof result !== 'object' ||
+          Array.isArray(result) ||
+          !Object.hasOwn(result, name)
+        )
+          throw new Error()
+        const value: unknown = Reflect.get(result, name)
+        let count = 0
+        const ancestors = new Set<object>()
+        const valid = (item: unknown, depth: number): item is PicodashJsonValue => {
+          if (++count > 10000 || depth > 24) return false
+          if (item === null || typeof item === 'boolean' || typeof item === 'string')
+            return typeof item !== 'string' || item.length <= 64000
+          if (typeof item === 'number') return Number.isFinite(item)
+          if (!item || typeof item !== 'object' || ancestors.has(item)) return false
+          if (
+            !Array.isArray(item) &&
+            Object.getPrototypeOf(item) !== Object.prototype &&
+            Object.getPrototypeOf(item) !== null
+          )
+            return false
+          ancestors.add(item)
+          const ok = Object.values(item).every((child) => valid(child, depth + 1))
+          ancestors.delete(item)
+          return ok
+        }
+        if (!valid(value, 0)) throw new Error()
+        const text = JSON.stringify(value)
+        const bytes = new TextEncoder().encode(text).length
+        if (bytes > 64000 || bytes > remaining) throw new Error()
+        remaining -= bytes
+        return [name, { status: 'available', value: JSON.parse(text) }]
+      } catch {
+        return [name, { status: 'unavailable' }]
+      }
+    }),
+  )
 }

@@ -22,6 +22,7 @@ export async function connectPicodashDevBridge(
   const writable = [...(options.permissions?.writableFields ?? [])]
   if (writable.some((key) => !disclosure.valueFields.includes(key)))
     throw new Error('Writable fields must be disclosed.')
+  let observationSource = options.observations
   const browserTabId = options.browserTabId ?? tabId()
   const socket = new WebSocket(options.credential.webSocketUrl, PICODASH_DEV_BRIDGE_SUBPROTOCOL)
   let descriptor: PicodashDevBridgeBrowserConnection['session'] | undefined
@@ -48,7 +49,7 @@ export async function connectPicodashDevBridge(
   const sendSnapshot = (
     type: 'snapshot' | 'resync' = 'snapshot',
     forcedSequence = sequence,
-    nextSnapshot = makeSnapshot(options.nexus, disclosure),
+    nextSnapshot = makeSnapshot(options.nexus, disclosure, observationSource),
   ) => {
     snapshot = nextSnapshot
     socket.send(
@@ -65,8 +66,9 @@ export async function connectPicodashDevBridge(
     )
   }
   const publishSnapshotChange = () => {
-    const nextSnapshot = makeSnapshot(options.nexus, disclosure)
+    const nextSnapshot = makeSnapshot(options.nexus, disclosure, observationSource)
     if (snapshot && snapshotsEqual(snapshot, nextSnapshot)) return
+    if (!descriptor || socket.readyState !== WebSocket.OPEN || closed) return
     sequence += 1
     sendSnapshot('snapshot', sequence, nextSnapshot)
   }
@@ -81,11 +83,13 @@ export async function connectPicodashDevBridge(
           registrationId: options.registrationId,
           browserTabId,
           ...(options.label === undefined ? {} : { label: options.label }),
+          ...(options.buildId === undefined ? {} : { buildId: options.buildId }),
           fieldKeys: disclosure.fieldKeys,
           disclosure: {
             valueFields: disclosure.valueFields,
             scopeIds: disclosure.scopeIds,
             diagnostics: disclosure.diagnostics,
+            observationNames: disclosure.observationNames,
           },
           permissions: { writableFields: writable },
         },
@@ -102,7 +106,28 @@ export async function connectPicodashDevBridge(
       settled = true
       clearTimeout(timer)
       resolveRegistration(descriptor)
-      if (!snapshot) sendSnapshot()
+      // Subscribe before reading, including sources whose subscription calls back synchronously.
+      try {
+        unsubs.push(options.nexus.subscribe(publishSnapshotChange))
+        if (disclosure.diagnostics)
+          unsubs.push(options.nexus.diagnostics.subscribe(publishSnapshotChange))
+        if (disclosure.observationNames.length && options.observations) {
+          try {
+            unsubs.push(
+              options.observations.subscribe(() =>
+                queueMicrotask(() => {
+                  if (!closed) publishSnapshotChange()
+                }),
+              ),
+            )
+          } catch {
+            observationSource = undefined
+          }
+        }
+        sendSnapshot()
+      } catch {
+        void close()
+      }
     } else if (
       frame.type === 'resync_request' &&
       descriptor &&
@@ -125,6 +150,7 @@ export async function connectPicodashDevBridge(
     }
   })
   socket.addEventListener('close', () => {
+    void close()
     if (!settled) {
       settled = true
       clearTimeout(timer)
@@ -145,21 +171,6 @@ export async function connectPicodashDevBridge(
     throw error
   })
   if (closed) throw new DOMException('Connection aborted.', 'AbortError')
-  unsubs.push(
-    options.nexus.subscribe(() => {
-      if (!closed && socket.readyState === WebSocket.OPEN) {
-        publishSnapshotChange()
-      }
-    }),
-  )
-  if (disclosure.diagnostics)
-    unsubs.push(
-      options.nexus.diagnostics.subscribe(() => {
-        if (!closed && socket.readyState === WebSocket.OPEN) {
-          publishSnapshotChange()
-        }
-      }),
-    )
   async function execute(command: PicodashDevBridgeCommand) {
     const beforeSequence = sequence
     let outcome: import('./types.js').PicodashDevBridgeNexusOutcome<
@@ -252,6 +263,8 @@ function tabId() {
   }
 }
 export type {
+  PicodashDevBridgeObservationSource,
+  PicodashDevBridgeObservation,
   PicodashDevBridgeDisclosure,
   PicodashDevBridgePermissions,
   PicodashDevBridgeSnapshot,
@@ -272,3 +285,71 @@ export type {
   PicodashDevBridgeRegistration,
   PicodashDevBridgeWireFrame,
 } from './types.js'
+
+export async function connectPicodashDevBridgeFromBroker<
+  Fields extends import('@picodash/nexus').PicodashFieldDefinitions,
+  Result extends CoreTransactionResult | PersistentTransactionResult = CoreTransactionResult,
+>(
+  options: Omit<PicodashDevBridgeConnectOptions<Fields, Result>, 'credential'> & {
+    readonly brokerUrl?: string
+    readonly development: boolean
+  },
+) {
+  if (!options.development || !options.brokerUrl)
+    return { status: 'disabled' as const, close: async () => {} }
+  options.signal?.throwIfAborted()
+  const url = new URL(options.brokerUrl)
+  if (
+    url.protocol !== 'http:' ||
+    url.hostname !== '127.0.0.1' ||
+    !url.port ||
+    url.pathname !== '/v1/browser-credential' ||
+    url.username ||
+    url.password ||
+    url.search ||
+    url.hash
+  )
+    throw new Error('Invalid credential broker URL.')
+  const response = await fetch(url, {
+    method: 'POST',
+    credentials: 'omit',
+    cache: 'no-store',
+    referrerPolicy: 'no-referrer',
+    signal: options.signal,
+  })
+  if (!response.ok) throw new Error('Credential broker unavailable.')
+  const credential: unknown = await response.json()
+  if (
+    !credential ||
+    typeof credential !== 'object' ||
+    !('origin' in credential) ||
+    typeof credential.origin !== 'string' ||
+    !('token' in credential) ||
+    typeof credential.token !== 'string' ||
+    !/^[A-Za-z0-9_-]{43}$/.test(credential.token) ||
+    !('webSocketUrl' in credential) ||
+    typeof credential.webSocketUrl !== 'string'
+  )
+    throw new Error('Invalid browser credential.')
+  const websocket = new URL(credential.webSocketUrl)
+  if (
+    websocket.protocol !== 'ws:' ||
+    websocket.hostname !== '127.0.0.1' ||
+    !websocket.port ||
+    websocket.pathname !== '/v1/browser' ||
+    websocket.username ||
+    websocket.password ||
+    websocket.search ||
+    websocket.hash
+  )
+    throw new Error('Invalid browser credential.')
+  const connection = await connectPicodashDevBridge({
+    ...options,
+    credential: {
+      origin: credential.origin,
+      token: credential.token,
+      webSocketUrl: credential.webSocketUrl,
+    },
+  })
+  return { status: 'connected' as const, ...connection }
+}

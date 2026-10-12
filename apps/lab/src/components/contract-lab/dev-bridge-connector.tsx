@@ -9,23 +9,6 @@ import type {
 
 const credentialUrl = process.env.NEXT_PUBLIC_PICODASH_DEV_BRIDGE_CREDENTIAL_URL
 
-function validUrl(value: string | undefined) {
-  if (!value) return false
-  try {
-    const url = new URL(value)
-    return (
-      url.protocol === 'http:' &&
-      url.hostname === '127.0.0.1' &&
-      url.port !== '' &&
-      url.pathname === '/v1/browser-credential' &&
-      !url.search &&
-      !url.hash
-    )
-  } catch {
-    return false
-  }
-}
-
 const primaryDisclosure: PicodashDevBridgeDisclosure = {
   valueFields: ['specimenMetric', 'specimenUnit'],
   scopeIds: [
@@ -55,28 +38,19 @@ export function ContractLabDevBridgeConnector<Fields extends PicodashFieldDefini
   permissions = primaryPermissions,
 }: ContractLabDevBridgeConnectorProps<Fields>) {
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'development' || !validUrl(credentialUrl)) return
+    if (process.env.NODE_ENV !== 'development' || !credentialUrl) return
     const abort = new AbortController()
     let connection: { close(): Promise<void> } | undefined
     let active = true
     void (async () => {
       try {
-        const response = await fetch(credentialUrl!, {
-          method: 'POST',
-          credentials: 'omit',
-          cache: 'no-store',
-          referrerPolicy: 'no-referrer',
-          signal: abort.signal,
-        })
-        if (!response.ok) throw new Error('credential broker rejected request')
-        const credential = await response.json()
-        if (!active) return
         const bridge = await import('@picodash/dev-bridge/browser')
         if (!active) return
-        const connected = await bridge.connectPicodashDevBridge({
+        const connected = await bridge.connectPicodashDevBridgeFromBroker({
+          development: true,
+          brokerUrl: credentialUrl,
           signal: abort.signal,
           nexus,
-          credential,
           registrationId,
           label,
           disclosure,

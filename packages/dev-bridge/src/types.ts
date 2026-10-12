@@ -8,12 +8,13 @@ import type {
   TransactionIssue,
 } from '@picodash/nexus'
 
-export const PICODASH_DEV_BRIDGE_PROTOCOL_VERSION = 2 as const
-export const PICODASH_DEV_BRIDGE_SUBPROTOCOL = 'picodash.dev-bridge.v2' as const
+export const PICODASH_DEV_BRIDGE_PROTOCOL_VERSION = 3 as const
+export const PICODASH_DEV_BRIDGE_SUBPROTOCOL = 'picodash.dev-bridge.v3' as const
 export type PicodashDevBridgeDisclosure = Readonly<{
   valueFields: readonly string[]
   scopeIds: readonly string[]
   diagnostics: boolean
+  observationNames?: readonly string[]
 }>
 export type PicodashDevBridgePermissions = Readonly<{ writableFields: readonly string[] }>
 export type PicodashDevBridgeSnapshotScope = Readonly<{ id: string; metadata?: PicodashJsonValue }>
@@ -26,7 +27,15 @@ export type PicodashDevBridgeSnapshotDiagnostic = Readonly<{
   count: number
   lastOccurrence: number
 }>
+export type PicodashDevBridgeObservationSource = Readonly<{
+  getSnapshot(): Readonly<Record<string, import('@picodash/nexus').PicodashJsonValue>>
+  subscribe(listener: () => void): () => void
+}>
+export type PicodashDevBridgeObservation =
+  | Readonly<{ status: 'available'; value: PicodashJsonValue }>
+  | Readonly<{ status: 'unavailable' }>
 export type PicodashDevBridgeSnapshot = Readonly<{
+  observations?: Readonly<Record<string, PicodashDevBridgeObservation>>
   values?: Readonly<Record<string, PicodashJsonValue>>
   scopes?: readonly PicodashDevBridgeSnapshotScope[]
   diagnostics?: readonly PicodashDevBridgeSnapshotDiagnostic[]
@@ -41,6 +50,8 @@ export type PicodashDevBridgeSessionDescriptor = PicodashDevBridgeSessionRef &
     registrationId: string
     browserTabId: string
     label?: string
+    buildId?: string
+    disclosedObservationNames: readonly string[]
     origin: string
     fieldKeys: readonly string[]
     disclosedValueFields: readonly string[]
@@ -68,6 +79,12 @@ export type PicodashDevBridgeSetValuesCommand = Readonly<{
   values: Readonly<Record<string, PicodashJsonValue>>
 }>
 export type PicodashDevBridgeWaitCondition =
+  | Readonly<{
+      type: 'observation_equals'
+      name: string
+      value: PicodashJsonValue
+      afterSequence?: number
+    }>
   | Readonly<{ type: 'sequence_after'; sequence: number }>
   | Readonly<{
       type: 'value_equals'
@@ -145,6 +162,8 @@ export type PicodashDevBridgeConnectOptions<
   credential: PicodashDevBridgeBrowserCredential
   registrationId: string
   label?: string
+  buildId?: string
+  observations?: PicodashDevBridgeObservationSource
   disclosure?: Partial<PicodashDevBridgeDisclosure>
   permissions?: Partial<PicodashDevBridgePermissions>
   browserTabId?: string
@@ -156,12 +175,13 @@ export type PicodashDevBridgeBrowserConnection = Readonly<{
 }>
 export type PicodashDevBridgeRegistration = Readonly<{
   type: 'register'
-  protocolVersion: 2
+  protocolVersion: 3
   token: string
   registration: {
     registrationId: string
     browserTabId: string
     label?: string
+    buildId?: string
     fieldKeys: readonly string[]
     disclosure: PicodashDevBridgeDisclosure
     permissions: PicodashDevBridgePermissions

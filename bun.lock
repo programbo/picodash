@@ -127,6 +127,7 @@
       "version": "0.0.0",
       "bin": {
         "picodash-dev-bridge": "dist/cli.mjs",
+        "picodash-dev-bridge-host": "dist/host-cli.mjs",
       },
       "dependencies": {
         "@picodash/nexus": "workspace:*",
@@ -180,6 +181,7 @@
         "motion": "catalog:",
       },
       "devDependencies": {
+        "@picodash/dev-bridge": "workspace:*",
         "@types/node": "catalog:",
         "@types/react": "catalog:",
         "@types/react-dom": "catalog:",

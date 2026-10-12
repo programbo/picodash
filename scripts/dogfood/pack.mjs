@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-export const names = ['nexus', 'ui', 'dashpanel', 'dashstack', 'picodash']
+export const names = ['nexus', 'ui', 'dashpanel', 'dashstack', 'picodash', 'dev-bridge']
 export const validVersion = (version) => /^0\.\d+\.\d+-dogfood\.[1-9]\d*$/.test(version)
 export const sha256 = (bytes) => createHash('sha256').update(bytes).digest('hex')
 
@@ -112,6 +112,12 @@ async function main() {
       join(root, 'docs/development/open-ended-ranges.md'),
       join(output, 'open-ended-ranges.md'),
     )
+    for (const file of ['agent-dev-bridge.md', 'dock-reactive-layout.md', 'index.md']) {
+      const text = (await readFile(join(root, 'docs/development', file), 'utf8'))
+        .replaceAll('(dogfooding.md', '(GUIDE.md')
+        .replaceAll('../../packages/picodash/tests/dogfood/', 'example/')
+      await writeFile(join(output, file), text)
+    }
     await mkdir(join(output, 'example'))
     for (const file of [
       'Controls.tsx',
@@ -127,6 +133,8 @@ async function main() {
       'GroupedControls.tsx',
       'WorkspacePanel.tsx',
       'DockPreview.tsx',
+      'DockReactive.tsx',
+      'DevBridge.tsx',
       'SubgroupPriorities.tsx',
     ]) {
       await cp(join(root, 'packages/picodash/tests/dogfood', file), join(output, 'example', file))

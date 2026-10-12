@@ -3,6 +3,8 @@ export { createPicodashDevBridgeClient } from './client.js'
 export type { PicodashDevBridgeClient } from './client.js'
 export { PICODASH_DEV_BRIDGE_PROTOCOL_VERSION, PICODASH_DEV_BRIDGE_SUBPROTOCOL } from './types.js'
 export type {
+  PicodashDevBridgeObservationSource,
+  PicodashDevBridgeObservation,
   PicodashDevBridgeDisclosure,
   PicodashDevBridgePermissions,
   PicodashDevBridgeSnapshot,
