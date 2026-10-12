@@ -1,5 +1,7 @@
 'use client'
 
+import { HelpOverlayLab } from './help-overlay-lab'
+
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import {
   createPicodashNexus,
@@ -549,6 +551,9 @@ function FocusedPlacementSpecimen({
         data-contract-lab-focused-placement-panel
       >
         <FocusedPlacementContent />
+        <div className="px-4 pb-4">
+          <HelpOverlayLab />
+        </div>
       </DashPanel>
       {allocationSetup === 'same-edge' ? (
         <DashPanel

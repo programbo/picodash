@@ -70,6 +70,12 @@
   );
   --_picodash-danger-subtle: color-mix(in oklab, var(--picodash-color-danger) 12%, transparent);
 
+  --_picodash-help-surface-translucent: color-mix(
+    in oklab,
+    var(--picodash-color-surface-raised) 60%,
+    transparent
+  );
+
   --picodash-layer-raised: 10;
   --picodash-layer-drag: 20;
   --picodash-layer-tooltip: 50;
@@ -563,8 +569,8 @@
 }
 
 /* Product-neutral Tooltip structure and decorative arrow. */
-:where([data-slot='tooltip']) {
-  background: var(--_picodash-surface-translucent);
+:where([data-slot='tooltip'], [data-slot='popover'][data-picodash-popover-variant='help']) {
+  background: var(--_picodash-help-surface-translucent);
   border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
   border-radius: var(--picodash-radius-control);
   box-shadow: var(--picodash-shadow-sm);
@@ -575,17 +581,59 @@
   padding: var(--picodash-space-2) var(--picodash-space-2-5);
   -webkit-backdrop-filter: blur(var(--picodash-blur-surface));
   backdrop-filter: blur(var(--picodash-blur-surface));
-  transition: opacity var(--picodash-duration-fast) var(--picodash-easing-out);
+  pointer-events: auto;
+  transform-origin: var(--trigger-anchor-point);
+  --_picodash-help-shift-x: 0px;
+  --_picodash-help-shift-y: 3px;
+  transition:
+    opacity var(--picodash-duration-fast) var(--picodash-easing-out),
+    transform var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+:where(
+  [data-slot='tooltip'],
+  [data-slot='popover'][data-picodash-popover-variant='help']
+)[data-placement='bottom'] {
+  --_picodash-help-shift-y: -3px;
+}
+:where(
+  [data-slot='tooltip'],
+  [data-slot='popover'][data-picodash-popover-variant='help']
+)[data-placement='left'] {
+  --_picodash-help-shift-x: 3px;
+  --_picodash-help-shift-y: 0px;
+}
+:where(
+  [data-slot='tooltip'],
+  [data-slot='popover'][data-picodash-popover-variant='help']
+)[data-placement='right'] {
+  --_picodash-help-shift-x: -3px;
+  --_picodash-help-shift-y: 0px;
+}
+:where([data-slot='tooltip'], [data-slot='popover'][data-picodash-popover-variant='help']):is(
+  [data-entering],
+  [data-exiting]
+) {
+  opacity: 0;
+  transform: translate(var(--_picodash-help-shift-x), var(--_picodash-help-shift-y)) scale(0.98);
+}
+:where(
+  [data-slot='tooltip'],
+  [data-slot='popover'][data-picodash-popover-variant='help']
+)[data-exiting] {
+  pointer-events: none;
+  transition-duration: calc(var(--picodash-duration-fast) * 2 / 3);
 }
 
 :where([data-slot='tooltip'] .picodash-tooltip-arrow) {
-  inline-size: 12px;
-  block-size: 6px;
+  inline-size: calc(var(--picodash-space-2-5) * 1.5);
+  block-size: calc(var(--picodash-space-2-5) * 0.75);
   pointer-events: none;
 }
 :where([data-slot='tooltip'] .picodash-tooltip-arrow svg) {
   display: block;
-  fill: var(--_picodash-surface-translucent);
+  inline-size: 100%;
+  block-size: 100%;
+  fill: var(--_picodash-help-surface-translucent);
   stroke: var(--picodash-color-border);
   stroke-width: var(--picodash-border-width-thin);
   overflow: visible;
@@ -617,9 +665,22 @@
   :where([data-slot='button']),
   :where([data-slot='alert-dialog-overlay']),
   :where([data-slot='alert-dialog-content']),
-  :where([data-slot='action-menu']),
-  :where([data-slot='tooltip']) {
+  :where([data-slot='action-menu']) {
     transition-duration: 0ms;
+  }
+
+  :where([data-slot='tooltip']),
+  :where([data-slot='popover'][data-picodash-popover-variant='help']) {
+    transition: none;
+  }
+
+  :where([data-slot='tooltip'], [data-slot='popover'][data-picodash-popover-variant='help']):is(
+    [data-entering],
+    [data-exiting]
+  ) {
+    opacity: 1;
+    transform: none;
+    transition: none;
   }
 
   :where([data-slot='button'][data-pressed]),

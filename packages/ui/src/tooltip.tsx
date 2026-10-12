@@ -5,6 +5,8 @@ import {
   Fragment,
   isValidElement,
   useContext,
+  useState,
+  useMemo,
   type ReactElement,
   type ReactNode,
   type RefAttributes,
@@ -13,11 +15,13 @@ import {
   OverlayArrow,
   Tooltip as ReactAriaTooltip,
   TooltipTrigger as ReactAriaTooltipTrigger,
+  TooltipTriggerStateContext,
   composeRenderProps,
   type TooltipProps as ReactAriaTooltipProps,
   type TooltipTriggerComponentProps as ReactAriaTooltipTriggerComponentProps,
 } from 'react-aria-components'
-import { UNSAFE_PortalProvider } from 'react-aria'
+import { UNSAFE_PortalProvider, mergeRefs } from 'react-aria'
+import { useHelpOverlay } from './help-overlay.ts'
 import { usePicodashDensity, usePicodashTheme } from './theme-provider.tsx'
 import { usePicodashOverlayDefaults, validateLayerBase } from './overlay-provider.tsx'
 import { ActiveOverlayLayer, resolveOverlayLayer, useActiveOverlayLayer } from './overlay-layer.tsx'
@@ -108,18 +112,58 @@ function findComposition(children: ReactNode) {
   return { trigger: trigger.props.children, content }
 }
 
-export function Tooltip({ children, delay, closeDelay, ...props }: TooltipProps) {
+const HelpPresentationContext = createContext<
+  ReturnType<typeof useHelpOverlay<HTMLDivElement>> | undefined
+>(undefined)
+
+function AnimatedTooltip({ children }: { children: ReactNode }) {
+  const state = useContext(TooltipTriggerStateContext)
+  // RAC retains positioning and exit completion. Keep the requested fast animation even during
+  // its warmed-up immediate handoff, without adding a second presence implementation.
+  return (
+    <TooltipTriggerStateContext.Provider
+      value={state ? { ...state, shouldSkipAnimation: false } : state}
+    >
+      {children}
+    </TooltipTriggerStateContext.Provider>
+  )
+}
+
+export function Tooltip({
+  children,
+  delay,
+  closeDelay,
+  isOpen,
+  defaultOpen = false,
+  onOpenChange,
+}: TooltipProps) {
   const inherited = useContext(tooltipTimingContext)
+  const defaults = usePicodashOverlayDefaults()
+  const [localOpen, setLocalOpen] = useState(defaultOpen)
+  const help = useHelpOverlay<HTMLDivElement>({
+    enabled: true,
+    isOpen: isOpen ?? localOpen,
+    onOpenChange: (open) => {
+      setLocalOpen(open)
+      onOpenChange?.(open)
+    },
+    ownerDocument:
+      defaults.portalContainer?.ownerDocument ??
+      (typeof document === 'undefined' ? undefined : document),
+  })
   const composition = findComposition(children)
   return (
-    <ReactAriaTooltipTrigger
-      {...props}
-      delay={delay ?? inherited.delay}
-      closeDelay={closeDelay ?? inherited.closeDelay}
-    >
-      {composition.trigger}
-      {composition.content}
-    </ReactAriaTooltipTrigger>
+    <HelpPresentationContext.Provider value={help}>
+      <ReactAriaTooltipTrigger
+        isOpen={help.isOpen}
+        onOpenChange={help.changeOpen}
+        delay={help.hasActiveHelp ? 0 : (delay ?? inherited.delay)}
+        closeDelay={closeDelay ?? inherited.closeDelay}
+      >
+        {composition.trigger}
+        <AnimatedTooltip>{composition.content}</AnimatedTooltip>
+      </ReactAriaTooltipTrigger>
+    </HelpPresentationContext.Provider>
   )
 }
 
@@ -138,10 +182,17 @@ export const TooltipContent = forwardRef<HTMLDivElement, TooltipContentProps>(
     { children, className, style, portalContainer, layerBase, ...props },
     ref,
   ) {
+    const help = useContext(HelpPresentationContext)
+    const helpElement = help?.element
+    const composedRef = useMemo(
+      () => (helpElement ? mergeRefs(ref, helpElement) : ref),
+      [ref, helpElement],
+    )
     const defaults = usePicodashOverlayDefaults()
     const parentLayer = useActiveOverlayLayer()
     const resolvedBase = layerBase === undefined ? defaults.layerBase : validateLayerBase(layerBase)
-    const resolvedLayer = resolveOverlayLayer('tooltip', resolvedBase, parentLayer)
+    const minimumLayer = resolveOverlayLayer('tooltip', resolvedBase, parentLayer)
+    const resolvedLayer = help ? `max(${minimumLayer}, ${help.layer})` : minimumLayer
     const theme = usePicodashTheme()
     const density = usePicodashDensity()
     const portalProps =
@@ -155,7 +206,7 @@ export const TooltipContent = forwardRef<HTMLDivElement, TooltipContentProps>(
       <ActiveOverlayLayer value={resolvedLayer}>
         <ReactAriaTooltip
           {...props}
-          ref={ref}
+          ref={composedRef}
           className={composeRenderProps(className, (previous) =>
             previous ? `picodash-tooltip ${previous}` : 'picodash-tooltip',
           )}
@@ -165,7 +216,7 @@ export const TooltipContent = forwardRef<HTMLDivElement, TooltipContentProps>(
           data-picodash-density={density}
         >
           <OverlayArrow className="picodash-tooltip-arrow" aria-hidden="true">
-            <svg width="12" height="6" viewBox="0 0 12 6">
+            <svg width="15" height={7.5} viewBox="0 0 12 6">
               <path d="M0 0L6 6L12 0" />
             </svg>
           </OverlayArrow>

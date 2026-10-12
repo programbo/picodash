@@ -1154,7 +1154,9 @@ Delete/Backspace clears. Conflicts and reserved editing/navigation chords leave 
 and retain the previous key. Labels use platform-specific modifiers and physical key positions.
 Recorder help uses the shared theme-aware, layered Tooltip portal. Recording instructions stay
 visible throughout recording, and a separate live status region announces rejected, saved,
-removed and cancelled shortcuts without requiring hover.
+removed and cancelled shortcuts without requiring hover. Opening another help can supersede
+its visible tooltip while recording continues. Explicitly hovering the recorder can show it again;
+normal blur still cancels recording.
 
 The shortcut uses Minimize/Reveal and keeps children mounted. It also reveals a closed, mounted
 docked Panel. Other closeable Panels use Hide/Show, including floating and non-collapsible Panels. It is inactive for Panels with neither supported operation, text inputs, contenteditable,

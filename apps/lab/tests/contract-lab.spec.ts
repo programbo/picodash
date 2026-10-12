@@ -1,5 +1,5 @@
 import { devices, expect, test, type Locator, type Page } from '@playwright/test'
-import { mkdir, readFile } from 'node:fs/promises'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import { createPicodashDevBridgeClient } from '@picodash/dev-bridge'
 
@@ -3474,7 +3474,15 @@ test('routes recorded group shortcuts through visible parents and reopens a clos
   expect(geometry.recorder.right).toBeLessThanOrEqual(geometry.detach.left)
   expect(geometry.label.right).toBeLessThanOrEqual(geometry.recorder.left)
   await page.screenshot({ path: '/tmp/mira-contextual-shortcuts.png' })
-  await page.getByRole('button', { name: 'Help for NumberDashlet', exact: true }).click()
+  const numberHelpTrigger = page.getByRole('button', {
+    name: 'Help for NumberDashlet',
+    exact: true,
+  })
+  await numberHelpTrigger.scrollIntoViewIfNeeded()
+  await numberHelpTrigger.evaluate(
+    () => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())),
+  )
+  await clickHelpTrigger(numberHelpTrigger)
   const richHelp = page.getByRole('dialog', { name: 'Help for NumberDashlet', exact: true })
   await expect(richHelp).toBeVisible()
   const richPopover = page.locator('.picodash-dashlet-help-popover')
@@ -3505,4 +3513,150 @@ test('routes recorded group shortcuts through visible parents and reopens a clos
   )
   await page.keyboard.press('Escape')
   await page.setViewportSize(viewport)
+})
+
+async function clickHelpTrigger(trigger: Locator) {
+  const box = (await trigger.boundingBox())!
+  await trigger.page().mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+}
+
+async function sampleHelpFrames(page: Page) {
+  return page.evaluate(async () => {
+    const frames = []
+    const start = performance.now()
+    for (let frame = 0; frame < 24; frame++) {
+      frames.push({
+        time: performance.now() - start,
+        overlays: [
+          ...document.querySelectorAll<HTMLElement>(
+            '[data-slot="tooltip"], [data-picodash-popover-variant="help"]',
+          ),
+        ].map((element) => {
+          const style = getComputedStyle(element)
+          return {
+            name: element.getAttribute('aria-label') ?? element.textContent?.slice(0, 35),
+            exiting: element.hasAttribute('data-exiting'),
+            opacity: Number(style.opacity),
+            layer: Number(style.zIndex),
+            pointer: style.pointerEvents,
+            transform: style.transform,
+            duration: style.transitionDuration,
+          }
+        }),
+      })
+      await new Promise(requestAnimationFrame)
+    }
+    return frames
+  })
+}
+
+test('hands off translucent help above outgoing layers while preserving recording and reduced motion', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 1100 })
+  await openLab(page)
+  await page.getByRole('button', { name: 'Reset lab', exact: true }).click()
+  await page.getByRole('button', { name: 'Use dark theme', exact: true }).click()
+  const precision = page.getByRole('button', { name: 'Help Precision', exact: true })
+  const range = page.getByRole('button', { name: 'Help Range', exact: true })
+  const summary = page.getByRole('button', { name: 'Help summary', exact: true })
+  const rich = (name: string) =>
+    page.locator(`[data-picodash-popover-variant="help"][aria-label="Help ${name}"]`)
+  await precision.scrollIntoViewIfNeeded()
+  const entry = sampleHelpFrames(page)
+  await clickHelpTrigger(precision)
+  const enterFrames = await entry
+  expect(
+    enterFrames.some((frame) =>
+      frame.overlays.some((overlay) => overlay.opacity > 0 && overlay.opacity < 1),
+    ),
+  ).toBe(true)
+  await expect(rich('Precision')).toHaveCSS('opacity', '1')
+  const presentation = await rich('Precision').evaluate((element) => ({
+    background: getComputedStyle(element).backgroundColor,
+    blur: getComputedStyle(element).backdropFilter,
+    duration: getComputedStyle(element).transitionDuration,
+    origin: getComputedStyle(element).transformOrigin,
+  }))
+  expect(presentation.background).toContain('/ 0.6')
+  expect(presentation.blur).toBe('blur(12px)')
+  expect(presentation.duration).toBe('0.15s, 0.15s')
+  await page.screenshot({ path: '/tmp/mira-rich-help48-dark.png' })
+
+  const switching = sampleHelpFrames(page)
+  await clickHelpTrigger(range)
+  await clickHelpTrigger(precision)
+  const switchFrames = await switching
+  expect(switchFrames.some((frame) => frame.overlays.some((overlay) => overlay.exiting))).toBe(true)
+  for (const frame of switchFrames) {
+    const active = frame.overlays.filter((overlay) => !overlay.exiting)
+    const exiting = frame.overlays.filter((overlay) => overlay.exiting)
+    expect(active.length).toBeLessThanOrEqual(1)
+    for (const old of exiting) {
+      expect(old.pointer).toBe('none')
+      if (active[0]) expect(active[0].layer).toBeGreaterThan(old.layer)
+    }
+  }
+  await expect(precision).toHaveAttribute('aria-expanded', 'true')
+  await expect(range).toHaveAttribute('aria-expanded', 'false')
+  await page.keyboard.press('Escape')
+  await expect(rich('Precision')).toHaveCount(0)
+  await expect(precision).toBeFocused()
+
+  const recorder = page.getByRole('button', {
+    name: 'Record shortcut for Placement Panel',
+    exact: true,
+  })
+  await recorder.click()
+  await expect(recorder).toHaveAttribute('aria-pressed', 'true')
+  await summary.hover()
+  await expect(page.getByRole('tooltip').filter({ hasText: 'Readouts display' })).toBeVisible()
+  await expect(recorder).toBeFocused()
+  await expect(recorder).toHaveAttribute('aria-pressed', 'true')
+  await page.keyboard.press('Control+Shift+K')
+  await expect(recorder).toHaveAttribute('aria-pressed', 'false')
+  await expect(page.getByRole('tooltip').filter({ hasText: 'Readouts display' })).toHaveCSS(
+    'opacity',
+    '1',
+  )
+  const crossFamily = sampleHelpFrames(page)
+  await clickHelpTrigger(range)
+  const crossFrames = await crossFamily
+  expect(
+    crossFrames.some(
+      (frame) =>
+        frame.overlays.length > 1 &&
+        frame.overlays.some((overlay) => overlay.exiting && overlay.layer >= 400),
+    ),
+  ).toBe(true)
+  for (const frame of crossFrames) {
+    const active = frame.overlays.find((overlay) => !overlay.exiting)
+    if (active)
+      for (const old of frame.overlays.filter((overlay) => overlay.exiting))
+        expect(active.layer).toBeGreaterThan(old.layer)
+  }
+  await page.keyboard.press('Escape')
+  await expect(range).toBeFocused()
+
+  for (const option of ['light', 'dark', 'ocean'] as const) {
+    await page.getByRole('button', { name: `Use ${option} theme`, exact: true }).click()
+    await clickHelpTrigger(precision)
+    await expect(rich('Precision')).toHaveAttribute('data-picodash-theme', option)
+    await expect(rich('Precision')).toHaveCSS('opacity', '1')
+    await page.screenshot({ path: `/tmp/mira-rich-help48-${option}.png` })
+    await page.keyboard.press('Escape')
+  }
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await clickHelpTrigger(precision)
+  await expect(rich('Precision')).toHaveCSS('transition-property', 'none')
+  await expect(rich('Precision')).toHaveCSS('transform', 'none')
+  await page.getByRole('button', { name: 'Increment local count', exact: true }).click()
+  await expect(rich('Precision')).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: 'Increment local count', exact: true }),
+  ).toBeFocused()
+  await writeFile(
+    '/tmp/mira-help48-timing.json',
+    JSON.stringify({ presentation, enterFrames, switchFrames, crossFrames }, null, 2),
+  )
 })

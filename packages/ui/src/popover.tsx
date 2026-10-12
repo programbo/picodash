@@ -1,9 +1,19 @@
 'use client'
 
-import { forwardRef, type RefAttributes } from 'react'
-import { UNSAFE_PortalProvider } from 'react-aria'
+import {
+  forwardRef,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type RefAttributes,
+} from 'react'
+import { UNSAFE_PortalProvider, mergeRefs } from 'react-aria'
+import { useHelpOverlay } from './help-overlay.ts'
 import {
   Popover as ReactAriaPopover,
+  OverlayTriggerStateContext,
   composeRenderProps,
   type PopoverProps as ReactAriaPopoverProps,
 } from 'react-aria-components'
@@ -15,6 +25,7 @@ export type PopoverProps = Omit<ReactAriaPopoverProps, 'UNSTABLE_portalContainer
   RefAttributes<HTMLElement> & {
     portalContainer?: HTMLElement | null
     layerBase?: number
+    variant?: 'help'
   }
 
 function composePopoverStyle(
@@ -28,13 +39,48 @@ function composePopoverStyle(
 }
 
 export const Popover = forwardRef<HTMLElement, PopoverProps>(function Popover(
-  { portalContainer, layerBase, style, ...props },
+  { portalContainer, layerBase, style, variant, ...props },
   ref,
 ) {
   const defaults = usePicodashOverlayDefaults()
   const parentLayer = useActiveOverlayLayer()
   const resolvedBase = layerBase === undefined ? defaults.layerBase : validateLayerBase(layerBase)
-  const resolvedLayer = resolveOverlayLayer('popover', resolvedBase, parentLayer)
+  const minimumLayer = resolveOverlayLayer('popover', resolvedBase, parentLayer)
+  const triggerState = useContext(OverlayTriggerStateContext)
+  const [localOpen, setLocalOpen] = useState(props.defaultOpen ?? false)
+  const help = useHelpOverlay({
+    enabled: variant === 'help',
+    isOpen: props.isOpen ?? triggerState?.isOpen ?? localOpen,
+    onOpenChange: (open) => {
+      setLocalOpen(open)
+      if (props.onOpenChange) props.onOpenChange(open)
+      else triggerState?.setOpen(open)
+    },
+    ownerDocument:
+      (portalContainer ?? defaults.portalContainer)?.ownerDocument ??
+      (typeof document === 'undefined' ? undefined : document),
+  })
+  const resolvedLayer = variant === 'help' ? `max(${minimumLayer}, ${help.layer})` : minimumLayer
+  const composedRef = useMemo(
+    () => (variant === 'help' ? mergeRefs(ref, help.element) : ref),
+    [variant, ref, help.element],
+  )
+  const retainedHelpRoot = useRef<HTMLElement | null>(null)
+  useLayoutEffect(() => {
+    if (variant !== 'help') return
+    if (!help.isOpen) {
+      retainedHelpRoot.current = help.element.current
+      return
+    }
+    const element = help.element.current
+    const reactivated = element !== null && element === retainedHelpRoot.current
+    retainedHelpRoot.current = null
+    if (!reactivated || !element || element.contains(element.ownerDocument.activeElement)) return
+    // Only a still-mounted exit needs this. Preserve Dialog's normal initial autofocus,
+    // including application-chosen interactive content, and avoid scrolling on reactivation.
+    const dialog = element.querySelector<HTMLElement>('[role="dialog"]') ?? element
+    dialog.focus({ preventScroll: true })
+  }, [variant, help.isOpen, help.element])
   const theme = usePicodashTheme()
   const density = usePicodashDensity()
   const portalProps =
@@ -48,9 +94,17 @@ export const Popover = forwardRef<HTMLElement, PopoverProps>(function Popover(
     <ActiveOverlayLayer value={resolvedLayer}>
       <ReactAriaPopover
         {...props}
-        ref={ref}
+        ref={composedRef}
+        {...(variant === 'help'
+          ? {
+              isOpen: help.isOpen,
+              onOpenChange: help.changeOpen,
+              isNonModal: props.isNonModal ?? true,
+            }
+          : undefined)}
         style={composePopoverStyle(style, resolvedLayer)}
         data-slot="popover"
+        data-picodash-popover-variant={variant}
         data-picodash-theme={theme}
         data-picodash-density={density}
       />

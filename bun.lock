@@ -30,6 +30,7 @@
         "@tanstack/charts": "catalog:",
         "next": "16.3.8",
         "react": "catalog:",
+        "react-aria-components": "catalog:",
         "react-dom": "catalog:",
         "zod": "catalog:",
       },

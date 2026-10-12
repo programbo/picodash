@@ -758,22 +758,21 @@
   border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
   border-radius: var(--picodash-radius-surface);
   padding: var(--picodash-space-2) var(--picodash-space-2-5);
-  background: color-mix(in oklab, var(--picodash-color-surface-raised) 88%, transparent);
-  -webkit-backdrop-filter: blur(var(--picodash-blur-surface));
-  backdrop-filter: blur(var(--picodash-blur-surface));
   box-shadow: var(--picodash-shadow-elevated);
   color: var(--picodash-color-text);
   font-size: var(--picodash-font-size-sm);
   line-height: var(--picodash-line-height-normal);
 }
 .picodash-dashlet-help-arrow {
-  inline-size: 12px;
-  block-size: 6px;
+  inline-size: calc(var(--picodash-space-2-5) * 1.5);
+  block-size: calc(var(--picodash-space-2-5) * 0.75);
   pointer-events: none;
 }
 .picodash-dashlet-help-arrow svg {
   display: block;
-  fill: color-mix(in oklab, var(--picodash-color-surface-raised) 88%, transparent);
+  inline-size: 100%;
+  block-size: 100%;
+  fill: color-mix(in oklab, var(--picodash-color-surface-raised) 60%, transparent);
   stroke: var(--picodash-color-border);
   stroke-width: var(--picodash-border-width-thin);
   overflow: visible;

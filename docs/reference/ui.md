@@ -266,7 +266,7 @@ context through the three accepted hooks.
 
 `Popover` renders a product-neutral React Aria overlay positioned relative to its trigger. It owns
 Picodash portal, detached presentation, and nested layer policy without adding product behavior or
-styling.
+styling unless its explicit help variant is selected.
 
 ```ts
 import type { PopoverProps as ReactAriaPopoverProps } from 'react-aria-components'
@@ -275,6 +275,7 @@ type PopoverProps = Omit<ReactAriaPopoverProps, 'UNSTABLE_portalContainer'> &
   RefAttributes<HTMLElement> & {
     portalContainer?: HTMLElement | null
     layerBase?: number
+    variant?: 'help'
   }
 ```
 
@@ -288,6 +289,25 @@ type PopoverProps = Omit<ReactAriaPopoverProps, 'UNSTABLE_portalContainer'> &
   layer to descendants.
 - The active parent layer, exact expression, resolver, hook, and context remain package-private.
   Consumers cannot calculate or propagate Picodash overlay ordering themselves.
+
+`variant="help"` adds the shared translucent help styling and fast enter/exit motion. It defaults
+to a non-modal popover so users can switch directly between help triggers. Explicit `isNonModal`
+continues to override that default. Rich content retains dialog and click-open semantics; the
+variant is not forwarded as a native DOM attribute. Existing ordinary popovers keep their behavior.
+
+Tooltips and help popovers share one active-help owner per document. A new opening supersedes the
+previous help; its layer exceeds any help still exiting while retaining the semantic token,
+explicit base and parent-overlay minimums. Exiting help cannot intercept pointer input. React Aria
+owns positioning, focus restoration, scroll dismissal and presence completion. Reopening a rich
+help during its retained exit re-enters its dialog focus scope without scrolling. Applications
+continue to own controlled open intent; supersession may hide a forced tooltip without changing
+the underlying operation, such as recording a shortcut. The old help does not reclaim ownership
+on an unrelated render; explicitly opening its trigger can reclaim it.
+
+The help glass combines the caller's raised surface color at 60% with static backdrop blur.
+Entry uses the fast duration token (150ms by default); exit uses two-thirds of that token (100ms).
+Only opacity and a small anchor-directed translate/scale animate. Reduced motion removes both
+transitions and transforms. Decorative pointers remain owned by the composing component.
 
 DashStack choice controls use this shared composition with a DashStack-owned structural class.
 `Popover` is not added to DashStack's ready-made inventory or catalog.
@@ -702,8 +722,10 @@ root-owned trigger ref or React Aria's unstable portal prop.
 - The arrow is a built-in decorative triangle, token-styled and oriented to the resolved placement; it is not a separate public component.
 - Portal and layer defaults come from `PicodashOverlayProvider`. The detached content root repeats
   the resolved theme and density attributes.
-- Pointer hover observes the warm-up delay, keyboard focus opens immediately, and blur, pointer
-  exit, or Escape closes the tooltip. React Aria owns handoff between nearby tooltips.
+- Pointer hover observes the first warm-up delay, keyboard focus opens immediately, and blur,
+  pointer exit or Escape requests closing. A controlled caller may retain its open intent;
+  another help opening still supersedes its visibility. Sequential help opens immediately.
+  React Aria owns tooltip trigger events; shared help ownership also coordinates rich popovers.
 - Ordinary touch interaction does not reveal tooltips. Every trigger and operation must remain
   understandable and usable without one.
 - An icon-only trigger supplies its own accessible name. Tooltip content describes the named

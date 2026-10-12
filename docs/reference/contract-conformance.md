@@ -1675,3 +1675,17 @@ guide discovery/validation, .46 update/rollback, types and Vite/Next builds. The
 rebuild and the contextual tooltip/help browser journey against its restored supervised server pass,
 including actual viewport-edge placement flipping. The old opaque-help CSS assertion was updated
 to require the intended semantic translucent surface and blur.
+
+Help glass now uses 60% of the caller's raised surface palette with static 12px default blur.
+Tooltip and explicit Popover help variants share OPEN/CLOSE/UNMOUNT ownership per document;
+new help layers above still-painted exits without raising ordinary popovers. Entry defaults to
+150ms and exit 100ms, using interruptible opacity/transform transitions and native React Aria
+presence completion. Pointer geometry is 25% larger, with sizing derived from the existing spacing
+token. Rich help preserves dialog semantics and focus on reactivation; recorder operation/live
+feedback survives tooltip supersession. Reduced motion disables help transitions and transforms.
+Both bounded Lab journeys pass, including rapid A→B→A, actual outgoing/new overlap, reversed
+z400→401 bases, scroll completion before direct pointer input, Escape/outside/focus, recorder
+continuity and light/dark/ocean readability. The 60% rich-help screenshots were visually approved.
+Recorded overlap frames show the old tooltip fading while the new rich help enters above it.
+The public consumer fixture verifies variant typing/composition, controlled forced-help
+supersession, theme inheritance and lack of native variant attribute leakage.

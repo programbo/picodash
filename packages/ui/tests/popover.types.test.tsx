@@ -15,6 +15,7 @@ describe('@picodash/ui Popover types', () => {
       ref,
       portalContainer: portal,
       layerBase: 40,
+      variant: 'help',
       placement: 'bottom end',
       offset: 8,
       crossOffset: 2,
@@ -34,6 +35,13 @@ describe('@picodash/ui Popover types', () => {
       UNSTABLE_portalContainer: portal,
     }
     void reservedPortal
+
+    const invalidVariant: PopoverProps = {
+      children: null,
+      // @ts-expect-error Only the explicit help variant is admitted.
+      variant: 'menu',
+    }
+    void invalidVariant
 
     const svgPortal: PopoverProps = {
       children: null,
