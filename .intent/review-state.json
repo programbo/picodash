@@ -109,15 +109,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "58050a44a32ecff965e772b6af23c0f45955da3139e8875dd470a67d2f06f6d9",
+      "fingerprint": "13d748a2e457980cdc2134d442f6fcce69a048be5253b55724a7a1c3cba0148d",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "9a8163ce58f17ea44b1f9062cefbdb0b09136df89d70e056533dd1f42180b71e"
+        "docs/reference/contract-conformance.md": "45aaf3bf8001c8f2f02b96fad4c47e54eeec78463b1504112382b6a3e2443a65"
       },
-      "head": "04fce87609503c4b9461fb10bfaf54fb2cb09153",
+      "head": "6836cad8e031e1e1a0eb750040a112a508658cc2",
       "outcome": "no-change",
-      "reason": "Only recorder inner padding changes. Existing APIs, guide workflows and planning records remain accurate. Panel checks and contextual browser journey pass, including vertical centring, outside pencil and stable hover width.",
+      "reason": "Release recommendation and evidence only. The padding adjustment changes no guide workflow or planning scope. dogfood.44 passes 15 installed tests, .43 update/rollback and Vite/Next builds.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at 04fce87609503c4b9461fb10bfaf54fb2cb09153"
+        "Changed: docs/reference/contract-conformance.md at 6836cad8e031e1e1a0eb750040a112a508658cc2"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -379,15 +379,15 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "c87fa719ef81006071b9cd737ca3fcc0e1a3808b758f3e80bda8f9f6af30c618",
+      "fingerprint": "094b8041ed7b044c793381173dfda40317aab1aea7f4cba0c0712212365d5642",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "7dc625cb3da2d2058f14fad5f3ed29b3cb6d490eb43a25e5c6cd23902d69bb50"
+        "docs/development/recommended-snapshot.json": "b045bfbc8376cb162edecc3f4287efb00db28aaa8a4ec4b32cdb536835d1aa81"
       },
-      "head": "b11ed4795396e0479066306d8c7039ea9136e532",
+      "head": "6836cad8e031e1e1a0eb750040a112a508658cc2",
       "outcome": "no-change",
-      "reason": "Only release recommendation and verification evidence changed; the existing guide workflows and planning records are unchanged. dogfood.43 passes 15 installed tests, types, Vite/Next builds and .41 update/rollback.",
+      "reason": "Release recommendation and evidence only. The padding adjustment changes no guide workflow or planning scope. dogfood.44 passes 15 installed tests, .43 update/rollback and Vite/Next builds.",
       "evidence": [
-        "Changed: docs/development/recommended-snapshot.json at b11ed4795396e0479066306d8c7039ea9136e532"
+        "Changed: docs/development/recommended-snapshot.json at 6836cad8e031e1e1a0eb750040a112a508658cc2"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {

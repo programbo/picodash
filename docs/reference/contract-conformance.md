@@ -1637,3 +1637,6 @@ requested outside-pencil adjustment; .43 is the recommended consumer update.
 The shortcut face padding is now `0.3em 0.5em` (previously `0.15em 0.3em`) for more space around
 its keycaps. Panel type/lint/format checks and the contextual browser journey pass, including
 vertical centring, the outside pencil and stable hover width. No API or guide workflow changes.
+
+Clean snapshot `0.1.0-dogfood.44` records source `6836cad8e031e1e1a0eb750040a112a508658cc2`.
+All 15 installed tests, .43 update/rollback, types and Vite/Next builds pass; the Lab rebuild passes.
