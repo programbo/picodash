@@ -14,6 +14,8 @@ import { useHelpOverlay } from './help-overlay.ts'
 import {
   Popover as ReactAriaPopover,
   OverlayTriggerStateContext,
+  PopoverContext,
+  useSlottedContext,
   composeRenderProps,
   type PopoverProps as ReactAriaPopoverProps,
 } from 'react-aria-components'
@@ -47,6 +49,10 @@ export const Popover = forwardRef<HTMLElement, PopoverProps>(function Popover(
   const resolvedBase = layerBase === undefined ? defaults.layerBase : validateLayerBase(layerBase)
   const minimumLayer = resolveOverlayLayer('popover', resolvedBase, parentLayer)
   const triggerState = useContext(OverlayTriggerStateContext)
+  const popoverContext = useSlottedContext(PopoverContext, props.slot)
+  const triggerRef = props.triggerRef ?? popoverContext?.triggerRef
+  const outsidePolicy =
+    props.shouldCloseOnInteractOutside ?? popoverContext?.shouldCloseOnInteractOutside
   const [localOpen, setLocalOpen] = useState(props.defaultOpen ?? false)
   const help = useHelpOverlay({
     enabled: variant === 'help',
@@ -100,6 +106,10 @@ export const Popover = forwardRef<HTMLElement, PopoverProps>(function Popover(
               isOpen: help.isOpen,
               onOpenChange: help.changeOpen,
               isNonModal: props.isNonModal ?? true,
+              // A pointer press focuses its trigger before RAC toggles. Treat that focus return
+              // as part of the toggle, not an outside blur that closes then immediately reopens.
+              shouldCloseOnInteractOutside: (target: Element) =>
+                !triggerRef?.current?.contains(target) && (outsidePolicy?.(target) ?? true),
             }
           : undefined)}
         style={composePopoverStyle(style, resolvedLayer)}

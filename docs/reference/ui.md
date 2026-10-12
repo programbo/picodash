@@ -291,7 +291,11 @@ type PopoverProps = Omit<ReactAriaPopoverProps, 'UNSTABLE_portalContainer'> &
   Consumers cannot calculate or propagate Picodash overlay ordering themselves.
 
 `variant="help"` adds the shared translucent help styling and fast enter/exit motion. It defaults
-to a non-modal popover so users can switch directly between help triggers. Explicit `isNonModal`
+to a non-modal popover so users can switch directly between help triggers. The owning trigger is
+excluded from outside/blur dismissal, so its normal press toggle closes open help instead of
+closing on focus return and reopening on the same press. This applies to an explicit `triggerRef`
+or the public React Aria slotted trigger context; caller outside-close policy still controls other
+targets. Explicit `isNonModal`
 continues to override that default. Rich content retains dialog and click-open semantics; the
 variant is not forwarded as a native DOM attribute. Existing ordinary popovers keep their behavior.
 

@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 import { act, createRef, useRef, type CSSProperties, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { DialogTrigger } from 'react-aria-components'
-import { afterEach, beforeEach, describe, expect, it } from 'vite-plus/test'
+import { Dialog, DialogTrigger } from 'react-aria-components'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vite-plus/test'
 import { clickElement, dispatchElement, renderReactRoot } from '../../../test/react.ts'
 import {
   AlertDialog,
@@ -206,6 +206,41 @@ describe('@picodash/ui Popover', () => {
       )
     },
   )
+
+  it('lets the owning help trigger toggle after focus returns, while retaining outside policy', async () => {
+    const outsidePolicy = vi.fn(
+      (target: Element) => target.getAttribute('aria-label') !== 'Outside help',
+    )
+    await render(
+      <>
+        <button aria-label="Outside help">Outside</button>
+        <DialogTrigger defaultOpen>
+          <Button>Toggle help</Button>
+          <Popover variant="help" shouldCloseOnInteractOutside={outsidePolicy}>
+            <Dialog aria-label="Help explanation">
+              <p>Explanation</p>
+            </Dialog>
+          </Popover>
+        </DialogTrigger>
+      </>,
+    )
+    const trigger = container.querySelector('[data-slot="button"]') as HTMLButtonElement
+    const dialog = document.querySelector('[role="dialog"]') as HTMLElement
+    await act(async () => dialog.focus())
+    await act(async () => trigger.focus())
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+    expect(outsidePolicy).not.toHaveBeenCalled()
+    await clickElement(trigger)
+    expect(trigger.getAttribute('aria-expanded')).toBe('false')
+    expect(document.querySelector('[data-picodash-popover-variant="help"]')).toBeNull()
+    await clickElement(trigger)
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+    await act(async () => (document.querySelector('[role="dialog"]') as HTMLElement).focus())
+    const outside = container.querySelector('[aria-label="Outside help"]') as HTMLButtonElement
+    await act(async () => outside.focus())
+    expect(outsidePolicy).toHaveBeenCalledWith(outside)
+    expect(trigger.getAttribute('aria-expanded')).toBe('true')
+  })
 
   it('retains React Aria keyboard dismissal', async () => {
     await render(

@@ -71,15 +71,15 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "2c5e058f6ddb37805656481122fdccff5eb68fcb99047078a427ad31db362904",
+      "fingerprint": "373f470d3f69f33a212c4b0cbe088bf4e99ce8af6d13376e30264779c0452b4d",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "1a8d7ac8cc85d4650da7e4086c76de3446968d94a2f73cae93813f1b09a5e9d9"
+        "apps/lab/tests/contract-lab.spec.ts": "c9a6a1625f02f1265a789814ce73b76d732c6ceacd65f659e560a7a80df32d85"
       },
-      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "head": "80902ac2aa834173309b5bc824b6be595f1c34da",
       "outcome": "no-change",
-      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
+      "reason": "Help-only trigger blur/toggle race repaired from ordered .50 production pointer trace: public trigger ref/context excludes its own trigger from outside dismissal while retaining caller policy elsewhere. Existing two shortcut/binding guides and all three planning files remain accurate; generic help composition is outside their bounded tasks. UI reference and conformance record normal same-trigger toggle behavior. All 15 scoped component/ownership/consumer-fixture tests, workspace check and both existing help/recorder browser journeys pass, including pointer second-close/third-reopen, Enter/Space, rapid handoff, exit layering, focus/Escape/outside, recording and themes/reduced motion. No coordinator or styling changes; temporary tracing removed. Fresh immutable installed check follows at release.",
       "evidence": [
-        "Changed: apps/lab/tests/contract-lab.spec.ts at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
+        "Changed: apps/lab/tests/contract-lab.spec.ts at 80902ac2aa834173309b5bc824b6be595f1c34da"
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -97,15 +97,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "78399e86820bdafaf7b215357b251f99e486c6d1f2584d5a9abd337f728edf12",
+      "fingerprint": "21c8e38c402aa8007848134961d21a112e52cdc6a1c9a3277ab9ec3bf6b58004",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "1cc5d14597be578148ee30e26230ab7eeed580dfac63b3db832389c201f16dbe"
+        "docs/reference/contract-conformance.md": "0e9acfdf9d20d0117d0ab5e0ad83fee2281403be6312dff6bbde4626337d458c"
       },
-      "head": "36bce87cc273f67aeb4d81b67394635eff78ccf0",
+      "head": "80902ac2aa834173309b5bc824b6be595f1c34da",
       "outcome": "no-change",
-      "reason": "Recommendation/release evidence only: clean immutable .50 source 36bce87cc273f67aeb4d81b67394635eff78ccf0 passed 1163 package tests, 17 isolated installed-consumer tests, .49 rollback and .50 restore, shipped guides/strict example types, Vite/Next CSS builds, and restored-production scoped desktop/mobile Range/cue browser journey. Existing two guides and all three planning files retain their reviewed task coverage. Known broader browser limitations remain documented; no whole-Lab pass claim or guidance behavior change.",
+      "reason": "Help-only trigger blur/toggle race repaired from ordered .50 production pointer trace: public trigger ref/context excludes its own trigger from outside dismissal while retaining caller policy elsewhere. Existing two shortcut/binding guides and all three planning files remain accurate; generic help composition is outside their bounded tasks. UI reference and conformance record normal same-trigger toggle behavior. All 15 scoped component/ownership/consumer-fixture tests, workspace check and both existing help/recorder browser journeys pass, including pointer second-close/third-reopen, Enter/Space, rapid handoff, exit layering, focus/Escape/outside, recording and themes/reduced motion. No coordinator or styling changes; temporary tracing removed. Fresh immutable installed check follows at release.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at 36bce87cc273f67aeb4d81b67394635eff78ccf0"
+        "Changed: docs/reference/contract-conformance.md at 80902ac2aa834173309b5bc824b6be595f1c34da"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -555,14 +555,14 @@
       ]
     },
     "source:docs/reference/ui.md": {
-      "fingerprint": "3d65765fd7d6a85361fa77aee4be5aa7f5dfc575ef3a12c5c58c572d83a2593e",
+      "fingerprint": "682fbd0cec389bad0eeb86aab128b30fea5aee6181ddadb61340dd1d2c7fdffa",
       "snapshot": {
-        "docs/reference/ui.md": "c25c930509a406d16af5324b935517bee968da7ce1770e3c7155436950ff0ad8"
+        "docs/reference/ui.md": "c0ec4a17f8a0cbef8d52da026e83e0dc9f6f7d303afd34ff34508045c0490b3d"
       },
-      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "head": "80902ac2aa834173309b5bc824b6be595f1c34da",
       "outcome": "no-change",
-      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
-      "evidence": ["Changed: docs/reference/ui.md at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"]
+      "reason": "Help-only trigger blur/toggle race repaired from ordered .50 production pointer trace: public trigger ref/context excludes its own trigger from outside dismissal while retaining caller policy elsewhere. Existing two shortcut/binding guides and all three planning files remain accurate; generic help composition is outside their bounded tasks. UI reference and conformance record normal same-trigger toggle behavior. All 15 scoped component/ownership/consumer-fixture tests, workspace check and both existing help/recorder browser journeys pass, including pointer second-close/third-reopen, Enter/Space, rapid handoff, exit layering, focus/Escape/outside, recording and themes/reduced motion. No coordinator or styling changes; temporary tracing removed. Fresh immutable installed check follows at release.",
+      "evidence": ["Changed: docs/reference/ui.md at 80902ac2aa834173309b5bc824b6be595f1c34da"]
     },
     "source:packages/dashstack/tests/dashstack.test.tsx": {
       "fingerprint": "943edebfcc792346b62082377c5d20c62f297a18c86f93949cb04e45ee64681d",
@@ -659,15 +659,15 @@
       ]
     },
     "source:packages/ui/src/popover.tsx": {
-      "fingerprint": "8300bb785753af57f7ff88a014ecb1cb61fe4ca7af496a7fdad0fd1643d90842",
+      "fingerprint": "b0cb101e2bad1c747399952e0ecc823d227ad6ae938153a7e5a926e79e9c7f35",
       "snapshot": {
-        "packages/ui/src/popover.tsx": "b7cf6c9f670f107d2744c0a7d6df2b7c4470f4a0e8a5f2df67f82d2707c5c56e"
+        "packages/ui/src/popover.tsx": "2cde5b34c16fac5f75909d44f16fc7f5697fb5292421de972baf524feccd5a60"
       },
-      "head": "b78cfa8e00252d4493b547fba589bf7c64df1add",
+      "head": "80902ac2aa834173309b5bc824b6be595f1c34da",
       "outcome": "no-change",
-      "reason": "Added the explicit public Popover help variant, documented document-scoped help ownership/non-modal dismissal and60% glass/150ms entry/100ms exit with25% larger token-sized pointers. Existing shortcut and bound-control guides and all three planning records remain accurate for their existing task coverage; generic help composition is outside that initial guide batch. Public variant type/consumer fixture,110 affected component/CSS tests, workspace formatting/lint/types, motion policy and both browser journeys pass, including rapid handoff/reversed layers/recording/reduced motion/theme readability. Root visually approved light/dark/ocean and pointer increase. Fresh immutable bundle installation follows as the release gate.",
+      "reason": "Help-only trigger blur/toggle race repaired from ordered .50 production pointer trace: public trigger ref/context excludes its own trigger from outside dismissal while retaining caller policy elsewhere. Existing two shortcut/binding guides and all three planning files remain accurate; generic help composition is outside their bounded tasks. UI reference and conformance record normal same-trigger toggle behavior. All 15 scoped component/ownership/consumer-fixture tests, workspace check and both existing help/recorder browser journeys pass, including pointer second-close/third-reopen, Enter/Space, rapid handoff, exit layering, focus/Escape/outside, recording and themes/reduced motion. No coordinator or styling changes; temporary tracing removed. Fresh immutable installed check follows at release.",
       "evidence": [
-        "Changed: packages/ui/src/popover.tsx at b78cfa8e00252d4493b547fba589bf7c64df1add"
+        "Changed: packages/ui/src/popover.tsx at 80902ac2aa834173309b5bc824b6be595f1c34da"
       ]
     },
     "source:packages/ui/tests/help-overlay.test.ts": {
@@ -836,6 +836,18 @@
       "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
       "evidence": [
         "Changed: packages/ui/scroll-fade.css at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
+      ]
+    },
+    "source:packages/ui/tests/popover.test.tsx": {
+      "fingerprint": "4ba56e83f9cb12f636ebdff817599fcddeb1a989781766578aff4dcf3c3f0178",
+      "snapshot": {
+        "packages/ui/tests/popover.test.tsx": "f8d6fb2e49c417dac10317bdf803e77bda2a1c9486d988fe7ea100c3276135ed"
+      },
+      "head": "80902ac2aa834173309b5bc824b6be595f1c34da",
+      "outcome": "no-change",
+      "reason": "Help-only trigger blur/toggle race repaired from ordered .50 production pointer trace: public trigger ref/context excludes its own trigger from outside dismissal while retaining caller policy elsewhere. Existing two shortcut/binding guides and all three planning files remain accurate; generic help composition is outside their bounded tasks. UI reference and conformance record normal same-trigger toggle behavior. All 15 scoped component/ownership/consumer-fixture tests, workspace check and both existing help/recorder browser journeys pass, including pointer second-close/third-reopen, Enter/Space, rapid handoff, exit layering, focus/Escape/outside, recording and themes/reduced motion. No coordinator or styling changes; temporary tracing removed. Fresh immutable installed check follows at release.",
+      "evidence": [
+        "Changed: packages/ui/tests/popover.test.tsx at 80902ac2aa834173309b5bc824b6be595f1c34da"
       ]
     }
   }

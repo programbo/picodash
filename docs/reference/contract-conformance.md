@@ -1737,3 +1737,13 @@ guide discovery/validation, .49 update/rollback, strict example types and Vite/N
 The production Lab rebuild and scoped desktop/mobile Range/cue journey against its restored
 supervised server pass (1 test, 2.8 seconds). This does not change the broader browser limitations
 recorded above. Actual Gearmo adoption remains the consumer owner's separate verification.
+
+Rich help same-trigger toggling is repaired after reproducing the .50 production race with ordered
+pointer/focus events: returning focus to the trigger closed the non-modal dialog before its press
+toggled it open again. Help popovers now exclude their owning public trigger from blur/outside
+dismissal, preserving the trigger's normal toggle and caller policy for other targets. Ownership,
+retained-exit focus handling, layering, styling and recorder source state are unchanged.
+The 15 scoped component/ownership/consumer-fixture tests and workspace checks pass. Both existing
+help and recorder browser journeys pass (2 tests, 15.7 seconds), including second-click close,
+third-click reopen, Enter/Space toggles, rapid A→B→A, outgoing/new layer order, Escape/focus,
+outside dismissal, themes/reduced motion and ongoing recording. Temporary event tracing is removed.
