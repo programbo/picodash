@@ -62,9 +62,15 @@ describe('recordable docked panel shortcuts', () => {
       })
     try {
       record('one')
+      const live = document.getElementById(
+        button('Record shortcut for one').getAttribute('aria-describedby')!.split(' ')[0]!,
+      )
+      expect(live?.getAttribute('role')).toBe('status')
+      expect(live?.textContent).toContain('Escape cancels')
       key('k', 'KeyK', { ctrlKey: true, shiftKey: true })
       const binding = nexus.scope('one').getState().scope?.dashPanelHotkey
       expect(binding).toMatch(/\[KeyK\]/)
+      expect(live?.textContent).toContain('Shortcut set')
       expect(button('Record shortcut for one').getAttribute('aria-pressed')).toBe('false')
       record('two')
       key('k', 'KeyK', { ctrlKey: true, shiftKey: true })

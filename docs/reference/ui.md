@@ -699,7 +699,7 @@ root-owned trigger ref or React Aria's unstable portal prop.
 - `TooltipContent` exposes React Aria's `placement`, `offset`, `crossOffset`, `shouldFlip`, and
   `containerPadding` vocabulary rather than translating Radix-style `side` and `align` props. It
   also accepts the standard explicit portal and layer overrides.
-- The arrow is built in, decorative, and token-styled; it is not a separate public component.
+- The arrow is a built-in decorative triangle, token-styled and oriented to the resolved placement; it is not a separate public component.
 - Portal and layer defaults come from `PicodashOverlayProvider`. The detached content root repeats
   the resolved theme and density attributes.
 - Pointer hover observes the warm-up delay, keyboard focus opens immediately, and blur, pointer

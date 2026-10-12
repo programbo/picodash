@@ -1658,3 +1658,13 @@ computed font size and face height, upright prompt, opacity, centring and outsid
 
 Clean snapshot `0.1.0-dogfood.46` records source `fc12240800066fa410f96ca7fadacf10aef27585`.
 All 15 installed tests, .45 update/rollback, types and Vite/Next builds pass. Lab rebuild passes.
+
+Recorder help now uses the shared Tooltip portal instead of an inline positioned status span.
+Recording keeps the help open; a visually hidden live region retains accessible feedback.
+Shared Tooltips have a placement-oriented triangle with their themed glass surface. Clickable
+Dashlet help retains its Popover/Dialog lifecycle and gains a glass surface and triangle.
+The 86 affected component/CSS tests and workspace formatting/lint/types pass. The contextual
+browser journey verifies actual paint/hit order above dense contents, theme propagation,
+recording rejection/cancellation, reduced motion, and clickable-help focus restoration.
+Lab screenshots were visually reviewed; actual Gearmo Pressure angle content awaits consumer
+adoption of the new immutable bundle.

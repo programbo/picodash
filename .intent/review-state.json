@@ -3,18 +3,18 @@
   "baseline": "3f6f4e994d43108d6d39856216e897318588da2c",
   "items": {
     "skill:packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": {
-      "fingerprint": "af21679f5e20d58d4c8bc7d4e7051f24e40ef284584617f04ba2767274b341a3",
+      "fingerprint": "31c95900f625d5c28fd606eff1a6dab9d532cf31e9efdc246bffc9592f64ba0f",
       "snapshot": {
-        "docs/reference/dashpanel.md": "1faf9d8b35ed08e19768980c0918e2c501671a50f735379d34d823edb36b167e",
+        "docs/reference/dashpanel.md": "8caf35a0b36d49ec5970fbb2f50440d426fe584283de08ad6c13e38bc071545d",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
         "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
-        "packages/dashpanel/src/panel-hotkey.tsx": "31e1a4613ced5692cca0da76f1d38086c466fe5924659dde5ba4a0946b42323b"
+        "packages/dashpanel/src/panel-hotkey.tsx": "61a5cdbe593db62509bdb2b367d97d47f7efd0296c1291dee26237f821243651"
       },
-      "head": "4517636f1e6fd0f78ab027dc92fe1ab3815c23b8",
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
       "outcome": "no-change",
-      "reason": "Presentation-only refinement: upright empty prompt, 70% rest opacity and shared recorder font-size token. Existing guides and planning records remain accurate. Panel type/lint/format and contextual browser journey pass, including equal Panel/group font size and height.",
+      "reason": "Presentation-only help layering and glass/pointer change; no public API or consumer workflow changes. Existing guides and all three planning documents remain accurate for package ownership, task coverage, recommendations and exclusions. 86 affected component/CSS tests and contextual browser journey pass, including hover dismissal, recording/live feedback, portal hit/layer order, inherited theme, reduced motion, clickable-help focus restoration and bottom-to-top viewport placement flip. Lab screenshots visually reviewed; Gearmo Pressure angle consumer remains pending adoption.",
       "evidence": [
-        "Changed: docs/reference/dashpanel.md at 4517636f1e6fd0f78ab027dc92fe1ab3815c23b8"
+        "Changed: packages/dashpanel/src/panel-hotkey.tsx at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
       ]
     },
     "skill:packages/picodash/skills/bind-controls/SKILL.md": {
@@ -37,27 +37,27 @@
       ]
     },
     "planning:_artifacts": {
-      "fingerprint": "6b8eef7ed4c3f6c7cdd9b6b980b42a9eb58a74c42620202c5c010f754048d44b",
+      "fingerprint": "bf90f88830b51342dbb4c8b912e2a5d151458238e95fec5d7b3c16fe042d8bb0",
       "snapshot": {
         "_artifacts/domain_map.yaml": "7fae05e81d3660e56f32a0dc042c64b6f4b7c0718bcaf6917e2792371b333dc4",
         "_artifacts/skill_spec.md": "bc0e75e4b8b009a856e577f727fabb72628c78ef5720a343ba4db40b9decdde4",
         "_artifacts/skill_tree.yaml": "4c95e940102fbc17ad5c41ee7fa564f5bdb26150830ae2ef8e6430e23b48009e",
         "docs/development/consumer-recipes.md": "87f76f251a9e2e700323c2243386c2e053d39cf8d6ac1e8c7a775b371c11d81d",
-        "docs/reference/dashpanel.md": "1faf9d8b35ed08e19768980c0918e2c501671a50f735379d34d823edb36b167e",
+        "docs/reference/dashpanel.md": "8caf35a0b36d49ec5970fbb2f50440d426fe584283de08ad6c13e38bc071545d",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
         "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
-        "packages/dashpanel/src/panel-hotkey.tsx": "31e1a4613ced5692cca0da76f1d38086c466fe5924659dde5ba4a0946b42323b",
+        "packages/dashpanel/src/panel-hotkey.tsx": "61a5cdbe593db62509bdb2b367d97d47f7efd0296c1291dee26237f821243651",
         "packages/picodash/skills/bind-controls/SKILL.md": "f520bfeee1d185085760351a9596b5001331d43d889266a5a3b6299d2d7b27d3",
         "packages/picodash/src/detachable-group.tsx": "fd145e7903df7e83ae8986d2f8beafcc7a452f0db8ce183f26e32af2b705d147",
         "packages/picodash/src/index.ts": "c62056bb9c1b60b8c0e4d3955542de223f7521a4fdb1f4635feaecba8f0c85d5",
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "4517636f1e6fd0f78ab027dc92fe1ab3815c23b8",
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
       "outcome": "no-change",
-      "reason": "Presentation-only refinement: upright empty prompt, 70% rest opacity and shared recorder font-size token. Existing guides and planning records remain accurate. Panel type/lint/format and contextual browser journey pass, including equal Panel/group font size and height.",
+      "reason": "Presentation-only help layering and glass/pointer change; no public API or consumer workflow changes. Existing guides and all three planning documents remain accurate for package ownership, task coverage, recommendations and exclusions. 86 affected component/CSS tests and contextual browser journey pass, including hover dismissal, recording/live feedback, portal hit/layer order, inherited theme, reduced motion, clickable-help focus restoration and bottom-to-top viewport placement flip. Lab screenshots visually reviewed; Gearmo Pressure angle consumer remains pending adoption.",
       "evidence": [
-        "Changed: docs/reference/dashpanel.md at 4517636f1e6fd0f78ab027dc92fe1ab3815c23b8"
+        "Changed: packages/dashpanel/src/panel-hotkey.tsx at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
       ]
     },
     "source:apps/lab/src/components/contract-lab/specimen.tsx": {
@@ -77,15 +77,15 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "4cdf04ea3170cb2f5b853bbf8c720ee8f8a72a05193f7a66fa42a8509b2bd365",
+      "fingerprint": "b51a0748d307d040ac458123598b4f082186a3a9c85a838600f0b5e18458a29f",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "f402f90bcacbeb8ea72327ce71815c523dcab9a863746951ce06e3d3b5d809fc"
+        "apps/lab/tests/contract-lab.spec.ts": "a66ae720f89736d918ac83e1456a5e680390ecb35e8ef372502e5ee150219c07"
       },
-      "head": "4517636f1e6fd0f78ab027dc92fe1ab3815c23b8",
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
       "outcome": "no-change",
-      "reason": "Presentation-only refinement: upright empty prompt, 70% rest opacity and shared recorder font-size token. Existing guides and planning records remain accurate. Panel type/lint/format and contextual browser journey pass, including equal Panel/group font size and height.",
+      "reason": "Presentation-only help layering and glass/pointer change; no public API or consumer workflow changes. Existing guides and all three planning documents remain accurate for package ownership, task coverage, recommendations and exclusions. 86 affected component/CSS tests and contextual browser journey pass, including hover dismissal, recording/live feedback, portal hit/layer order, inherited theme, reduced motion, clickable-help focus restoration and bottom-to-top viewport placement flip. Lab screenshots visually reviewed; Gearmo Pressure angle consumer remains pending adoption.",
       "evidence": [
-        "Changed: apps/lab/tests/contract-lab.spec.ts at 4517636f1e6fd0f78ab027dc92fe1ab3815c23b8"
+        "Changed: apps/lab/tests/contract-lab.spec.ts at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -103,15 +103,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "b3f8924e495165f30b90dda90787d512295f2d3e661f51784b7637284f007263",
+      "fingerprint": "f8e765ab0a2d30329e5a203fa8a9a0b7d277bf581e745a32384efa02f041fbdf",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "020f02df83d32312f468e521ac8e0b7c3b6b79257c4d6ceacde4f239d773e5fb"
+        "docs/reference/contract-conformance.md": "4ade29a7e857aa9a36f13b412653827fac771ff9b0907c58457ec1a62846fb94"
       },
-      "head": "fc12240800066fa410f96ca7fadacf10aef27585",
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
       "outcome": "no-change",
-      "reason": "Release evidence and recommendation only; no guide or planning change. dogfood.46 passes 15 installed tests, .45 update/rollback, types and Vite/Next builds.",
+      "reason": "Presentation-only help layering and glass/pointer change: existing shortcut and bound-control guides remain accurate, with no public API or consumer workflow changes. All three planning documents retain their package ownership, task coverage, recommendations and exclusions. Verified 86 affected component/CSS tests, workspace formatting/lint/types and contextual browser layer/hit-test, recording/live feedback and clickable-help focus restoration. Lab screenshots visually reviewed; actual Gearmo rich content awaits bundle adoption.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at fc12240800066fa410f96ca7fadacf10aef27585"
+        "Changed: docs/reference/contract-conformance.md at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -157,29 +157,27 @@
       ]
     },
     "source:packages/dashpanel/src/style.css": {
-      "fingerprint": "a402255f9dfe70c9df172cc7fb1d20ddfc99e533b2ef7199116761471549b237",
+      "fingerprint": "3157c82fb7f9184530a10e1291b1fcfed44d531faa65738873d2eb825a0fd7c7",
       "snapshot": {
-        "packages/dashpanel/src/style.css": "4083cf29cda913a4515ee19ca1d0971766372b41fa416c33ca3f9a9cd15edfed"
+        "packages/dashpanel/src/style.css": "9ce64f0aab72afbec085c619c294ad71e6d569eb808d63e423bf6c7cd434b47c"
       },
-      "head": "4517636f1e6fd0f78ab027dc92fe1ab3815c23b8",
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
       "outcome": "no-change",
-      "reason": "Presentation-only refinement: upright empty prompt, 70% rest opacity and shared recorder font-size token. Existing guides and planning records remain accurate. Panel type/lint/format and contextual browser journey pass, including equal Panel/group font size and height.",
+      "reason": "Presentation-only help layering and glass/pointer change: existing shortcut and bound-control guides remain accurate, with no public API or consumer workflow changes. All three planning documents retain their package ownership, task coverage, recommendations and exclusions. Verified 86 affected component/CSS tests, workspace formatting/lint/types and contextual browser layer/hit-test, recording/live feedback and clickable-help focus restoration. Lab screenshots visually reviewed; actual Gearmo rich content awaits bundle adoption.",
       "evidence": [
-        "Changed: packages/dashpanel/src/style.css at 4517636f1e6fd0f78ab027dc92fe1ab3815c23b8"
+        "Changed: packages/dashpanel/src/style.css at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
       ]
     },
     "source:packages/dashpanel/tests/hotkey.test.tsx": {
-      "fingerprint": "676a9242646bfcc1ec2ef24c6657b056259ec7658be8669c1bdb6196e4a3b6d4",
+      "fingerprint": "9e71eac0b18458a1e76a73123dd92288c3745535c270b31d39fccffd0aabfc04",
       "snapshot": {
-        "packages/dashpanel/tests/hotkey.test.tsx": "01b8c12eab593d44a90dc3014aae664749b85673b4de718aec1290f1c0d4847a"
+        "packages/dashpanel/tests/hotkey.test.tsx": "a515c3de9d2d247579d652c2742a5e54eb3611727338adeb3fbe24f6b238d6ec"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
+      "outcome": "no-change",
+      "reason": "Presentation-only help layering and glass/pointer change: existing shortcut and bound-control guides remain accurate, with no public API or consumer workflow changes. All three planning documents retain their package ownership, task coverage, recommendations and exclusions. Verified 86 affected component/CSS tests, workspace formatting/lint/types and contextual browser layer/hit-test, recording/live feedback and clickable-help focus restoration. Lab screenshots visually reviewed; actual Gearmo rich content awaits bundle adoption.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "Changed: packages/dashpanel/tests/hotkey.test.tsx at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
       ]
     },
     "source:packages/dashpanel/tests/package-artifacts.mjs": {
@@ -469,31 +467,27 @@
       ]
     },
     "source:packages/dashstack/src/index.tsx": {
-      "fingerprint": "3332034555050193e4b281dc08dbf16db96a5f9d328e08fe392532924734b2bf",
+      "fingerprint": "7c26d7641c34061455e52b67c15d7678c975593953fc184a5d4453a08d336199",
       "snapshot": {
-        "packages/dashstack/src/index.tsx": "73eb42a2d214ee5f3b17118ce17140a5669fb9989d538fe175395569d95e2e01"
+        "packages/dashstack/src/index.tsx": "169fac8d65563d07a2f7d9a745edaf55164ee20f6b431efee25e4c4e6cadc6c9"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
+      "outcome": "no-change",
+      "reason": "Presentation-only help layering and glass/pointer change: existing shortcut and bound-control guides remain accurate, with no public API or consumer workflow changes. All three planning documents retain their package ownership, task coverage, recommendations and exclusions. Verified 86 affected component/CSS tests, workspace formatting/lint/types and contextual browser layer/hit-test, recording/live feedback and clickable-help focus restoration. Lab screenshots visually reviewed; actual Gearmo rich content awaits bundle adoption.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "Changed: packages/dashstack/src/index.tsx at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
       ]
     },
     "source:packages/dashstack/src/style.css": {
-      "fingerprint": "cbb0e751253320cca4ecc73a1e7e69900f0678d0153f2226d44f55a4b1fa832e",
+      "fingerprint": "79766d2f13f917966032ac7a526c405a3b3bb28e2e8b31799daeb25606564ef8",
       "snapshot": {
-        "packages/dashstack/src/style.css": "b8093f1e997e18aebf63443266e89b755f12802d2c202ab6339194f263a3a673"
+        "packages/dashstack/src/style.css": "dcbf25372a73bd3983023d85363c0e44a5ccf86d95e353ffb16c129aa5501eea"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
+      "outcome": "no-change",
+      "reason": "Presentation-only help layering and glass/pointer change; no public API or consumer workflow changes. Existing guides and all three planning documents remain accurate for package ownership, task coverage, recommendations and exclusions. 86 affected component/CSS tests and contextual browser journey pass, including hover dismissal, recording/live feedback, portal hit/layer order, inherited theme, reduced motion, clickable-help focus restoration and bottom-to-top viewport placement flip. Lab screenshots visually reviewed; Gearmo Pressure angle consumer remains pending adoption.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "Changed: packages/dashstack/src/style.css at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
       ]
     },
     "source:packages/picodash/style.css": {
@@ -578,6 +572,62 @@
         "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
         "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
         "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
+      ]
+    },
+    "source:docs/reference/ui.md": {
+      "fingerprint": "d48b1205eec02005f2da50b45c2260ad1eff36139529913e8229e62fc1f3cce4",
+      "snapshot": {
+        "docs/reference/ui.md": "17d6ecf1c43576de82e5d2e8bc385886c9ff3659f78115d42671170e26975091"
+      },
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
+      "outcome": "no-change",
+      "reason": "Presentation-only help layering and glass/pointer change: existing shortcut and bound-control guides remain accurate, with no public API or consumer workflow changes. All three planning documents retain their package ownership, task coverage, recommendations and exclusions. Verified 86 affected component/CSS tests, workspace formatting/lint/types and contextual browser layer/hit-test, recording/live feedback and clickable-help focus restoration. Lab screenshots visually reviewed; actual Gearmo rich content awaits bundle adoption.",
+      "evidence": ["Changed: docs/reference/ui.md at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"]
+    },
+    "source:packages/dashstack/tests/dashstack.test.tsx": {
+      "fingerprint": "943edebfcc792346b62082377c5d20c62f297a18c86f93949cb04e45ee64681d",
+      "snapshot": {
+        "packages/dashstack/tests/dashstack.test.tsx": "0eb5c7b3f8c4321d046eac80199b4a7125a8b60c8647016e2e8d60d405c09bd8"
+      },
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
+      "outcome": "no-change",
+      "reason": "Presentation-only help layering and glass/pointer change: existing shortcut and bound-control guides remain accurate, with no public API or consumer workflow changes. All three planning documents retain their package ownership, task coverage, recommendations and exclusions. Verified 86 affected component/CSS tests, workspace formatting/lint/types and contextual browser layer/hit-test, recording/live feedback and clickable-help focus restoration. Lab screenshots visually reviewed; actual Gearmo rich content awaits bundle adoption.",
+      "evidence": [
+        "Changed: packages/dashstack/tests/dashstack.test.tsx at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
+      ]
+    },
+    "source:packages/ui/src/tooltip.tsx": {
+      "fingerprint": "b24308008a00fbf6cec2c10b71914e8f45c0ae6b09f684b14b40d0e18ae5ee34",
+      "snapshot": {
+        "packages/ui/src/tooltip.tsx": "eb6a6d13fc570bcff196c990680125601c4c9d1f696b332a342a161ed24b35c9"
+      },
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
+      "outcome": "no-change",
+      "reason": "Presentation-only help layering and glass/pointer change: existing shortcut and bound-control guides remain accurate, with no public API or consumer workflow changes. All three planning documents retain their package ownership, task coverage, recommendations and exclusions. Verified 86 affected component/CSS tests, workspace formatting/lint/types and contextual browser layer/hit-test, recording/live feedback and clickable-help focus restoration. Lab screenshots visually reviewed; actual Gearmo rich content awaits bundle adoption.",
+      "evidence": [
+        "Changed: packages/ui/src/tooltip.tsx at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
+      ]
+    },
+    "source:packages/ui/style.css": {
+      "fingerprint": "10de84a5f576e36c60e6cec21f6f3af38eb8a686d99a86e56e8da577bfec306e",
+      "snapshot": {
+        "packages/ui/style.css": "3278d3edbcfe221e2a0763b54eaa25ee34efdad300fbf3edf70ac9866938b885"
+      },
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
+      "outcome": "no-change",
+      "reason": "Presentation-only help layering and glass/pointer change: existing shortcut and bound-control guides remain accurate, with no public API or consumer workflow changes. All three planning documents retain their package ownership, task coverage, recommendations and exclusions. Verified 86 affected component/CSS tests, workspace formatting/lint/types and contextual browser layer/hit-test, recording/live feedback and clickable-help focus restoration. Lab screenshots visually reviewed; actual Gearmo rich content awaits bundle adoption.",
+      "evidence": ["Changed: packages/ui/style.css at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"]
+    },
+    "source:packages/ui/tests/css-contract.test.ts": {
+      "fingerprint": "932d1b19084752cd7ef4b3bdf9fdd5fa09ac018d16fdae9115c73897ffe25a06",
+      "snapshot": {
+        "packages/ui/tests/css-contract.test.ts": "33d4c8a9f07ae1cc090c297bcca05a3c4545c68d373434e543e3903c36360b4b"
+      },
+      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
+      "outcome": "no-change",
+      "reason": "Presentation-only help layering and glass/pointer change: existing shortcut and bound-control guides remain accurate, with no public API or consumer workflow changes. All three planning documents retain their package ownership, task coverage, recommendations and exclusions. Verified 86 affected component/CSS tests, workspace formatting/lint/types and contextual browser layer/hit-test, recording/live feedback and clickable-help focus restoration. Lab screenshots visually reviewed; actual Gearmo rich content awaits bundle adoption.",
+      "evidence": [
+        "Changed: packages/ui/tests/css-contract.test.ts at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
       ]
     }
   }

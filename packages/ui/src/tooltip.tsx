@@ -164,7 +164,11 @@ export const TooltipContent = forwardRef<HTMLDivElement, TooltipContentProps>(
           data-picodash-theme={theme}
           data-picodash-density={density}
         >
-          <OverlayArrow className="picodash-tooltip-arrow" aria-hidden="true" />
+          <OverlayArrow className="picodash-tooltip-arrow" aria-hidden="true">
+            <svg width="12" height="6" viewBox="0 0 12 6">
+              <path d="M0 0L6 6L12 0" />
+            </svg>
+          </OverlayArrow>
           {children}
         </ReactAriaTooltip>
       </ActiveOverlayLayer>

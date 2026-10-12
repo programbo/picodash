@@ -8,7 +8,7 @@ import {
   useHotkeyRecorder,
   validateHotkey,
 } from '@tanstack/react-hotkeys'
-import { Button } from '@picodash/ui'
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@picodash/ui'
 import { Pencil } from 'lucide-react'
 import { useDashPanelHostId } from './runtime/panel-controller.js'
 import { useDashPanelRuntime, useDashPanelRuntimeState } from './runtime/panel-runtime-context.js'
@@ -192,6 +192,7 @@ export function PanelHotkey({
   const identity = useId()
   const helpId = useId()
   const [feedback, setFeedback] = useState('')
+  const [helpOpen, setHelpOpen] = useState(false)
   const recorder = useHotkeyRecorder({
     detectConflicts: false,
     validate: (candidate) => {
@@ -220,6 +221,13 @@ export function PanelHotkey({
     if ((!enabled || !recordingEnabled) && recorder.isRecording) recorder.cancelRecording()
   }, [enabled, recordingEnabled, recorder.isRecording, recorder.cancelRecording])
   const error = binding ? panelHotkeyError(binding) : undefined
+  const help = recorder.isRecording
+    ? feedback || 'Press a shortcut. Escape cancels; Delete or Backspace removes it.'
+    : feedback ||
+      error ||
+      (binding
+        ? `Current shortcut: ${formatForDisplay(binding)}. Activate to change or remove it.`
+        : description)
   return (
     <>
       {enabled && binding && !error ? (
@@ -232,49 +240,53 @@ export function PanelHotkey({
         />
       ) : null}
       <span data-picodash-panel-hotkey hidden={!enabled}>
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-label={`Record shortcut for ${panelName}`}
-          aria-describedby={helpId}
-          aria-pressed={recorder.isRecording}
-          isDisabled={!recordingEnabled}
-          onPress={() => {
-            if (recorder.isRecording) recorder.cancelRecording()
-            else {
-              setFeedback('')
-              recorder.startRecording()
-            }
-          }}
-          onBlur={() => {
-            if (recorder.isRecording) recorder.cancelRecording()
-          }}
-          data-recording={recorder.isRecording || undefined}
-          data-empty={(!binding || !!error) && !recorder.isRecording ? true : undefined}
+        <Tooltip
+          isOpen={enabled && recordingEnabled && (recorder.isRecording || helpOpen)}
+          onOpenChange={setHelpOpen}
         >
-          <span data-picodash-hotkey-face>
-            {recorder.isRecording ? (
-              'Press keys…'
-            ) : binding && !error ? (
-              <span data-picodash-hotkey-keys aria-hidden="true">
-                {formatForDisplay(binding, { parts: true }).map((part) => (
-                  <kbd key={part}>{part}</kbd>
-                ))}
+          <TooltipTrigger>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={`Record shortcut for ${panelName}`}
+              aria-describedby={helpId}
+              aria-pressed={recorder.isRecording}
+              isDisabled={!recordingEnabled}
+              onPress={() => {
+                if (recorder.isRecording) recorder.cancelRecording()
+                else {
+                  setFeedback('')
+                  recorder.startRecording()
+                }
+              }}
+              onBlur={() => {
+                if (recorder.isRecording) recorder.cancelRecording()
+              }}
+              data-recording={recorder.isRecording || undefined}
+              data-empty={(!binding || !!error) && !recorder.isRecording ? true : undefined}
+            >
+              <span data-picodash-hotkey-face>
+                {recorder.isRecording ? (
+                  'Press keys…'
+                ) : binding && !error ? (
+                  <span data-picodash-hotkey-keys aria-hidden="true">
+                    {formatForDisplay(binding, { parts: true }).map((part) => (
+                      <kbd key={part}>{part}</kbd>
+                    ))}
+                  </span>
+                ) : (
+                  <span data-picodash-hotkey-placeholder>Click to record shortcut</span>
+                )}
               </span>
-            ) : (
-              <span data-picodash-hotkey-placeholder>Click to record shortcut</span>
-            )}
-          </span>
-          <Pencil aria-hidden="true" data-picodash-hotkey-edit />
-        </Button>
+              <Pencil aria-hidden="true" data-picodash-hotkey-edit />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent placement="bottom" offset={8}>
+            {help}
+          </TooltipContent>
+        </Tooltip>
         <span id={helpId} data-picodash-panel-hotkey-help role="status">
-          {recorder.isRecording
-            ? feedback || 'Press a shortcut. Escape cancels; Delete or Backspace removes it.'
-            : feedback ||
-              error ||
-              (binding
-                ? `Current shortcut: ${formatForDisplay(binding)}. Activate to change or remove it.`
-                : description)}
+          {help}
         </span>
       </span>
     </>

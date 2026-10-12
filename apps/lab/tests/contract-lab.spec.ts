@@ -3341,6 +3341,9 @@ test('routes recorded group shortcuts through visible parents and reopens a clos
   )
   await basics.hover()
   await expect(basics).toHaveCSS('opacity', '1')
+  await expect(page.getByRole('tooltip')).toBeVisible()
+  await page.mouse.move(0, 0)
+  await expect(page.getByRole('tooltip')).toHaveCount(0)
   for (const recorder of [basics, choices]) {
     await recorder.click()
     await page.keyboard.press('Control+Shift+G')
@@ -3389,6 +3392,35 @@ test('routes recorded group shortcuts through visible parents and reopens a clos
     expect(Math.abs(bounds.faceCentre - bounds.headerCentre)).toBeLessThanOrEqual(1)
   }
   await closeRecorder.click()
+  await expect(closeRecorder).toHaveAttribute('aria-pressed', 'true')
+  const help = page.getByRole('tooltip')
+  await expect(help).toContainText('Escape cancels')
+  await page.mouse.move(0, 0)
+  await expect(help).toBeVisible()
+  expect(
+    await help.evaluate((element) => {
+      const trigger = document.querySelector(
+        '[aria-label="Record shortcut for Choices & temporal"]',
+      )!
+      const panel = trigger.closest('aside')!
+      const box = element.getBoundingClientRect()
+      return {
+        detached: !panel.contains(element),
+        themed:
+          element.getAttribute('data-picodash-theme') ===
+          trigger.closest('[data-picodash-theme]')?.getAttribute('data-picodash-theme'),
+        above: Number(getComputedStyle(element).zIndex) > Number(getComputedStyle(panel).zIndex),
+        hit: element.contains(
+          document.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2),
+        ),
+        glass: getComputedStyle(element).backdropFilter !== 'none',
+        triangle: !!element.querySelector('.picodash-tooltip-arrow svg path'),
+      }
+    }),
+  ).toEqual({ detached: true, themed: true, above: true, hit: true, glass: true, triangle: true })
+  await page.screenshot({ path: '/tmp/mira-recorder-help-after.png' })
+  await page.keyboard.press('r')
+  await expect(help).toContainText('Include Control')
   await expect(closeRecorder).toHaveAttribute('aria-pressed', 'true')
   await page.keyboard.press('Escape')
   await page.mouse.move(0, 0)
@@ -3442,4 +3474,35 @@ test('routes recorded group shortcuts through visible parents and reopens a clos
   expect(geometry.recorder.right).toBeLessThanOrEqual(geometry.detach.left)
   expect(geometry.label.right).toBeLessThanOrEqual(geometry.recorder.left)
   await page.screenshot({ path: '/tmp/mira-contextual-shortcuts.png' })
+  await page.getByRole('button', { name: 'Help for NumberDashlet', exact: true }).click()
+  const richHelp = page.getByRole('dialog', { name: 'Help for NumberDashlet', exact: true })
+  await expect(richHelp).toBeVisible()
+  const richPopover = page.locator('.picodash-dashlet-help-popover')
+  await expect(richPopover).toHaveCSS('backdrop-filter', 'blur(12px)')
+  await expect(richPopover.locator('.picodash-dashlet-help-arrow svg path')).toHaveCount(1)
+  await expect(richPopover).toHaveAttribute('data-placement', 'bottom')
+  await expect(richPopover.locator('.picodash-dashlet-help-arrow svg')).toHaveCSS(
+    'transform',
+    'matrix(-1, 0, 0, -1, 0, 0)',
+  )
+  await page.screenshot({ path: '/tmp/mira-rich-help-after.png' })
+  await page.keyboard.press('Escape')
+  await expect(richHelp).toHaveCount(0)
+  const richTrigger = page.getByRole('button', { name: 'Help for NumberDashlet', exact: true })
+  await expect(richTrigger).toBeFocused()
+  // Exercise the real placement flip at the viewport edge without changing product state.
+  const viewport = page.viewportSize()!
+  const triggerBox = (await richTrigger.boundingBox())!
+  await page.setViewportSize({
+    width: viewport.width,
+    height: Math.ceil(triggerBox.y + triggerBox.height + 10),
+  })
+  await richTrigger.press('Enter')
+  await expect(richPopover).toHaveAttribute('data-placement', 'top')
+  await expect(richPopover.locator('.picodash-dashlet-help-arrow svg')).toHaveCSS(
+    'transform',
+    'none',
+  )
+  await page.keyboard.press('Escape')
+  await page.setViewportSize(viewport)
 })

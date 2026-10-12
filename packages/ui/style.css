@@ -579,20 +579,25 @@
 }
 
 :where([data-slot='tooltip'] .picodash-tooltip-arrow) {
-  block-size: var(--picodash-space-2);
-  inline-size: var(--picodash-space-2);
+  inline-size: 12px;
+  block-size: 6px;
   pointer-events: none;
 }
-
-:where([data-slot='tooltip'] .picodash-tooltip-arrow)::after {
-  background: var(--picodash-color-surface-raised);
-  border-inline-end: var(--picodash-border-width-thin) solid var(--picodash-color-border);
-  border-block-end: var(--picodash-border-width-thin) solid var(--picodash-color-border);
-  content: '';
+:where([data-slot='tooltip'] .picodash-tooltip-arrow svg) {
   display: block;
-  block-size: var(--picodash-space-2);
-  inline-size: var(--picodash-space-2);
-  transform: rotate(45deg);
+  fill: var(--_picodash-surface-translucent);
+  stroke: var(--picodash-color-border);
+  stroke-width: var(--picodash-border-width-thin);
+  overflow: visible;
+}
+:where([data-slot='tooltip'][data-placement='bottom'] .picodash-tooltip-arrow svg) {
+  transform: rotate(180deg);
+}
+:where([data-slot='tooltip'][data-placement='left'] .picodash-tooltip-arrow svg) {
+  transform: rotate(-90deg);
+}
+:where([data-slot='tooltip'][data-placement='right'] .picodash-tooltip-arrow svg) {
+  transform: rotate(90deg);
 }
 
 :where(.picodash-action-menu-confirmation-trigger) {

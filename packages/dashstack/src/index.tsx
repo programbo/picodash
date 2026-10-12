@@ -76,7 +76,7 @@ import {
 } from './structure.js'
 export { useDashStackStructure, useDashStackGroupOrder } from './structure.js'
 export type { DashStackStructure, DashStackNode } from './structure.js'
-import { Dialog, DialogTrigger } from 'react-aria-components'
+import { OverlayArrow, Dialog, DialogTrigger } from 'react-aria-components'
 import {
   createNodeRegistry,
   DashStackNodeDeclarationBoundary,
@@ -1135,7 +1135,12 @@ function DashletHelp({
       <Button aria-label={name} data-picodash-dashlet-help size="sm" type="button" variant="ghost">
         <span id={labelId}>{label}</span>
       </Button>
-      <Popover className="picodash-dashlet-help-popover" placement="bottom start">
+      <Popover className="picodash-dashlet-help-popover" placement="bottom start" offset={8}>
+        <OverlayArrow className="picodash-dashlet-help-arrow" aria-hidden="true">
+          <svg width="12" height="6" viewBox="0 0 12 6">
+            <path d="M0 0L6 6L12 0" />
+          </svg>
+        </OverlayArrow>
         <Dialog aria-label={name}>{children}</Dialog>
       </Popover>
     </DialogTrigger>

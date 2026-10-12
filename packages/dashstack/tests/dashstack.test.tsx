@@ -575,6 +575,7 @@ describe('@picodash/dashstack alpha shell', () => {
     const portalContent = document.querySelector<HTMLElement>('[data-portal-help-content]')
     expect(portalContent).not.toBeNull()
     expect(row.contains(portalContent)).toBe(false)
+    expect(document.querySelector('.picodash-dashlet-help-arrow svg path')).not.toBeNull()
     act(() => portalContent?.click())
     expect(document.activeElement).toBe(help)
 

@@ -265,7 +265,7 @@ describe('@picodash/ui stylesheet contract', () => {
   it('defines the Tooltip slot and decorative token-styled arrow', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
     expect(css).toContain("[data-slot='tooltip']")
-    expect(css).toContain('.picodash-tooltip-arrow)::after')
+    expect(css).toContain('.picodash-tooltip-arrow svg)')
     expect(css).toContain('var(--picodash-color-surface-raised)')
   })
 
