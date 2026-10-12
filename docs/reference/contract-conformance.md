@@ -1824,3 +1824,19 @@ under the owned development Bridge it reaches a later paired-label placement ass
 same-state comparison with both repair CSS declarations disabled produces identical paired
 rectangles (labels above the controls), so that later assertion is unaffected by this repair.
 No retry, skipped assertion or unrelated paired-label change is used to manufacture a pass.
+
+Clean snapshot `0.1.0-dogfood.54` records source `207713b0f1840e97e9dc3a388ccb614e686c23d7`.
+Its snapshot SHA-256 is `decc373405b66728c5a682c3c27393f5b46ca5a4c08a01ff8647e2ad6284b691`.
+All six package release checks pass (1180 tests), as do all 18 isolated installed-consumer tests,
+strict public examples, guide discovery/validation, optional Bridge installation, .53 rollback
+and .54 restoration, repeat/frozen installs and Vite/Next CSS builds. Packing and installed
+consumer scans resolve all 33 shipped Markdown files; seven focused distribution tests include
+nested/copy-layout links, public example rewriting, explicit source labels and missing/escaping
+link rejection. The immutable .53 snapshot hash remains unchanged. Intent validates both original
+guides and records an evidence-backed no-op for their recommendations and all three planning files.
+
+The rebuilt supervised production Lab serves build ID `7VTDfPgqpG_4G7lKCxWSC`. Fresh rendered phone
+geometry records Number centre delta 0 px, compact face 32 px, shell 44 px and at least 16 px entry
+text, with no page errors or Bridge broker/WebSocket traffic. Full phone-suite success is not
+claimed: the original development journey reaches the unchanged paired-label assertion described
+above. The geometry repair and five audit findings are complete; broader audit gaps remain separate.
