@@ -2,8 +2,7 @@
 name: bind-controls
 description: Build a React settings panel or inspector with Picodash controls
   bound to application values. Use for initial Nexus and DashStack integration
-  or custom Dashlet wrappers; not a planetary solver, generic forms, or panel
-  keyboard shortcuts.
+  custom Dashlet wrappers, or contextual detachable-group shortcuts; not a planetary solver or generic forms.
 metadata:
   library: '@picodash/picodash'
   library_version: '0.0.0'
@@ -15,6 +14,8 @@ sources:
   - programbo/picodash:docs/development/consumer-recipes.md
   - tests/dogfood/Controls.tsx
   - src/index.ts
+  - src/detachable-group.tsx
+  - tests/dogfood/ContextualShortcuts.tsx
 ---
 
 ## Bind a control and a readout
@@ -103,3 +104,39 @@ change together. Confirm a custom wrapper has its explicit stable ID at the call
 consumer's typecheck and browser check with the installed version. Report package version and the
 smallest failing composition if a field or parent declaration is rejected; do not bypass it with
 `any` or private package imports.
+
+## Contextual detachable-group shortcuts
+
+When a settings group should pop into a Panel, keep it inside a `DashPanel` and add `detachable`
+and `recordableHotkey` to its labelled root `DashGroup`. The recorder appears beside Detach in
+its original header. The parent's visibility and expanded state enable the shortcut. The shortcut
+detaches or shows the existing Panel; Return to stack is a separate action. Keep stable Stack and
+group IDs so the saved binding survives reload. Nexus must have a persistence driver as described
+in the installed `@picodash/dashpanel#docked-panel-shortcuts` guide; do not store a second preference.
+
+```tsx
+import { DashPanel, DashStack, DashGroup, Dashlet } from '@picodash/picodash'
+export function GeometryTools() {
+  return (
+    <DashPanel id="geometry" title="Geometry" collapsible={false} showCloseButton recordableHotkey>
+      <DashStack id="geometry-stack">
+        <DashGroup id="tools" label="Geometry tools" detachable recordableHotkey>
+          <Dashlet id="draft" label="Draft">
+            <input aria-label="Geometry draft" defaultValue="Example" />
+          </Dashlet>
+        </DashGroup>
+      </DashStack>
+    </DashPanel>
+  )
+}
+```
+
+Mount inside the existing PicodashProvider. The Panel chip stays after its title; close-only Panels
+use Hide/Show. Do not unmount on Close. No parent Panel means no group recorder; the initial
+fine-pointer, 768px desktop detachment policy still applies.
+Different parents may reuse the same group key. When several are eligible, the active parent wins;
+with one eligible binding, focus need not already be inside it. Same-parent and global Panel
+conflicts are rejected. Typing, recording and modals suppress shortcuts. Do not install competing
+DOM keydown handlers to implement the same action.
+Verify two visible parents with the same group key: only the active one's group detaches, drafts
+survive return, hiding its parent disables that group key, and recorded bindings survive reload.

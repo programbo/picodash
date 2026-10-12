@@ -123,3 +123,74 @@ describe('recordable docked panel shortcuts', () => {
     expect(panelHotkeyError('Mod+Shift+[KeyK]')).toBeUndefined()
   })
 })
+
+it.each(['floating', 'fixed'] as const)(
+  'toggles a close-only %s panel, restores focus, and keeps its draft',
+  async (mode) => {
+    const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+    const opener = document.createElement('button')
+    document.body.append(opener)
+    opener.focus()
+    let renderer: ReturnType<typeof createDomTestRenderer> | undefined
+    act(() => {
+      renderer = createDomTestRenderer(
+        <DashPanelProvider nexus={nexus}>
+          <DashPanel
+            id="closer"
+            title="Closer"
+            collapsible={false}
+            showCloseButton
+            recordableHotkey
+            defaultLayout={{
+              placement:
+                mode === 'floating'
+                  ? { mode: 'floating', disposition: { kind: 'free' } }
+                  : { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
+            }}
+          >
+            <input aria-label="Close-only draft" defaultValue="unfinished" />
+          </DashPanel>
+        </DashPanelProvider>,
+      )
+    })
+    const recorder = document.querySelector<HTMLButtonElement>(
+      '[aria-label="Record shortcut for Closer"]',
+    )!
+    const input = document.querySelector<HTMLInputElement>('[aria-label="Close-only draft"]')!
+    const panel = input.closest('aside')!
+    try {
+      expect(recorder.closest('[hidden]')).toBeNull()
+      act(() => {
+        recorder.focus()
+        recorder.click()
+      })
+      key('k', 'KeyK', { ctrlKey: true, shiftKey: true })
+      input.value = 'unfinished -'
+      act(() => opener.focus())
+      key('k', 'KeyK', { ctrlKey: true, shiftKey: true })
+      expect(panel.hidden).toBe(true)
+      expect(document.activeElement).toBe(opener)
+      key('k', 'KeyK', { ctrlKey: true, shiftKey: true })
+      await act(async () => {
+        await Promise.resolve()
+      })
+      expect(panel.hidden).toBe(false)
+      expect(panel.contains(document.activeElement)).toBe(true)
+      expect(document.querySelector('[aria-label="Close-only draft"]')).toBe(input)
+      expect(input.value).toBe('unfinished -')
+      act(() =>
+        document.querySelector<HTMLButtonElement>('[aria-label="Close panel Closer"]')!.click(),
+      )
+      expect(panel.hidden).toBe(true)
+      key('k', 'KeyK', { ctrlKey: true, shiftKey: true })
+      await act(async () => {
+        await Promise.resolve()
+      })
+      expect(panel.hidden).toBe(false)
+    } finally {
+      act(() => renderer?.unmount())
+      opener.remove()
+      nexus.destroy()
+    }
+  },
+)

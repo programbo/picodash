@@ -274,6 +274,7 @@ type RegisteredNodeNativeProps = Omit<
 
 export type DashGroupProps = RegisteredNodeNativeProps & {
   readonly detachable?: boolean | 'floating' | 'hybrid'
+  readonly recordableHotkey?: boolean
   readonly glow?: boolean | CSSProperties['color']
   readonly id: string
   readonly label?: ReactNode
@@ -1415,6 +1416,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
     children,
     className,
     detachable = false,
+    recordableHotkey = false,
     collapsible: declaredCollapsible,
     defaultCollapsed = false,
     reorderable,
@@ -1431,6 +1433,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
   const GroupHost = useContext(DashGroupHostContext)
   if (detachable && (!GroupHost || subgroup || label === undefined))
     throw new TypeError('Detachable groups require PicodashProvider and a labelled root group.')
+  if (recordableHotkey && !detachable) throw new TypeError('A group shortcut requires detachable.')
   const [presentation, present] = useState<DashGroupPresentation>({ location: 'inline' })
   const groupRef = useRef<HTMLDivElement>(null)
   const homeRef = useRef<HTMLDivElement>(null)
@@ -1659,7 +1662,11 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
             <DashHeader
               slots={{
                 trailing: detachable ? (
-                  <div ref={actionsRef} data-picodash-group-host-actions />
+                  <div
+                    ref={actionsRef}
+                    data-picodash-group-host-actions
+                    data-has-hotkey={recordableHotkey || undefined}
+                  />
                 ) : undefined,
                 leading: collapsible ? (
                   <>
@@ -1699,6 +1706,7 @@ const DashGroupImpl = forwardRef<HTMLDivElement, DashGroupProps>(function DashGr
                 label={label}
                 mode={detachable === 'floating' ? 'floating' : 'hybrid'}
                 scope={scopedNexus}
+                recordableHotkey={recordableHotkey}
                 groupRef={groupRef}
                 homeRef={homeRef}
                 actionsRef={actionsRef}

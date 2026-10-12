@@ -72,7 +72,8 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
         id="style-lab-basics-panel"
         title="Basics & readout"
         collapsible
-        showCloseButton={false}
+        recordableHotkey
+        showCloseButton
         width="min(24rem, calc(100dvw - 2rem))"
         defaultLayout={{
           placement: {
@@ -98,7 +99,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
             />
           </DashGroup>
 
-          <DashGroup id="style-lab-basics" label="Basics">
+          <DashGroup id="style-lab-basics" label="Basics" detachable recordableHotkey>
             <TextDashlet id="style-lab-text" field={nexus.fields.text} label="TextDashlet" />
             <NumberDashlet
               id="style-lab-number"
@@ -178,8 +179,9 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
       <DashPanel
         id="style-lab-choices-panel"
         title="Choices & temporal"
-        collapsible
-        showCloseButton={false}
+        collapsible={false}
+        recordableHotkey
+        showCloseButton
         width="min(24rem, calc(100dvw - 2rem))"
         defaultLayout={{
           placement: {
@@ -199,7 +201,7 @@ export function DashletStyleLab({ boundary }: DashletStyleLabProps) {
             data-style-lab-lane="auto"
           />
 
-          <DashGroup id="style-lab-choices" label="Choices">
+          <DashGroup id="style-lab-choices" label="Choices" detachable recordableHotkey>
             <CheckboxDashlet
               id="style-lab-checkbox"
               field={nexus.fields.checkbox}

@@ -55,3 +55,18 @@ Pure transition tests, retained-editor/focus/structure component tests and nativ
 must prove the round trip before package recommendation. Browser acceptance includes reorder cancel,
 Escape, drafts, one editor, original collapse, drop feedback, repeated placement, docking release,
 mobile fallback, theme, reduced motion and source teardown. No cross-Stack moves or nested detach.
+
+## Recorded shortcuts (2026-10-12 amendment)
+
+`DashGroup detachable recordableHotkey` opts into a recorder immediately before the Detach/Show
+button in the original heading. The host coordinates DashPanel's context-aware recorder with
+Nexus `dashGroupHotkeys`, keyed by group ID in the original Stack scope. Binding preferences persist;
+detachment, activation, visibility, layout and focus remain transient. Stack/layout resets preserve
+bindings; explicit clearing or scope destruction removes them. No new scope is invented for a group.
+
+While its original parent Panel is visible and expanded, the shortcut detaches an inline group or
+shows its existing detached host. It never creates a second editor or implicitly reattaches.
+Desktop eligibility still applies. Standalone Stacks have no parent Panel context and expose no recorder.
+Different parents may reuse keys; the active eligible parent wins when multiple parents are visible.
+Global Panel bindings and same-parent group conflicts are rejected. Recording, typing and modals
+suppress dispatch. A consumed key event cannot activate another context after focus changes.

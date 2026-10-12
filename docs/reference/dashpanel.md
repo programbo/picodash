@@ -1141,17 +1141,17 @@ The host may supply `returnIcon` for the Return action; DashPanel retains the ac
 or focus target, even when retained content has a different React ancestor.
 See [PANEL-TRANSFER-1](dashpanel-contract-decisions.md#detachable-group-hosting-panel-transfer-1).
 
-## Recorded docked-panel shortcuts
+## Recorded panel shortcuts
 
 `recordableHotkey` (default `false`) adds a small shortcut chip after the title when a Panel is
-collapsible and docked. It records a modifier chord using TanStack Hotkeys. Escape cancels;
+collapsible and docked, or offers Close. It records a modifier chord using TanStack Hotkeys. Escape cancels;
 Delete/Backspace clears. Conflicts and reserved editing/navigation chords leave recording active
 and retain the previous key. Labels use platform-specific modifiers and physical key positions.
 
 The shortcut uses Minimize/Reveal and keeps children mounted. It also reveals a closed, mounted
-docked Panel. It is inactive for floating/non-collapsible Panels, text inputs, contenteditable,
+docked Panel. Other closeable Panels use Hide/Show, including floating and non-collapsible Panels. It is inactive for Panels with neither supported operation, text inputs, contenteditable,
 selects, open modals, and recording. Holding a chord fires once. Focus follows the existing
-reveal/minimize controls. Unmounting unregisters the shortcut. Known live TanStack conflicts are
+reveal/minimize controls; Hide restores prior focus and Show focuses the first available Panel control. Unmounting unregisters the shortcut. Known live TanStack conflicts are
 rejected; restored duplicate registrations are suppressed. External listeners and OS/browser
 reservations cannot all be detected.
 
@@ -1176,3 +1176,13 @@ Nexus without persistence retains the preference only for its lifetime.
 
 Installed agent guidance is shipped as the Intent skill `docked-panel-shortcuts` in
 `@picodash/dashpanel/skills/`. Intent is a development dependency only.
+
+### Contextual group shortcut integration
+
+`@picodash/dashpanel/integration` exports `DashPanelContextHotkey` for Picodash's group host.
+The recorder accepts a committed binding, label, enabled flag, commit callback and activation callback.
+It derives its context from the nearest original Panel identity and Provider runtime. It exposes no runtime controller.
+Hidden or collapsed parents are ineligible. Among eligible duplicate bindings across different parents,
+the active parent wins; one eligible binding works without prior activation. Ambiguity across Providers
+or duplicates within the same parent is suppressed. Global Panel shortcuts cannot share contextual keys.
+A key event is consumed before activation changes, preventing a second action during the same dispatch.

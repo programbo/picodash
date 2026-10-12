@@ -116,6 +116,7 @@ async function main() {
     for (const file of [
       'Controls.tsx',
       'Shortcuts.tsx',
+      'ContextualShortcuts.tsx',
       'Designer.tsx',
       'designer-model.ts',
       'NumericTarget.tsx',

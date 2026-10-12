@@ -17,3 +17,12 @@ only committed preference text. No shortcut implies authorization for unrelated 
 Verification is recorded in tests/skills/README.md. Maintainer sync, validate, review, and check
 must pass before recommending the bundle. Installed bundle smoke tests verify discovery and
 run the guide-backed controls and shortcut examples.
+
+## Coverage and batch history
+
+2026-10-12 follow-up to dogfood.40: extend the existing Panel guide to closeable floating and
+non-collapsible Panels; extend the facade guide to contextual detachable groups. Keep skill IDs
+stable. Bindings remain opaque Nexus metadata, keyed by Stack/group identity; eligibility is
+derived from original Panel runtime. Visible duplicate contexts use active-parent arbitration.
+Task fixtures: ContextualShortcuts.tsx and contextual-shortcuts.test.tsx. Source baseline 9af52fa.
+Fresh consumer and browser evidence is recorded in tests/skills/README.md after execution.

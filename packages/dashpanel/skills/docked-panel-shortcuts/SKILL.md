@@ -1,7 +1,7 @@
 ---
 name: docked-panel-shortcuts
 description: Add a user-recorded, persistent keyboard shortcut that minimizes
-  and reveals a docked Picodash DashPanel in a React app. Use for panel keyboard
+  and reveals a docked Picodash DashPanel or hides and shows a closeable Panel in a React app. Use for panel keyboard
   access and shortcut persistence, not generic application hotkeys or DashStack
   ordering.
 metadata:
@@ -76,14 +76,15 @@ can report TS2882 for the stylesheet import; do not remove the stylesheet or dis
 
 ## Expected behavior
 
-The chip appears only on collapsible docked Panels. Click it or activate it with the keyboard,
+The chip appears after the title on collapsible docked Panels and closeable Panels. Click it or activate it with the keyboard,
 then press a modifier chord such as Control+Shift+K. Escape cancels; Backspace/Delete clears.
 An invalid or conflicting candidate leaves the old binding intact and recording active.
 
 The shortcut minimizes/reveals through the normal retained Panel lifecycle, and can reveal a
 closed but still mounted docked Panel. It does not fire while editing text, recording a shortcut,
-or displaying a modal. Holding the keys toggles once. Floating or non-collapsible Panels do not
-activate the binding. Re-docking restores it.
+or displaying a modal. Holding the keys toggles once. Closeable floating or non-collapsible Panels
+use Hide/Show instead; set `showCloseButton` and optionally `collapsible={false}`. Hiding restores
+prior focus; showing focuses the Panel. Panels without either operation do not activate the binding.
 
 The binding is `scope.dashPanelHotkey`, independent of `scope.dashPanel` layout. Use public
 `nexus.scope(panelId).setDashPanelHotkey(null)` to clear it programmatically. Layout reset leaves

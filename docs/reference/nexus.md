@@ -2189,3 +2189,13 @@ characters; `null` removes it. Nexus treats it as opaque preference text and own
 serialization, persistence, document inclusion and quarantine. DashPanel validates the keyboard
 syntax and interactions. Layout and Stack resets/pruning preserve it. Scope destruction removes it.
 Unchanged writes do not publish another snapshot. The core gains no browser or TanStack dependency.
+
+## Durable group keyboard preferences (2026-10-12)
+
+Optional `dashGroupHotkeys: ReadonlyMap<string, string>` belongs to the original Stack scope.
+`root.setDashGroupHotkey(scopeId, groupId, hotkey)` and `scoped.setDashGroupHotkey(groupId, hotkey)`
+write one binding; null clears it. IDs use normal node identity validation. Binding strings use
+the same bounded opaque text contract as Panel bindings. Encoding uses sorted [groupId, binding]
+pairs; duplicate serialized keys fail atomic validation. Empty maps are omitted. Unchanged writes
+publish nothing. Layout and Stack resets/pruning preserve the independent preference leaf;
+scope destruction removes it. Older bundles can quarantine scopes containing this new leaf.

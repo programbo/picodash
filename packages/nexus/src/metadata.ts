@@ -50,6 +50,7 @@ export type SerializedDashPanelLayoutRecord = DashPanelLayoutRecord
 /** The JSON projection used by Nexus persistence for a durable scope. */
 export type SerializedDurableScopeMetadata = {
   readonly dashPanelHotkey?: string
+  readonly dashGroupHotkeys?: readonly (readonly [string, string])[]
   readonly dashStack?: SerializedDashStackMetadataRecord
   readonly dashPanel?: SerializedDashPanelLayoutRecord
 }
@@ -100,7 +101,10 @@ export function normalizeDashPanelLayoutRecord(input: unknown): DashPanelLayoutR
 
 /** Normalizes both product domains atomically; empty domains are omitted. */
 export function normalizeDurableScopeMetadata(input: unknown): DurableScopeMetadata | undefined {
-  if (!isRecord(input) || !hasExactKeys(input, ['dashStack', 'dashPanel', 'dashPanelHotkey']))
+  if (
+    !isRecord(input) ||
+    !hasExactKeys(input, ['dashStack', 'dashPanel', 'dashPanelHotkey', 'dashGroupHotkeys'])
+  )
     throw invalidMetadata()
 
   // Validate both products before constructing the result. This keeps malformed complete records
@@ -117,28 +121,42 @@ export function normalizeDurableScopeMetadata(input: unknown): DurableScopeMetad
     ownValue(input, 'dashPanelHotkey') === undefined
       ? undefined
       : normalizeDashPanelHotkey(ownValue(input, 'dashPanelHotkey'))
+  const dashGroupHotkeys =
+    ownValue(input, 'dashGroupHotkeys') === undefined
+      ? undefined
+      : normalizeStringMap(ownValue(input, 'dashGroupHotkeys'), normalizeDashPanelHotkey)
   const dashStack =
     dashStackCandidate !== undefined && isEmptyDashStack(dashStackCandidate)
       ? undefined
       : dashStackCandidate
-  if (dashStack === undefined && dashPanel === undefined && dashPanelHotkey === undefined)
+  if (
+    dashStack === undefined &&
+    dashPanel === undefined &&
+    dashPanelHotkey === undefined &&
+    !dashGroupHotkeys?.size
+  )
     return undefined
 
   return freezeRecord({
     ...(dashStack === undefined ? {} : { dashStack }),
     ...(dashPanel === undefined ? {} : { dashPanel }),
     ...(dashPanelHotkey === undefined ? {} : { dashPanelHotkey }),
+    ...(!dashGroupHotkeys?.size ? {} : { dashGroupHotkeys }),
   })
 }
 
 /** Decodes a JSON metadata projection, rejecting duplicate serialized map keys. */
 export function decodeDurableScopeMetadata(input: unknown): DurableScopeMetadata | undefined {
-  if (!isRecord(input) || !hasExactKeys(input, ['dashStack', 'dashPanel', 'dashPanelHotkey']))
+  if (
+    !isRecord(input) ||
+    !hasExactKeys(input, ['dashStack', 'dashPanel', 'dashPanelHotkey', 'dashGroupHotkeys'])
+  )
     throw invalidMetadata()
   if (
     (Object.hasOwn(input, 'dashStack') && ownValue(input, 'dashStack') === undefined) ||
     (Object.hasOwn(input, 'dashPanel') && ownValue(input, 'dashPanel') === undefined) ||
-    (Object.hasOwn(input, 'dashPanelHotkey') && ownValue(input, 'dashPanelHotkey') === undefined)
+    (Object.hasOwn(input, 'dashPanelHotkey') && ownValue(input, 'dashPanelHotkey') === undefined) ||
+    (Object.hasOwn(input, 'dashGroupHotkeys') && ownValue(input, 'dashGroupHotkeys') === undefined)
   )
     throw invalidMetadata()
   const dashStackCandidate = !Object.hasOwn(input, 'dashStack')
@@ -151,16 +169,26 @@ export function decodeDurableScopeMetadata(input: unknown): DurableScopeMetadata
     ownValue(input, 'dashPanelHotkey') === undefined
       ? undefined
       : normalizeDashPanelHotkey(ownValue(input, 'dashPanelHotkey'))
+  const dashGroupHotkeys =
+    ownValue(input, 'dashGroupHotkeys') === undefined
+      ? undefined
+      : decodeStringMap(ownValue(input, 'dashGroupHotkeys'), normalizeDashPanelHotkey)
   const dashStack =
     dashStackCandidate !== undefined && isEmptyDashStack(dashStackCandidate)
       ? undefined
       : dashStackCandidate
-  if (dashStack === undefined && dashPanel === undefined && dashPanelHotkey === undefined)
+  if (
+    dashStack === undefined &&
+    dashPanel === undefined &&
+    dashPanelHotkey === undefined &&
+    !dashGroupHotkeys?.size
+  )
     return undefined
   return freezeRecord({
     ...(dashStack === undefined ? {} : { dashStack }),
     ...(dashPanel === undefined ? {} : { dashPanel }),
     ...(dashPanelHotkey === undefined ? {} : { dashPanelHotkey }),
+    ...(!dashGroupHotkeys?.size ? {} : { dashGroupHotkeys }),
   })
 }
 
@@ -188,6 +216,13 @@ export function encodeDurableScopeMetadata(
   const normalized = normalizeDurableScopeMetadata(input)
   if (normalized === undefined) return undefined
   return freezeRecord({
+    ...(normalized.dashGroupHotkeys === undefined
+      ? {}
+      : {
+          dashGroupHotkeys: Object.freeze(
+            [...normalized.dashGroupHotkeys].map((entry) => Object.freeze(entry)),
+          ),
+        }),
     ...(normalized.dashStack === undefined
       ? {}
       : { dashStack: encodeDashStackMetadataRecord(normalized.dashStack) }),
@@ -305,12 +340,12 @@ function arrayLength(value: readonly unknown[]): number {
   }
 }
 
-function normalizeStringMap(
+function normalizeStringMap<Value>(
   input: unknown,
-  normalizeValue: (value: unknown) => readonly string[],
-): ReadonlyMap<string, readonly string[]> {
+  normalizeValue: (value: unknown) => Value,
+): ReadonlyMap<string, Value> {
   if (!isAcceptedMap(input)) throw invalidMetadata()
-  const entries: [string, readonly string[]][] = []
+  const entries: [string, Value][] = []
   try {
     for (const [key, value] of input.entries()) {
       if (!isValidIdentifier(key)) throw invalidMetadata()
@@ -338,12 +373,12 @@ function normalizeBooleanMap(input: unknown): ReadonlyMap<string, boolean> {
   return immutableMap(entries)
 }
 
-function decodeStringMap(
+function decodeStringMap<Value>(
   input: unknown,
-  normalizeValue: (value: unknown) => readonly string[],
-): ReadonlyMap<string, readonly string[]> {
+  normalizeValue: (value: unknown) => Value,
+): ReadonlyMap<string, Value> {
   if (!isArrayValue(input) || !isPlainDataArray(input)) throw invalidMetadata()
-  const entries: [string, readonly string[]][] = []
+  const entries: [string, Value][] = []
   const seen = new Set<string>()
   for (let index = 0, length = arrayLength(input); index < length; index += 1) {
     const entry = ownArrayValue(input, index)
@@ -433,6 +468,7 @@ function hasExactKeys(value: Record<string, unknown>, optional: readonly string[
       key === 'dashStack' ||
       key === 'dashPanel' ||
       key === 'dashPanelHotkey' ||
+      key === 'dashGroupHotkeys' ||
       Object.hasOwn(value, key),
   )
 }

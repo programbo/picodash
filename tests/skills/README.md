@@ -40,3 +40,26 @@ checks the guide blocks; the installed consumer's separate strict typecheck and 
 check the delivered API. The final .40 bundle passes 14 installed tests, both guide discovery and
 version assertions, and Vite/Next builds. Do not report installed structural validation as a
 second independent code-block typecheck.
+
+## Closeable panels and contextual group shortcuts (2026-10-12)
+
+A fresh agent (`/root/contextual_consumer`, no parent conversation) completed contextual-task.md in
+an isolated Bun consumer installed from trial `0.1.0-dogfood.9042`. It discovered and loaded both
+updated guides through Intent and changed only ContextualShortcuts.tsx. Its output is retained as
+contextual-consumer-solution.tsx.txt. Strict TypeScript checking passed. The unchanged contextual
+consumer grader passed, proving context reuse, retained draft/DOM identity, hide/show, persisted
+panel and group bindings after model recreation, and explicit clearing. This is one independent
+consumer attempt, not an activation or reliability rate.
+
+To reproduce, copy that candidate, the existing Shortcuts.tsx createSettings helper, the unchanged
+contextual-shortcuts.test.tsx grader and test/setup.ts into an installed consumer using Vite+.
+A separate negative candidate omitted only createSettings's persistence configuration. The same
+grader failed on restored panel binding (keyboard symbol instead of K), as intended. The positive
+candidate was left intact. The installed Intent structural-validation limitation described above
+still applies; the consumer typecheck and executable grader provide separate delivered-API proof.
+
+The real Lab browser verified recorder placement beside group Detach actions, active-parent
+routing, retained detached content and focus, hidden-parent exclusion, and close-only reopening.
+The existing persistence and two-panel style journeys also pass. The latter's obsolete underline
+expectation was corrected to the already accepted solid-selection styling; no selection behavior
+changed in this round.

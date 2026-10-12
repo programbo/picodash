@@ -3,67 +3,65 @@
   "baseline": "3f6f4e994d43108d6d39856216e897318588da2c",
   "items": {
     "skill:packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": {
-      "fingerprint": "8e9fc55e513e09347dcee86a7f08dad156f3a92e2fa33102a1780f07f5dd037a",
+      "fingerprint": "7b934f041cbf22ce39f494736548714543f839d263525cf07f5fd85c296b8bbe",
       "snapshot": {
-        "docs/reference/dashpanel.md": "3103d56b839b172c2bdebc2412746bcda7e12b0d44092dc9fffa0f6eaa6f75ec",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "7cdbc23a28adc808e94da5a09912c5115685645eab4b1431dabe76daa518c0d9",
-        "packages/dashpanel/src/index.tsx": "3a1aa7974b80610d9cf4cb1fabe59f7d16dcbdaa71c49d2d6995f01b8ab03270",
-        "packages/dashpanel/src/panel-hotkey.tsx": "4af248ec5d1e0f99856878a4f456959c5d2403a9674521308280527020b08787"
+        "docs/reference/dashpanel.md": "6f0d28f25cd532a6534caea3395b03e7351403fd5a766b850d02142568e596e5",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
+        "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
+        "packages/dashpanel/src/panel-hotkey.tsx": "20f21643985b79e992ea1aae829f7ef1e4204df0b23d3df8af5e8fe53433f0cd"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
       "outcome": "updated",
-      "reason": "Authored bounded installed-package guidance for the implemented shortcut and existing shared-control integration; sources and public examples match.",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "skill:packages/picodash/skills/bind-controls/SKILL.md": {
-      "fingerprint": "30c65d26ff9f0f8fe2f5bd1311c1481108b0b6cc8758e60f69f8b0c13ef06b21",
+      "fingerprint": "4396cd2d1c8f3cf4ede49517b4022ae77dde79da6af99227521cc158ac219ead",
       "snapshot": {
         "docs/development/consumer-recipes.md": "87f76f251a9e2e700323c2243386c2e053d39cf8d6ac1e8c7a775b371c11d81d",
-        "packages/picodash/skills/bind-controls/SKILL.md": "786bf8656810d9772f38654ae5d1af5b1ab5d4336316beb335110761af0a040d",
+        "packages/picodash/skills/bind-controls/SKILL.md": "f520bfeee1d185085760351a9596b5001331d43d889266a5a3b6299d2d7b27d3",
+        "packages/picodash/src/detachable-group.tsx": "fd145e7903df7e83ae8986d2f8beafcc7a452f0db8ce183f26e32af2b705d147",
         "packages/picodash/src/index.ts": "c62056bb9c1b60b8c0e4d3955542de223f7521a4fdb1f4635feaecba8f0c85d5",
+        "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
       "outcome": "updated",
-      "reason": "Authored bounded installed-package guidance for the implemented shortcut and existing shared-control integration; sources and public examples match.",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "planning:_artifacts": {
-      "fingerprint": "fa34be8d57b183225e732d0988c1488f8605f9f388f043a73f0c946341de7f58",
+      "fingerprint": "5a8fca2f2a88c5b896e48792984c6a66cc4c433ef6738401155449c30b734ecb",
       "snapshot": {
-        "_artifacts/domain_map.yaml": "3b0eda77983b863d7b8f1228eeb0a2e533cd7a8cdbc94f78f477523806022256",
-        "_artifacts/skill_spec.md": "84b1fd4946838cee45953bd42ecb37357ae74da39a1f45e69b2b041a90de4f94",
-        "_artifacts/skill_tree.yaml": "126d3245f943048b00de3d1d7ff4954ba0a07e0104403e9c9a228de731c9d267",
+        "_artifacts/domain_map.yaml": "7fae05e81d3660e56f32a0dc042c64b6f4b7c0718bcaf6917e2792371b333dc4",
+        "_artifacts/skill_spec.md": "bc0e75e4b8b009a856e577f727fabb72628c78ef5720a343ba4db40b9decdde4",
+        "_artifacts/skill_tree.yaml": "4c95e940102fbc17ad5c41ee7fa564f5bdb26150830ae2ef8e6430e23b48009e",
         "docs/development/consumer-recipes.md": "87f76f251a9e2e700323c2243386c2e053d39cf8d6ac1e8c7a775b371c11d81d",
-        "docs/reference/dashpanel.md": "3103d56b839b172c2bdebc2412746bcda7e12b0d44092dc9fffa0f6eaa6f75ec",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "7cdbc23a28adc808e94da5a09912c5115685645eab4b1431dabe76daa518c0d9",
-        "packages/dashpanel/src/index.tsx": "3a1aa7974b80610d9cf4cb1fabe59f7d16dcbdaa71c49d2d6995f01b8ab03270",
-        "packages/dashpanel/src/panel-hotkey.tsx": "4af248ec5d1e0f99856878a4f456959c5d2403a9674521308280527020b08787",
-        "packages/picodash/skills/bind-controls/SKILL.md": "786bf8656810d9772f38654ae5d1af5b1ab5d4336316beb335110761af0a040d",
+        "docs/reference/dashpanel.md": "6f0d28f25cd532a6534caea3395b03e7351403fd5a766b850d02142568e596e5",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
+        "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
+        "packages/dashpanel/src/panel-hotkey.tsx": "20f21643985b79e992ea1aae829f7ef1e4204df0b23d3df8af5e8fe53433f0cd",
+        "packages/picodash/skills/bind-controls/SKILL.md": "f520bfeee1d185085760351a9596b5001331d43d889266a5a3b6299d2d7b27d3",
+        "packages/picodash/src/detachable-group.tsx": "fd145e7903df7e83ae8986d2f8beafcc7a452f0db8ce183f26e32af2b705d147",
         "packages/picodash/src/index.ts": "c62056bb9c1b60b8c0e4d3955542de223f7521a4fdb1f4635feaecba8f0c85d5",
+        "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
       "outcome": "updated",
-      "reason": "Domain map, task specification and skill tree record the two-task batch, package ownership, version stamping and explicit discovery evidence limits.",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:apps/lab/src/components/contract-lab/specimen.tsx": {
@@ -83,203 +81,185 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "ff0eda6b284085f58e84718329f9ac7b3543cfadf33ebdd4186748ccd905a733",
+      "fingerprint": "a7fe5c89b65a183f0aadedfab6d5e82bbbeb5c902718fc9659bc65e717b88ceb",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "ed5d9b3483edb0bc3e73a035de691963d1ad26dc481c99e2d73a52168ef8a763"
+        "apps/lab/tests/contract-lab.spec.ts": "ed169635d51e50f93cb6c459c8be1e56b01b4280df9080c3fa3fc04922398dc9"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:docs/development/dogfooding.md": {
-      "fingerprint": "1d93a5777fdb352c6ec5a6265afb228b1fe2aaf51ce2d72ba93aef85add229ae",
+      "fingerprint": "a47d1dcf2e7e0d92da915dbdfe70153015bd98c33d0145b7047698faa5d17ad0",
       "snapshot": {
-        "docs/development/dogfooding.md": "c475f49633db20213b86ae544ca90a66a2a83a17a58cc907bd30254e50f65f46"
+        "docs/development/dogfooding.md": "a361747c3dee5cc6d0827eae8ddcc91c01459d5d58bfd0710948d9e810ddf0b6"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "e95ff4376d956f874cd6307b7717ab84e5c7158fabba9af8c7fa37ec192e2723",
+      "fingerprint": "baad8b359b50689eef4119eef3c399b2043eafa18dea0395940487eb6204b6ec",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "f5e441409498c3a40d23d9ade534723005d1c758926f816708d190823d46b9b5"
+        "docs/reference/contract-conformance.md": "c53eb84dd870d5cb190b60a6bd1f2023a2c531ee0f0855eee136aabae7c6215a"
       },
-      "head": "d157c7915f62b853e5324d6a1d3cf19a4173b3c8",
-      "outcome": "no-change",
-      "reason": "Recorded clean dogfood.40 release evidence and clarified Intent 0.5.5 installed-tarball code-block typechecking limits. Source guide validation, strict installed consumer types, 14 consumer tests and Vite/Next builds pass; runtime behavior and task guidance are unchanged.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at d157c7915f62b853e5324d6a1d3cf19a4173b3c8"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
-      "fingerprint": "38aa9a3707db6cd254c81139ba8b91aaceeb0a6f201bc917710222dead7f0999",
+      "fingerprint": "0b631a9a6a41c6faeb6071b28c80f63caefee7809ec4d1a8934da3482ff29fd1",
       "snapshot": {
-        "docs/reference/dashpanel-contract-decisions.md": "91286e5378078e3a20aa22e4393291d1cdb01ce3cd5e8636e4efee4d9b2d26e7"
+        "docs/reference/dashpanel-contract-decisions.md": "742d67e974ac58ffd838da0014bc4b1de4e40a06ccbb8fdfc92bb60b70bd6d11"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:docs/reference/nexus-contract-decisions.md": {
-      "fingerprint": "adccfd827bbcb1e240bf500c4265c64a877e441b434205bd75cce3485944b548",
+      "fingerprint": "fb36315f3ce678ba7d2bee4a06f0038301cd5d67e5824c57b378324124f5d647",
       "snapshot": {
-        "docs/reference/nexus-contract-decisions.md": "2314ca6c943f81433f22cc862d67d50bc85a7c2dcfb1189e55b15c8c30f724e9"
+        "docs/reference/nexus-contract-decisions.md": "9c9d615638c92b3ea665c25670a9c21517d43967c8adac25191157fecf54e710"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:docs/reference/nexus.md": {
-      "fingerprint": "7576438606545fcc9074af26e13238f13977a39cab3d26b3723ee2d00210d7ec",
+      "fingerprint": "3fdba08f0707fd78b76bc7dbf1515b6d9e85c6f12fa4f945d27fc742a941e7b4",
       "snapshot": {
-        "docs/reference/nexus.md": "4ef9e439d8ff94d9a53a134e8398cae36a260d37097502ec5e217c30ed535e56"
+        "docs/reference/nexus.md": "c26eeaa87e29dee2b29a2f71a7a0efd623b327b285307154c248a2f13a7153c2"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:packages/dashpanel/src/style.css": {
-      "fingerprint": "067d5c7949f62d7d233d60c51bef7105f3d5a5495fb3e684b3e425cab7a482d7",
+      "fingerprint": "1ead8d4850e5ac404820fb63fbf7d9f8f65715395039ea2e43de3d1224edd4b7",
       "snapshot": {
-        "packages/dashpanel/src/style.css": "cafe4a50f29a9695858f120e277a270795fa6e83865c5f3a83bd665d127a2bde"
+        "packages/dashpanel/src/style.css": "99340a4002dee62108723909588baee6dd421e161ae820decdc3ee79661e7173"
       },
-      "head": "8f8ef2e6b6428482afd740813366e5352cedfaa4",
-      "outcome": "no-change",
-      "reason": "Recording feedback now uses the title column as its containing block. Browser checks confirm containment at 1280px and 390px viewport widths; shortcut semantics and both guides remain unchanged.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "Changed: packages/dashpanel/src/style.css at 8f8ef2e6b6428482afd740813366e5352cedfaa4"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:packages/dashpanel/tests/hotkey.test.tsx": {
-      "fingerprint": "5539c98415bd506df59b3a1031eff2b2802aff0cc8298736b12fbfddaa487e89",
+      "fingerprint": "676a9242646bfcc1ec2ef24c6657b056259ec7658be8669c1bdb6196e4a3b6d4",
       "snapshot": {
-        "packages/dashpanel/tests/hotkey.test.tsx": "8ed0043067d62d710dfa1ca22017ab3bbc4b697cc9dde7d32ce57759b50130df"
+        "packages/dashpanel/tests/hotkey.test.tsx": "01b8c12eab593d44a90dc3014aae664749b85673b4de718aec1290f1c0d4847a"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:packages/dashpanel/tests/package-artifacts.mjs": {
-      "fingerprint": "596df3271d812e46b329678841a13a9430e567783ad0b2b410551a8558060a72",
+      "fingerprint": "c1452075ac9b93d8f5f2fab7676915995e34ee6e3b971947128511b9fc757b1b",
       "snapshot": {
-        "packages/dashpanel/tests/package-artifacts.mjs": "64b1a6aa393e019a104803956ec0f0d68255c08d558ffef41098efc392c4aeae"
+        "packages/dashpanel/tests/package-artifacts.mjs": "c2615b60f6859aa499098a1a5e11f78c92bfe29b0d94d7c796e96ff940c663eb"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:packages/nexus/src/kernel/index.ts": {
-      "fingerprint": "db4e108fc41f75cfd9edd134a75828adfbf7274dcc07cca3d62295050ad6a803",
+      "fingerprint": "d3a0e0a46d3025d8a802eaabf11cf869b05acdb98e4046421b439a8a3860f44b",
       "snapshot": {
-        "packages/nexus/src/kernel/index.ts": "a3eb9e7f540edfc9113be3e9da1a20d767303ffca3b0bf4fae651ab99bb6f4c7"
+        "packages/nexus/src/kernel/index.ts": "6c69ab48ceb37bbad3b398ef627094d938332978e400ef582e54e88eed96c55b"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:packages/nexus/src/metadata.ts": {
-      "fingerprint": "c009b2dfff195a57bce302078f70ef213b95f17ce3261d5aec5827140fdad489",
+      "fingerprint": "91119de5e7dfedc1a6e938bee3acc163e5f1f1d10a980ff20e3b744ea4755f2d",
       "snapshot": {
-        "packages/nexus/src/metadata.ts": "92f7e006fe2538afc1901a181dd00fec9256a1ba793ac7e6d6f0dece3d683995"
+        "packages/nexus/src/metadata.ts": "82071c5d0e57b03870901ae1ce41e1fca8bfa65aba23fac2430158ca687b71ad"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:packages/nexus/tests/metadata.test.ts": {
-      "fingerprint": "e34f7ba2650381c6f54a91821b87e17eb4601a3e6125201fcde7463ab6313bd5",
+      "fingerprint": "40d5797bee7f0d5ee087f8fd6cf6aef3cebecbacebded937d2261db50cae4092",
       "snapshot": {
-        "packages/nexus/tests/metadata.test.ts": "e020ed3a5fb396971ffa5ba544f65cbc4fa467a245d51321c114417307f981a8"
+        "packages/nexus/tests/metadata.test.ts": "2119627c99dbbb6f093f9f12bfb258efa870c435328a333482f5a2283d648654"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:packages/nexus/tests/scope-metadata.test.ts": {
-      "fingerprint": "f990069b867a520ea26c2770c64da5077ba48da71f45244bf8574c90efd2975f",
+      "fingerprint": "345488c697135cc11d2a218a32b74317e5364cc4a7ad5d066d247914ebeb544f",
       "snapshot": {
-        "packages/nexus/tests/scope-metadata.test.ts": "4075436df713861f9f64eb74699164ab8b745538bc0b95da41edf7b9c27530a5"
+        "packages/nexus/tests/scope-metadata.test.ts": "1906581bc743323673057d7279017d6e65fdb21062294b067fa79f0afb086508"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:packages/picodash/tests/dogfood/Shortcuts.tsx": {
@@ -315,19 +295,17 @@
       ]
     },
     "source:scripts/dogfood/pack.mjs": {
-      "fingerprint": "f0b6f7f5e33bfe365221a4628c0ff9141aa313b0445051961cd1c08add57b786",
+      "fingerprint": "5789782fb885cf4899294a7de994170e1673162db733adeeb3d9a43c8cd10dda",
       "snapshot": {
-        "scripts/dogfood/pack.mjs": "277ed7cfeef28a3a32e6bbfdeb87dc023d52fb2df8bb662e61ca2fd685733852"
+        "scripts/dogfood/pack.mjs": "ee133e79937a1cb8004e7f9bcfb78976b1b12bde3575118814d3bd0c28c6bc9a"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
-      "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
       "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     },
     "source:scripts/dogfood/smoke.mjs": {
@@ -347,14 +325,18 @@
       ]
     },
     "source:tests/skills/README.md": {
-      "fingerprint": "7b1b438c47cf4c4ed1f474c9dbf370228415d0aa7e00208625a8908585d15f9c",
+      "fingerprint": "0da5af8c0e43230b2d6bfba071468b411c860ba9378e2dd97b4168fa0cb93fba",
       "snapshot": {
-        "tests/skills/README.md": "9ecd59766e336ae83f640d5a9b3bd9887fe295c8b39865c20a9c325905a37f19"
+        "tests/skills/README.md": "8d88a42ee206865720545600bf8cf856ac8d58ee66449b7b38b754c78355a157"
       },
-      "head": "d157c7915f62b853e5324d6a1d3cf19a4173b3c8",
-      "outcome": "no-change",
-      "reason": "Recorded clean dogfood.40 release evidence and clarified Intent 0.5.5 installed-tarball code-block typechecking limits. Source guide validation, strict installed consumer types, 14 consumer tests and Vite/Next builds pass; runtime behavior and task guidance are unchanged.",
-      "evidence": ["Changed: tests/skills/README.md at d157c7915f62b853e5324d6a1d3cf19a4173b3c8"]
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
     },
     "source:tests/skills/consumer-solution.tsx.txt": {
       "fingerprint": "c24365baff76960908d57ad3abceb11960885035861f1de311c805bc728e7876",
@@ -410,6 +392,188 @@
       "reason": "Recorded clean dogfood.40 release evidence and clarified Intent 0.5.5 installed-tarball code-block typechecking limits. Source guide validation, strict installed consumer types, 14 consumer tests and Vite/Next builds pass; runtime behavior and task guidance are unchanged.",
       "evidence": [
         "Changed: docs/development/recommended-snapshot.json at d157c7915f62b853e5324d6a1d3cf19a4173b3c8"
+      ]
+    },
+    "source:apps/lab/src/components/contract-lab/style-lab.tsx": {
+      "fingerprint": "6f91cc0aea72254d0bb591b2cf212de5a9e4bcb46102e488d9bdf30587837063",
+      "snapshot": {
+        "apps/lab/src/components/contract-lab/style-lab.tsx": "99fd2041ab81c3b614dee5838bfb4cf15775befeaeb63c5621edcdfca36b05c9"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:docs/adr/0009-detachable-groups.md": {
+      "fingerprint": "15a0862afec036d9cb3424de971b01ed07883a2d1afb8409ebe231e03fe34a82",
+      "snapshot": {
+        "docs/adr/0009-detachable-groups.md": "696aa2a82d90a04dc5adbd1decc91f63e520c78b2059cb60a63bbf7dc0b4c0e8"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:docs/reference/dashstack.md": {
+      "fingerprint": "4b553f5da6f54797a7cf04ef75afc2757f89339b42dfdf758ef2b6204f879ba6",
+      "snapshot": {
+        "docs/reference/dashstack.md": "546b30606d473cdd01b9a241e90dc4748850399065e8246daf54460a2214ed21"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:docs/reference/picodash.md": {
+      "fingerprint": "6c40c85873827a980880d4f4c9331df4f0c1430d37899772c4713247042c412a",
+      "snapshot": {
+        "docs/reference/picodash.md": "c70a737a2beb34cc21afd1c4d7d31e7e40816121f29e1e030aa127c2deef4ea4"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:packages/dashpanel/src/integration.tsx": {
+      "fingerprint": "a8898246e852fb430682278b28e3294973fce87591c492b5b3005870d16b75d6",
+      "snapshot": {
+        "packages/dashpanel/src/integration.tsx": "5e5af0ca59e1de541dd9d34da058886fa6a988c20b845660998780629f919ebe"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:packages/dashstack/src/group-host.tsx": {
+      "fingerprint": "02bee2175ea3844fb4d1acf8291714a2da16c73023cc6b74f883ab7035c0b39e",
+      "snapshot": {
+        "packages/dashstack/src/group-host.tsx": "5dd065758098f42e7f1fa40899e548546044088c5fb74745b9ec7bc1ea5b5d62"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:packages/dashstack/src/index.tsx": {
+      "fingerprint": "3332034555050193e4b281dc08dbf16db96a5f9d328e08fe392532924734b2bf",
+      "snapshot": {
+        "packages/dashstack/src/index.tsx": "73eb42a2d214ee5f3b17118ce17140a5669fb9989d538fe175395569d95e2e01"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:packages/dashstack/src/style.css": {
+      "fingerprint": "cbb0e751253320cca4ecc73a1e7e69900f0678d0153f2226d44f55a4b1fa832e",
+      "snapshot": {
+        "packages/dashstack/src/style.css": "b8093f1e997e18aebf63443266e89b755f12802d2c202ab6339194f263a3a673"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:packages/picodash/style.css": {
+      "fingerprint": "cfd4b0875cb733683fbb3f8e7f124e112135fcae1d23902899e4a35d684a3da9",
+      "snapshot": {
+        "packages/picodash/style.css": "c30a7a94c5c7bf43752f2fd703011bf65d9c3958cb123902a30d48cca2ff04a1"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:packages/picodash/tests/detachable-groups.test.tsx": {
+      "fingerprint": "409185a03eff3e7f1616eb69d4d596537154b936e62870352cb3c38c8d413242",
+      "snapshot": {
+        "packages/picodash/tests/detachable-groups.test.tsx": "e4c6b6ad7c526ef48adadd237c5d783bf58f8fe7d4c8e0c2639cff67b9f010f2"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:packages/picodash/tests/dogfood/contextual-shortcuts.test.tsx": {
+      "fingerprint": "7209a2f3c2f7814f3d9e1a644e0a26dfc7403ce28f94680f848146f98b8f6498",
+      "snapshot": {
+        "packages/picodash/tests/dogfood/contextual-shortcuts.test.tsx": "c0999d3e03d2b5d3ad8be0a6b3cae090c1a555b94708a7fd588621dc860c0cea"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:tests/skills/contextual-consumer-solution.tsx.txt": {
+      "fingerprint": "b49a2bc332341d2300e99dfdcf95bcca891a16db0dff358c0c42eb5beebf2b6f",
+      "snapshot": {
+        "tests/skills/contextual-consumer-solution.tsx.txt": "cefb73d150d01a568b7458f536dacbd43074b1c3c9110b6ca6634688fba7d653"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:tests/skills/contextual-task.md": {
+      "fingerprint": "1300a7c7e77140b8ef243d1b85dbd754ef545e6bcf9925e25668da24d8c4af63",
+      "snapshot": {
+        "tests/skills/contextual-task.md": "d41fe8fbb69458b061e7aee27f4bdf30b21684629e4dd9c2ca1c7346d1168acd"
+      },
+      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
+      "outcome": "updated",
+      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "evidence": [
+        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
+        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
+        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
       ]
     }
   }

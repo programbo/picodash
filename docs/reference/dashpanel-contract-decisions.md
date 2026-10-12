@@ -179,3 +179,13 @@ through Nexus, separately from layout overrides. Layout reset must preserve this
 Use pinned TanStack Hotkeys behind a product-owned adapter; no Hotkeys-specific public types.
 Recording, cancellation, rejection and cleanup use the library recorder lifecycle. Keep scope
 ownership in Nexus and behavior in DashPanel. Intent guidance ships with its owning package.
+
+## Closeable Panels and contextual shortcuts
+
+Accepted by John: `recordableHotkey` also supports closeable Panels. Collapsible docks keep
+Minimize/Reveal; other closeable Panels use Hide/Show with the existing focus protocol.
+The group recorder belongs beside Detach at its home; the Panel recorder stays after the title.
+The narrow `DashPanelContextHotkey` integration seam owns parent visibility/activation eligibility
+and arbitration. Different parent contexts may reuse a binding; same-parent and global conflicts
+are rejected. One eligible action runs, with the active eligible parent breaking visible ties;
+unresolved ambiguity runs nothing. Hidden/minimized parents do not admit group actions.

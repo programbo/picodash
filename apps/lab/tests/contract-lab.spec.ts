@@ -1413,7 +1413,7 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   const selectedSegment = segmentedDashlet.locator(
     '[data-picodash-dashstack-segment][data-selected]',
   )
-  await expect(selectedSegment).toHaveCSS('text-decoration-line', 'underline')
+  await expect(selectedSegment).toHaveCSS('text-decoration-line', 'none')
   await expect(selectedSegment.locator('[data-picodash-dashstack-segment-indicator]')).toBeVisible()
   await assertSelectedMarkers('ltr')
   await choicesPanel.evaluate((panel) => panel.setAttribute('dir', 'rtl'))
@@ -2849,7 +2849,13 @@ test('persists, restores, resets, and safely recovers settled DashPanel layout',
   await expect(reveal).toBeFocused()
   await page.keyboard.press('Control+Shift+K')
   await panel.getByRole('button', { name: 'Reset panel layout' }).click()
-  await expect(recorder).toBeHidden()
+  await expect(recorder).toBeVisible()
+  // Floating closeable panels keep the same binding and toggle Hide/Show.
+  await recorder.focus()
+  await page.keyboard.press('Control+Shift+K')
+  await expect(panel).toBeHidden()
+  await page.keyboard.press('Control+Shift+K')
+  await expect(panel).toBeVisible()
   await page.getByRole('button', { name: 'Fixed', exact: true }).click()
   await expect(recorder).toContainText('K')
   await recorder.click()
@@ -3308,4 +3314,78 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     localStorage.removeItem(key)
     localStorage.removeItem('contract-lab-unrelated-key')
   }, persistenceProbeStorageKey)
+})
+
+test('routes recorded group shortcuts through visible parents and reopens a close-only panel', async ({
+  page,
+}) => {
+  await openLab(page)
+  await page.evaluate(() => {
+    const lab = window.__PICODASH_LAB__
+    if (!lab) throw new Error('Missing Lab driver')
+    lab.reset()
+    lab.loadPreset('composition')
+  })
+  await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
+  const basics = page.getByRole('button', { name: 'Record shortcut for group Basics', exact: true })
+  const choices = page.getByRole('button', {
+    name: 'Record shortcut for group Choices',
+    exact: true,
+  })
+  for (const recorder of [basics, choices]) {
+    await recorder.click()
+    await page.keyboard.press('Control+Shift+G')
+    await expect(recorder).toHaveAttribute('aria-pressed', 'false')
+    await expect(recorder).toContainText('G')
+  }
+  const closeRecorder = page.getByRole('button', {
+    name: 'Record shortcut for Choices & temporal',
+    exact: true,
+  })
+  await closeRecorder.click()
+  await page.keyboard.press('Control+Shift+K')
+  await expect(closeRecorder).toHaveAttribute('aria-pressed', 'false')
+  await choices.focus()
+  await page.keyboard.press('Control+Shift+G')
+  const detached = page.getByRole('complementary', { name: 'Choices', exact: true })
+  await expect(detached).toBeVisible()
+  await expect(page.getByRole('complementary', { name: 'Basics', exact: true })).toHaveCount(0)
+  await expect
+    .poll(() => detached.evaluate((element) => element.contains(document.activeElement)))
+    .toBe(true)
+  await page.getByRole('button', { name: 'Return Choices to stack', exact: true }).click()
+  await expect(detached).toHaveCount(0)
+  await closeRecorder.focus()
+  await page.keyboard.press('Control+Shift+K')
+  await expect(
+    page.getByRole('complementary', { name: 'Choices & temporal', exact: true }),
+  ).toBeHidden()
+  await basics.focus()
+  await page.keyboard.press('Control+Shift+G')
+  await expect(page.getByRole('complementary', { name: 'Basics', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Return Basics to stack', exact: true }).click()
+  await expect(page.getByRole('complementary', { name: 'Basics', exact: true })).toHaveCount(0)
+  await page.keyboard.press('Control+Shift+K')
+  await expect(closeRecorder).toBeVisible()
+  await expect
+    .poll(() =>
+      closeRecorder.evaluate((element) =>
+        element.closest('aside')?.contains(document.activeElement),
+      ),
+    )
+    .toBe(true)
+  const geometry = await choices.evaluate((element) => {
+    const actions = element.closest('[data-picodash-group-host-actions]')!
+    const header = actions.closest('[data-slot="dash-header"]')!
+    const detach = actions.querySelector('button[aria-label="Detach group Choices"]')!
+    const label = header.querySelector('[data-slot="dash-header-title"]')!
+    return {
+      recorder: element.getBoundingClientRect().toJSON(),
+      detach: detach.getBoundingClientRect().toJSON(),
+      label: label.getBoundingClientRect().toJSON(),
+    }
+  })
+  expect(geometry.recorder.right).toBeLessThanOrEqual(geometry.detach.left)
+  expect(geometry.label.right).toBeLessThanOrEqual(geometry.recorder.left)
+  await page.screenshot({ path: '/tmp/mira-contextual-shortcuts.png' })
 })

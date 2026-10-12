@@ -9,6 +9,7 @@ export interface DashGroupHostProps {
   readonly id: string
   readonly name: string
   readonly label: ReactNode
+  readonly recordableHotkey: boolean
   readonly mode: 'floating' | 'hybrid'
   readonly scope: ScopedNexus<PicodashFieldDefinitions>
   readonly homeRef: RefObject<HTMLDivElement | null>

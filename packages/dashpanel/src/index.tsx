@@ -195,7 +195,7 @@ export interface DashPanelProps<CustomTheme extends string = never> extends Omit
   onCollapsedChange?: (collapsed: boolean) => void
   defaultVisible?: boolean
   showCloseButton?: boolean
-  /** Offer a persistent shortcut recorder beside the title of a docked panel. */
+  /** Offer a persistent shortcut recorder beside the title of a docked or closeable panel. */
   recordableHotkey?: boolean
   onVisibilityChange?: (visible: boolean) => void
   onRequestRemove?: (details: DashPanelRemoveRequest) => void
@@ -2849,7 +2849,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                           <PanelHotkey
                             binding={durableHotkey}
                             panelName={panelName}
-                            enabled={!!dockedMinimizePresentation && currentCollapsible}
+                            enabled={
+                              (!!dockedMinimizePresentation && currentCollapsible) ||
+                              (showCloseButton && !transfer)
+                            }
                             onCommit={(binding) => {
                               const result = scoped.setDashPanelHotkey(binding)
                               if (!result.ok) return 'Could not update the shortcut.'
@@ -2862,13 +2865,32 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                               return undefined
                             }}
                             onToggle={() => {
-                              if (!visible || collapsed) {
-                                pendingCollapseFocus.current = 'minimize'
-                                runtime.show(id)
-                                runtime.expand(id)
+                              if (dockedMinimizePresentation && currentCollapsible) {
+                                if (!visible || collapsed) {
+                                  pendingCollapseFocus.current = 'minimize'
+                                  runtime.show(id)
+                                  runtime.expand(id)
+                                } else {
+                                  pendingCollapseFocus.current = 'reveal'
+                                  runtime.collapse(id)
+                                }
+                              } else if (runtime.getSnapshot().panels[id]?.visible) {
+                                try {
+                                  runtime.hide(id)
+                                } finally {
+                                  if (!runtime.getSnapshot().panels[id]?.visible)
+                                    restorePanelFocus(
+                                      runtime,
+                                      id,
+                                      providerPolicy.boundary,
+                                      overlayDefaults.portalContainer,
+                                    )
+                                }
                               } else {
-                                pendingCollapseFocus.current = 'reveal'
-                                runtime.collapse(id)
+                                const before = document.activeElement
+                                recordPanelEntry(runtime, id, null, before)
+                                runtime.show(id)
+                                queueMicrotask(() => focusPanel(runtime, id))
                               }
                             }}
                           />

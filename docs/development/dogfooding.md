@@ -666,7 +666,7 @@ recorded output location, or the command reports it unavailable.
 ## Docked panel shortcuts and agent guidance (snapshot .40)
 
 Copy `example/Shortcuts.tsx` for a complete persistent inspector. Create its Nexus once on the
-client and import the facade stylesheet. Set `recordableHotkey` and `collapsible` on a docked `DashPanel`. The title chip records a shortcut;
+client and import the facade stylesheet. Set `recordableHotkey` on a collapsible docked or closeable `DashPanel`. The title chip records a shortcut;
 Escape cancels, Delete/Backspace clears. A saved chord minimizes/reveals retained content. Use your
 existing Nexus persistence driver to retain it across reload. Layout reset does not clear the key.
 Before downgrading to an older snapshot, clear recorded shortcuts if you need its old metadata
@@ -687,3 +687,11 @@ consumer configuration according to your project's policy. After a bundle update
 install` again to refresh agent loading instructions. Agents can use `intent load` with the exact
 use key printed by `intent list`; they do not need this source checkout. The guide authoring and
 source-review checks run with `bun run skills:check` in the Picodash repository.
+
+`example/ContextualShortcuts.tsx` extends the example with close-only Panels and detachable groups.
+Set `recordableHotkey` on each opted-in group. Its recorder stays beside Detach/Show, enabled on
+desktop with a visible, expanded parent. Different parents can reuse a key; the active eligible
+parent wins. Bindings use the original Stack/group IDs and the same Nexus persistence driver.
+Closeable floating/non-collapsible Panels use Hide/Show; collapsible docks keep Minimize/Reveal.
+Keep closed Panels mounted so their shortcuts can reopen them. Clear group shortcuts before a
+rollback to older bundles if those older versions must read scopes containing the new metadata.

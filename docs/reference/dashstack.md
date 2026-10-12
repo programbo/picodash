@@ -2395,3 +2395,10 @@ The checked `OpenCountRange` dogfood recipe demonstrates this with an app-owned 
 Range track and thumb clicks preserve the active endpoint instead of invoking the Dashlet's
 primary-focus shortcut. Label clicks still focus the first endpoint. Pointer use retains hover
 and drag feedback; the focus outline is reserved for keyboard interaction, including detent thumbs.
+
+### Group shortcut opt-in
+
+`DashGroup.recordableHotkey?: boolean` defaults to false and requires `detachable`.
+DashStack passes that declaration through its group-host integration seam. Picodash owns recording,
+parent context and detachment; standalone DashStack gains no Panel dependency. The host-action
+slot reserves the recorder's actual width so long labels and action buttons do not overlap.

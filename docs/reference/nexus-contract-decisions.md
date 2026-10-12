@@ -2597,3 +2597,13 @@ and Stack metadata changes. Text validation belongs at the Nexus boundary; keybo
 live conflicts belong to DashPanel. Serialization accepts the same bounded text atomically. No
 format-version bump: this is an additive pre-v1 domain, and older snapshots may quarantine scopes
 containing the new key. Clear keys before downgrading if old layout preferences must remain usable.
+
+## Durable group keyboard preferences (2026-10-12)
+
+Optional `dashGroupHotkeys: ReadonlyMap<string, string>` belongs to the original Stack scope.
+`root.setDashGroupHotkey(scopeId, groupId, hotkey)` and `scoped.setDashGroupHotkey(groupId, hotkey)`
+write one binding; null clears it. IDs use normal node identity validation. Binding strings use
+the same bounded opaque text contract as Panel bindings. Encoding uses sorted [groupId, binding]
+pairs; duplicate serialized keys fail atomic validation. Empty maps are omitted. Unchanged writes
+publish nothing. Layout and Stack resets/pruning preserve the independent preference leaf;
+scope destruction removes it. Older bundles can quarantine scopes containing this new leaf.

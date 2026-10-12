@@ -31,3 +31,6 @@ export type {
 } from './transfer.js'
 
 export { useDashPanelHostId } from './runtime/panel-controller.js'
+
+export { DashPanelContextHotkey } from './panel-hotkey.js'
+export type { DashPanelContextHotkeyProps } from './panel-hotkey.js'

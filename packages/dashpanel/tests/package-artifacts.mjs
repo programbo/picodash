@@ -60,6 +60,7 @@ async function main() {
     `${pathToFileURL(path.join(packageRoot, 'dist/integration.mjs')).href}?artifact-check`
   )
   assert.deepEqual(Object.keys(integration).sort(), [
+    'DashPanelContextHotkey',
     'DashPanelIntegrationProvider',
     'DashPanelTransferBoundary',
     'useDashPanelHostId',

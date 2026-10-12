@@ -611,6 +611,7 @@ export type DashPanelLayoutRecord = {
 export type DurableScopeMetadata = {
   /** Opaque keyboard binding owned by DashPanel; independent of layout resets. */
   readonly dashPanelHotkey?: string
+  readonly dashGroupHotkeys?: ReadonlyMap<string, string>
   readonly dashStack?: DashStackMetadataRecord
   readonly dashPanel?: DashPanelLayoutRecord
 }
@@ -874,6 +875,7 @@ export interface RootMetadataCommands<
   setDashPanelLayout(scopeId: string, layout: DashPanelLayoutRecord): Result
   resetDashPanelLayout(scopeId: string): Result
   setDashPanelHotkey(scopeId: string, hotkey: string | null): Result
+  setDashGroupHotkey(scopeId: string, groupId: string, hotkey: string | null): Result
   setDashStackRootOrder(scopeId: string, order: readonly string[]): Result
   removeDashStackRootOrder(scopeId: string): Result
   setDashStackGroupOrder(scopeId: string, groupId: string, order: readonly string[]): Result
@@ -900,6 +902,7 @@ export interface ScopedMetadataCommands<
   setDashPanelLayout(layout: DashPanelLayoutRecord): Result
   resetDashPanelLayout(): Result
   setDashPanelHotkey(hotkey: string | null): Result
+  setDashGroupHotkey(groupId: string, hotkey: string | null): Result
   setDashStackRootOrder(order: readonly string[]): Result
   removeDashStackRootOrder(): Result
   setDashStackGroupOrder(groupId: string, order: readonly string[]): Result
@@ -3285,6 +3288,15 @@ export function createPicodashNexus<
           throw new TypeError('Invalid Nexus metadata record.')
         return { ...previous, dashPanelHotkey: hotkey === null ? undefined : hotkey }
       }),
+    setDashGroupHotkey: (scopeId, groupId, hotkey) =>
+      metadataCommand(scopeId, (previous) => {
+        if (!validIdentity(groupId) || (hotkey !== null && typeof hotkey !== 'string'))
+          throw new TypeError('Invalid Nexus metadata record.')
+        const bindings = new Map(previous?.dashGroupHotkeys)
+        if (hotkey === null) bindings.delete(groupId)
+        else bindings.set(groupId, hotkey)
+        return { ...previous, dashGroupHotkeys: bindings.size ? bindings : undefined }
+      }),
     setDashStackRootOrder: (scopeId, order) =>
       metadataCommand(scopeId, (previous) => {
         if (!validOrderArray(order)) throw new TypeError('Invalid Nexus metadata record.')
@@ -5188,6 +5200,7 @@ export function createPicodashNexus<
       setDashPanelLayout: (layout) => nexus.setDashPanelLayout(scopeId, layout),
       resetDashPanelLayout: () => nexus.resetDashPanelLayout(scopeId),
       setDashPanelHotkey: (hotkey) => nexus.setDashPanelHotkey(scopeId, hotkey),
+      setDashGroupHotkey: (groupId, hotkey) => nexus.setDashGroupHotkey(scopeId, groupId, hotkey),
       setDashStackRootOrder: (order) => nexus.setDashStackRootOrder(scopeId, order),
       removeDashStackRootOrder: () => nexus.removeDashStackRootOrder(scopeId),
       setDashStackGroupOrder: (groupId, order) =>
@@ -5587,6 +5600,7 @@ export function createPicodashNexus<
           dashStack: transformed?.dashStack,
           dashPanel: transformed?.dashPanel,
           dashPanelHotkey: transformed?.dashPanelHotkey,
+          dashGroupHotkeys: transformed?.dashGroupHotkeys,
         })
       } catch (error) {
         if (error instanceof PicodashContractError) throw error
@@ -5689,6 +5703,9 @@ export function createPicodashNexus<
       !picodashJsonEqual(left.dashPanel as never, right.dashPanel as never)
     )
       return false
+    if ((left.dashGroupHotkeys?.size ?? 0) !== (right.dashGroupHotkeys?.size ?? 0)) return false
+    for (const [key, value] of left.dashGroupHotkeys ?? [])
+      if (right.dashGroupHotkeys?.get(key) !== value) return false
     if (left.dashStack && right.dashStack) {
       if (
         !picodashJsonEqual(

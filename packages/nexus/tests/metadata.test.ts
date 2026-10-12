@@ -469,3 +469,27 @@ it('round-trips panel hotkeys independently and rejects malformed serialized pre
   for (const invalid of [undefined, null, '', 'x'.repeat(129), ' key ', 3])
     expect(() => decodeDurableScopeMetadata({ dashPanelHotkey: invalid })).toThrow()
 })
+
+it('round-trips group bindings and rejects duplicate or invalid serialized entries atomically', () => {
+  const value = { dashGroupHotkeys: new Map([['geometry', 'Mod+Shift+[KeyG]']]) }
+  const encoded = encodeDurableScopeMetadata(value)
+  expect(encoded).toEqual({ dashGroupHotkeys: [['geometry', 'Mod+Shift+[KeyG]']] })
+  expect([...decodeDurableScopeMetadata(encoded)!.dashGroupHotkeys!]).toEqual([
+    ...value.dashGroupHotkeys,
+  ])
+  expect(encodeDurableScopeMetadata({ dashGroupHotkeys: new Map() })).toBeUndefined()
+  for (const invalid of [
+    undefined,
+    null,
+    {},
+    [['g', '']],
+    [
+      ['g', 'K'],
+      ['g', 'L'],
+    ],
+    [['', 'K']],
+  ])
+    expect(() =>
+      decodeDurableScopeMetadata({ dashPanelHotkey: 'Alt+K', dashGroupHotkeys: invalid }),
+    ).toThrow()
+})

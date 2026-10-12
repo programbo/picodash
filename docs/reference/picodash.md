@@ -537,3 +537,13 @@ Hosting layout is session-only and is excluded from the application's Nexus docu
 
 A detachable group's editor content mounts after hydration because its stable portal container
 requires a browser DOM. Ordinary inline groups retain their existing server-rendered behavior.
+
+### Contextual group shortcuts
+
+Inside a Panel, use `<DashGroup id="geometry" label="Geometry" detachable recordableHotkey>`.
+The recorder sits immediately before Detach/Show in the original header and stays there after detachment.
+The shortcut detaches or shows the existing host while the original parent is visible and expanded.
+It never toggles return. Different parent Panels can reuse a key; the active eligible parent wins
+when several parents are visible. Same-parent and global Panel shortcuts cannot share a key.
+With no parent Panel, no recorder is shown. Coarse-pointer/mobile detachment remains unavailable.
+See [the shortcut example](../../packages/picodash/tests/dogfood/ContextualShortcuts.tsx).

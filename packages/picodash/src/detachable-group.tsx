@@ -4,9 +4,11 @@ import { createPortal } from 'react-dom'
 import { AppWindowMac, PictureInPicture, PictureInPicture2 } from 'lucide-react'
 import { createGroupTransferMotion } from './group-transfer-motion.js'
 import { createPicodashNexus, type DashPanelLayoutRecord } from '@picodash/nexus'
+import { usePicodashNexusSelector } from '@picodash/nexus/react'
 import { DashPanel, useDashPanel, type DashPanelDefaultLayout } from '@picodash/dashpanel'
 import {
   DashPanelTransferBoundary,
+  DashPanelContextHotkey,
   useDashPanelHostId,
   type DashPanelTransfer,
   type DashPanelTransferDriver,
@@ -36,6 +38,9 @@ type Pickup = {
 /** One stable portal target carries the original React tree between two empty host slots. */
 export function DetachableGroup(props: DashGroupHostProps) {
   const { homeRef, groupRef, actionsRef, contentRef, id, name, mode, children } = props
+  const binding = usePicodashNexusSelector(props.scope, (snapshot) =>
+    snapshot.scope?.dashGroupHotkeys?.get(id),
+  )
   const hostId = `picodash-detached-${useId()}`
   const sourceId = useDashPanelHostId()
   const source = useDashPanel(sourceId ?? '')
@@ -400,18 +405,43 @@ export function DetachableGroup(props: DashGroupHostProps) {
       {container ? createPortal(children, container) : null}
       {actionsRef.current
         ? createPortal(
-            <button
-              type="button"
-              disabled={!desktop && !detached}
-              aria-label={detached ? `Show panel ${name}` : `Detach group ${name}`}
-              onClick={() => (detached ? show() : detach())}
-            >
-              {detached ? (
-                <AppWindowMac aria-hidden="true" data-picodash-detach-icon />
-              ) : (
-                <PictureInPicture2 aria-hidden="true" data-picodash-detach-icon />
-              )}
-            </button>,
+            <>
+              {props.recordableHotkey ? (
+                <DashPanelContextHotkey
+                  binding={binding}
+                  panelName={`group ${name}`}
+                  enabled={desktop}
+                  description="Set a shortcut to detach or show this group while its parent panel is open."
+                  onCommit={(value) => {
+                    const result = props.scope.setDashGroupHotkey(id, value)
+                    if (!result.ok) return 'Could not update the shortcut.'
+                    if (
+                      'persistence' in result &&
+                      result.persistence !== 'saved' &&
+                      result.persistence !== 'unchanged'
+                    )
+                      return 'Change applied for this session; storage could not be updated.'
+                    return undefined
+                  }}
+                  onToggle={() => {
+                    if (stateRef.current === 'inline') detach()
+                    else if (stateRef.current === 'detached') show()
+                  }}
+                />
+              ) : null}
+              <button
+                type="button"
+                disabled={!desktop && !detached}
+                aria-label={detached ? `Show panel ${name}` : `Detach group ${name}`}
+                onClick={() => (detached ? show() : detach())}
+              >
+                {detached ? (
+                  <AppWindowMac aria-hidden="true" data-picodash-detach-icon />
+                ) : (
+                  <PictureInPicture2 aria-hidden="true" data-picodash-detach-icon />
+                )}
+              </button>
+            </>,
             actionsRef.current,
           )
         : null}

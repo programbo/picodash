@@ -251,3 +251,120 @@ it('can return during the initial pull after leaving home, with cancellation sti
   expect(transitionGroup(away, 'cancel')).toBe('inline')
   expect(transitionGroup(away, 'settle')).toBe('detached')
 })
+
+it('records scoped group hotkeys, arbitrates visible parents, retains editors and disables hidden contexts', async () => {
+  const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+  const view = () => (
+    <PicodashProvider nexus={nexus}>
+      {['A', 'B'].map((name) => (
+        <DashPanel
+          key={name}
+          id={name}
+          title={name}
+          recordableHotkey
+          defaultLayout={{
+            placement: {
+              mode: 'fixed',
+              disposition: { kind: 'docked', position: name === 'A' ? 'full-left' : 'full-right' },
+            },
+          }}
+        >
+          <DashStack id={`stack-${name}`}>
+            <DashGroup id="geometry" label={`Geometry ${name}`} detachable recordableHotkey>
+              <Dashlet id="draft" label="Draft">
+                <input aria-label={`Draft ${name}`} defaultValue="draft" />
+              </Dashlet>
+            </DashGroup>
+            <DashGroup id="other" label={`Other ${name}`} detachable recordableHotkey>
+              <Dashlet id="other-content" label="Other">
+                Other
+              </Dashlet>
+            </DashGroup>
+          </DashStack>
+        </DashPanel>
+      ))}
+    </PicodashProvider>
+  )
+  const mounted = render(view())
+  await flush()
+  const button = (name: string) => screen.getByRole('button', { name })
+  const key = (value = 'g', code = 'KeyG', repeat = false) => {
+    const target = document.activeElement ?? document.body
+    fireEvent.keyDown(target, {
+      key: value,
+      code,
+      ctrlKey: value.length === 1,
+      shiftKey: value.length === 1,
+      repeat,
+    })
+    fireEvent.keyUp(target, {
+      key: value,
+      code,
+      ctrlKey: value.length === 1,
+      shiftKey: value.length === 1,
+    })
+  }
+  const record = (name: string) => {
+    const b = button(`Record shortcut for ${name}`)
+    act(() => b.focus())
+    fireEvent.click(b)
+    key()
+  }
+  record('group Geometry A')
+  const binding = nexus.scope('stack-A').getState().scope?.dashGroupHotkeys?.get('geometry')
+  expect(binding).toContain('[KeyG]')
+  record('group Geometry B')
+  expect(nexus.scope('stack-B').getState().scope?.dashGroupHotkeys?.get('geometry')).toBe(binding)
+  record('group Other A')
+  expect(nexus.scope('stack-A').getState().scope?.dashGroupHotkeys?.has('other')).toBe(false)
+  expect(document.body.textContent).toContain('already in use in this context')
+  key('Escape', 'Escape')
+  record('A')
+  expect(nexus.scope('A').getState().scope?.dashPanelHotkey).toBeUndefined()
+  key('Escape', 'Escape')
+  const draft = screen.getByRole('textbox', { name: 'Draft A' })
+  fireEvent.change(draft, { target: { value: 'unfinished -' } })
+  act(() => button('Record shortcut for group Geometry A').focus())
+  key()
+  await flush()
+  expect(screen.getByRole('complementary', { name: 'Geometry A' }).contains(draft)).toBe(true)
+  expect(screen.queryByRole('complementary', { name: 'Geometry B' })).toBeNull()
+  expect(document.activeElement).toBe(draft)
+  // Typing and held chords do not activate a different group.
+  key()
+  expect(screen.queryByRole('complementary', { name: 'Geometry B' })).toBeNull()
+  fireEvent.click(button('Return Geometry A to stack'))
+  await flush()
+  expect(screen.getByRole('textbox', { name: 'Draft A' })).toBe(draft)
+  expect((draft as HTMLInputElement).value).toBe('unfinished -')
+  fireEvent.click(button('Minimize panel A'))
+  act(() => button('Record shortcut for group Geometry B').focus())
+  key('g', 'KeyG', true)
+  expect(screen.queryByRole('complementary', { name: 'Geometry B' })).toBeNull()
+  key()
+  await flush()
+  expect(screen.getByRole('complementary', { name: 'Geometry B' })).toBeTruthy()
+  fireEvent.click(button('Return Geometry B to stack'))
+  await flush()
+  fireEvent.click(button('Close panel B'))
+  key()
+  await flush()
+  expect(screen.queryByRole('complementary', { name: 'Geometry A' })).toBeNull()
+  expect(screen.queryByRole('complementary', { name: 'Geometry B' })).toBeNull()
+  fireEvent.click(button('Reveal panel A'))
+  key()
+  await flush()
+  expect(screen.getByRole('complementary', { name: 'Geometry A' })).toBeTruthy()
+  // A detached group's shortcut raises its existing panel, never creates a copy.
+  act(() => button('Record shortcut for group Geometry A').focus())
+  key()
+  await flush()
+  expect(screen.getAllByRole('complementary', { name: 'Geometry A' })).toHaveLength(1)
+  act(() => button('Record shortcut for group Geometry A').focus())
+  fireEvent.click(button('Record shortcut for group Geometry A'))
+  key('Backspace', 'Backspace')
+  expect(nexus.scope('stack-A').getState().scope?.dashGroupHotkeys).toBeUndefined()
+  mounted.unmount()
+  await flush()
+  nexus.destroy()
+})

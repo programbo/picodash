@@ -1592,3 +1592,21 @@ discovery/version metadata. Intent validates guide code in the authoring reposit
 validator skips code typechecking inside installed tarballs because it requires Git-tracked source.
 Separate installed consumer typechecks and interaction tests cover that boundary. Recording help
 stays inside Panel bounds at 1280px and 390px widths. Live designer adoption remains with Maz.
+
+### Closeable-panel and contextual group shortcuts (2026-10-12)
+
+The opt-in Panel recorder now supports Close-button panels: non-collapsible and floating panels
+hide/show with retained content, while docked collapsible panels keep Minimize/Reveal. Group
+recorders sit immediately before Detach/Show in the original header. A group shortcut detaches or
+shows its existing host while the original parent is visible and expanded and desktop detachment
+is allowed. Shared keys choose the active eligible parent; ambiguity does nothing. Global and
+same-parent conflicts are rejected. Recordings cancel when their parent becomes unavailable.
+
+Nexus owns independent per-group bindings in the original Stack scope. Codec, validation,
+no-op identity, resets and roundtrips are covered by owning tests. Panel and facade tests cover
+focus, retained drafts, context conflicts, repeats, typing, hidden/minimized parents, reuse and
+clearing. All 1,157 package release tests and five bundle-script tests pass. Three affected Lab
+browser journeys pass, including measured header placement, persistence and surrounding style
+behavior. The independent installed consumer and its deliberately nonpersistent negative control
+provide the evidence described in tests/skills/README.md. Final immutable-bundle validation follows
+this source checkpoint; live designer adoption remains with Maz.

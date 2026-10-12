@@ -8,3 +8,11 @@
   block-size: var(--picodash-icon-md);
   margin-inline: auto;
 }
+
+[data-picodash-group-host-actions] [data-picodash-panel-hotkey] {
+  margin-inline-start: 0;
+}
+[data-picodash-group-host-actions] [data-picodash-panel-hotkey-help] {
+  inset-inline-start: auto;
+  inset-inline-end: 0;
+}

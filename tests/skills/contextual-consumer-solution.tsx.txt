@@ -1,0 +1,51 @@
+'use client'
+
+import {
+  PicodashProvider,
+  DashPanel,
+  DashStack,
+  DashGroup,
+  Dashlet,
+} from '@picodash/picodash'
+import type { createSettings } from './Shortcuts'
+
+export function ContextualControls({
+  nexus,
+}: {
+  nexus: ReturnType<typeof createSettings>
+}) {
+  return (
+    <PicodashProvider nexus={nexus}>
+      <DashPanel
+        id="Geometry"
+        title="Geometry"
+        collapsible={false}
+        showCloseButton
+        recordableHotkey
+      >
+        <DashStack id="Geometry-stack">
+          <DashGroup id="tools" label="Geometry tools" detachable recordableHotkey>
+            <Dashlet id="draft" label="Draft">
+              <input aria-label="Geometry draft" defaultValue="Example" />
+            </Dashlet>
+          </DashGroup>
+        </DashStack>
+      </DashPanel>
+      <DashPanel
+        id="Output"
+        title="Output"
+        collapsible={false}
+        showCloseButton
+        recordableHotkey
+      >
+        <DashStack id="Output-stack">
+          <DashGroup id="tools" label="Output tools" detachable recordableHotkey>
+            <Dashlet id="draft" label="Draft">
+              <input aria-label="Output draft" defaultValue="Example" />
+            </Dashlet>
+          </DashGroup>
+        </DashStack>
+      </DashPanel>
+    </PicodashProvider>
+  )
+}

@@ -346,16 +346,16 @@
 }
 
 /* Compact paint; shared Button retains its separate coarse-pointer hit target. */
-.picodash-dashpanel [data-picodash-panel-hotkey] {
+[data-picodash-panel-hotkey] {
   position: static;
   z-index: 2;
   flex: none;
   margin-inline-start: 0.5em;
 }
-.picodash-dashpanel [data-picodash-panel-hotkey][hidden] {
+[data-picodash-panel-hotkey][hidden] {
   display: none;
 }
-.picodash-dashpanel [data-picodash-panel-hotkey] > [data-slot='button'] {
+[data-picodash-panel-hotkey] > [data-slot='button'] {
   min-block-size: 1.5em;
   padding: 0.1em 0.4em;
   font-size: 0.75em;
@@ -363,7 +363,7 @@
   border-radius: 0.35em;
   color: var(--picodash-color-text-muted);
 }
-.picodash-dashpanel [data-picodash-panel-hotkey-help] {
+[data-picodash-panel-hotkey-help] {
   display: none;
   position: absolute;
   inset-block-start: calc(100% + 0.4em);
@@ -377,6 +377,6 @@
   font-size: 0.75rem;
   line-height: 1.4;
 }
-.picodash-dashpanel [data-picodash-panel-hotkey]:focus-within [data-picodash-panel-hotkey-help] {
+[data-picodash-panel-hotkey]:focus-within [data-picodash-panel-hotkey-help] {
   display: block;
 }

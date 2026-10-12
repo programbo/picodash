@@ -875,3 +875,28 @@ describe('durable panel hotkeys', () => {
     expect(scope.getState().scope).toBeUndefined()
   })
 })
+
+it('keeps group shortcuts separate from layout and ordering, publishes once, and clears by identity', () => {
+  const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+  const scope = nexus.scope('tools')
+  expect(nexus.setDashGroupHotkey('tools', 'geometry', 'Alt+[KeyG]').ok).toBe(true)
+  scope.setDashGroupHotkey('other', 'Alt+[KeyO]')
+  const before = nexus.getState()
+  expect(scope.setDashGroupHotkey('geometry', 'Alt+[KeyG]').ok).toBe(true)
+  expect(nexus.getState()).toBe(before)
+  for (const invalid of ['', ' spaced ', 'x'.repeat(129), 'a\nb', undefined, 3]) {
+    expect(scope.setDashGroupHotkey('geometry', invalid as never).ok).toBe(false)
+    expect(nexus.getState()).toBe(before)
+  }
+  expect(scope.setDashGroupHotkey('', null).ok).toBe(false)
+  scope.setDashPanelLayout(panel)
+  scope.setDashStackRootOrder(['geometry'])
+  scope.resetDashPanelLayout()
+  scope.resetDashStackMetadata()
+  expect(scope.getState().scope?.dashGroupHotkeys?.size).toBe(2)
+  scope.setDashGroupHotkey('geometry', null)
+  expect(scope.getState().scope?.dashGroupHotkeys?.get('other')).toBe('Alt+[KeyO]')
+  scope.setDashGroupHotkey('other', null)
+  expect(scope.getState().scope).toBeUndefined()
+  nexus.destroy()
+})
