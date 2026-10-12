@@ -1764,3 +1764,11 @@ notifications, frozen fields, disposal and atomic successful placement clearing.
 journey verifies available proxy bounds, blocked targets, pickup/free posture, cancellation/drop,
 Fixed/Floating eligibility and unchanged persistence during observation. Public delivered readout
 source type-checks the new API and keeps idle separate from active free/blocked movement.
+
+Clean snapshot `0.1.0-dogfood.52` records source `595a283f4340d54d4fed371b61d080737691b2fc`.
+All six package release checks pass (1165 tests), as do all 17 isolated installed-consumer tests,
+guide discovery/validation, .51 update/rollback, strict example types and Vite/Next CSS builds.
+The production Lab rebuild and focused placement journey against the restored supervised server
+pass (1 test, 16.0 seconds), including public free movement while committed dock and persistence
+remain unchanged until release. Broader browser limitations recorded above remain separate;
+actual Gearmo readout adoption and camera behavior are consumer-owned verification.

@@ -97,15 +97,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "90459fa7a5164b55eb434fa8c02c0f5f0fd760e693e93b0ec8bcb5e5f11a1f5c",
+      "fingerprint": "c23be51357a90dd0b64f8d6feb27d24510279b5a4b2092a4c160e940e6cf9675",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "18a3443ce4139d863a0da7f4a9cf1fa92bba3457201c79a96971d8e22440c5bf"
+        "docs/reference/contract-conformance.md": "d7fead310d77f4c5ee912a7c6263fce605c4a59f7ec7f3a361357c777e60da8c"
       },
-      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
+      "head": "595a283f4340d54d4fed371b61d080737691b2fc",
       "outcome": "no-change",
-      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
+      "reason": "Recommendation and conformance now record immutable .52 source595a283,1165 package tests,17 fresh isolated installed-consumer tests, strict public dragPreview example types, guide discovery/validation, .51 upgrade/rollback and Vite/Next builds. Restored supervised Lab production magnetic journey passes16.0s with public active free posture, blocked/available distinctions and no persistence writes before commit. Existing shortcut/binding guide tasks and all three planning documents remain accurate and unchanged; this additive metadata API does not change their workflows. Broader pre-existing browser limitations and actual consumer adoption remain explicitly separate.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
+        "Changed: docs/reference/contract-conformance.md at 595a283f4340d54d4fed371b61d080737691b2fc"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -353,15 +353,15 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "1418ad3ee0f122e2c29eb16eac7b009e20ce1e51e9b4f66d099291ce88d8b3ad",
+      "fingerprint": "598a1e557ef0069d91ecd987dd6356de28d3428f0d9c820978ba6e30e47a1d1c",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "d356d3f8b6c4c4bf6f7c767c14e38289dad80d8cef46ee7ce2c2d881405362c0"
+        "docs/development/recommended-snapshot.json": "aaca6c39c1b542bd51e6413bed8520d3c09ebff775a32e08c3da80a5d931372b"
       },
-      "head": "e239ea60fdcc35a685edaa44bab24ac809cea5c1",
+      "head": "595a283f4340d54d4fed371b61d080737691b2fc",
       "outcome": "no-change",
-      "reason": "Recommendation/evidence only: clean immutable .51 source e239ea60fdcc35a685edaa44bab24ac809cea5c1 passed 1164 package tests, 17 installed-consumer tests, .50 rollback and .51 restore, guide checks/strict types, Vite/Next builds and both restored-production help/recorder journeys including same-trigger toggle regression. Existing two guides and all three planning files retain their reviewed tasks; no guidance behavior change or whole-Lab passing claim.",
+      "reason": "Recommendation and conformance now record immutable .52 source595a283,1165 package tests,17 fresh isolated installed-consumer tests, strict public dragPreview example types, guide discovery/validation, .51 upgrade/rollback and Vite/Next builds. Restored supervised Lab production magnetic journey passes16.0s with public active free posture, blocked/available distinctions and no persistence writes before commit. Existing shortcut/binding guide tasks and all three planning documents remain accurate and unchanged; this additive metadata API does not change their workflows. Broader pre-existing browser limitations and actual consumer adoption remain explicitly separate.",
       "evidence": [
-        "Changed: docs/development/recommended-snapshot.json at e239ea60fdcc35a685edaa44bab24ac809cea5c1"
+        "Changed: docs/development/recommended-snapshot.json at 595a283f4340d54d4fed371b61d080737691b2fc"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {
