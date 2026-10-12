@@ -1689,3 +1689,11 @@ continuity and light/dark/ocean readability. The 60% rich-help screenshots were 
 Recorded overlap frames show the old tooltip fading while the new rich help enters above it.
 The public consumer fixture verifies variant typing/composition, controlled forced-help
 supersession, theme inheritance and lack of native variant attribute leakage.
+
+Clean snapshot `0.1.0-dogfood.48` records source `8fe7b1371e92bf1ee94e5d48e07795d691602b96`.
+All six package release checks pass (1159 tests), as do all 16 isolated installed-consumer tests,
+guide discovery/validation, .47 update/rollback, types and Vite/Next builds. The Lab production
+rebuild and both contextual browser journeys against its restored supervised server pass
+(2 tests, 9.6 seconds). This includes the larger pointers, coordinated help handoff, live recorder
+continuity, theme readability and reduced motion. Actual Gearmo adoption is verified separately
+by its owning consumer.

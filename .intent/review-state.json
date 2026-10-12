@@ -99,15 +99,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "09534a36abc352dce166fcbdb7e425995d3b70a32cc6b6497d05b5da099dc60f",
+      "fingerprint": "9e4184a8b492e7eedb3b9be96f8677e3e45f7756e5c63e0ebce386bd77e106e7",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "bf491363d9f14408c7f539153fe033be66fd92afbe716dbd61b4e6031780bd07"
+        "docs/reference/contract-conformance.md": "3d5087883e4599cb4ae52d452f07ab2c94de26dafef52a0c38d6e6c59485bbff"
       },
-      "head": "b78cfa8e00252d4493b547fba589bf7c64df1add",
+      "head": "8fe7b1371e92bf1ee94e5d48e07795d691602b96",
       "outcome": "no-change",
-      "reason": "Added the explicit public Popover help variant, documented document-scoped help ownership/non-modal dismissal and60% glass/150ms entry/100ms exit with25% larger token-sized pointers. Existing shortcut and bound-control guides and all three planning records remain accurate for their existing task coverage; generic help composition is outside that initial guide batch. Public variant type/consumer fixture,110 affected component/CSS tests, workspace formatting/lint/types, motion policy and both browser journeys pass, including rapid handoff/reversed layers/recording/reduced motion/theme readability. Root visually approved light/dark/ocean and pointer increase. Fresh immutable bundle installation follows as the release gate.",
+      "reason": "Recommendation and release evidence only: immutable .48 records the already reviewed source; 1159 package tests, 16 installed consumer tests including public help variant and .47 rollback, Vite/Next builds, and both restored-production browser journeys pass. Existing Panel shortcut and facade guides and planning remain accurate; no guidance behavior changed.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at b78cfa8e00252d4493b547fba589bf7c64df1add"
+        "Changed: docs/reference/contract-conformance.md at 8fe7b1371e92bf1ee94e5d48e07795d691602b96"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -367,15 +367,15 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "43e607e68f979e76f30d2b9f571576c7391b7390152a5c2a34fa9f0cd4c0e6c9",
+      "fingerprint": "a113ea3249bf6a0171ebe5f9bf2eb3fc0519d60dbd34027f17dfa45f76812170",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "5e0c8655f879e4578322ad9890cc5223c1238f34d3166a4dfb961f557c0dfa2c"
+        "docs/development/recommended-snapshot.json": "e1b8f97fd859caeb77871858c753a7597578fb468dce0d1d8fd2fabe5dd6fe24"
       },
-      "head": "2105de75503ceb17b8183f8974fc819c1bb8c48f",
+      "head": "8fe7b1371e92bf1ee94e5d48e07795d691602b96",
       "outcome": "no-change",
-      "reason": "Recommended clean dogfood.47 from source 2105de75503ceb17b8183f8974fc819c1bb8c48f after all six release checks (1157 tests), 15 installed consumer tests, .46 rollback, shipped guides/types/Vite/Next and production Lab browser journey. Documentation records evidence only; no public API, guide workflow or planning changes.",
+      "reason": "Recommendation and release evidence only: immutable .48 records the already reviewed source; 1159 package tests, 16 installed consumer tests including public help variant and .47 rollback, Vite/Next builds, and both restored-production browser journeys pass. Existing Panel shortcut and facade guides and planning remain accurate; no guidance behavior changed.",
       "evidence": [
-        "Changed: docs/development/recommended-snapshot.json at 2105de75503ceb17b8183f8974fc819c1bb8c48f"
+        "Changed: docs/development/recommended-snapshot.json at 8fe7b1371e92bf1ee94e5d48e07795d691602b96"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {
