@@ -1647,3 +1647,6 @@ bindings remain fully opaque. Existing hover paint, outside pencil and centring 
 All 208 Panel tests and the complete release check pass. The contextual browser journey verifies
 the empty prompt/style, hover opacity and saved opacity, plus the existing recording/layout checks.
 The shared motion-policy check passes; reduced motion disables the opacity transition.
+
+Clean snapshot `0.1.0-dogfood.45` records source `84cc01317ebd272d9ad7f0b093316390fe181bd8`.
+All 15 installed tests, .44 update/rollback, types and Vite/Next builds pass. Lab rebuild passes.

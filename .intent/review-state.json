@@ -103,15 +103,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "4725c8dd23890dec3e0c1ad5670045c662a2314c3cebdc4a98feb4fe49d47960",
+      "fingerprint": "e90cf679dfa15df45aeb27825ab45604f1b04da6e06ef91e67332481a8867859",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "6ea413f51012c81ba3cb919edecbb003dc2ce6cab2d55e67a6518752988e79a0"
+        "docs/reference/contract-conformance.md": "a3986837746df1866a0d4894ea399919927589a1b30ce0aa27e06d463b125c53"
       },
-      "head": "d0a65da5a273af78dec917951b7fe2d3cd1f5c59",
+      "head": "84cc01317ebd272d9ad7f0b093316390fe181bd8",
       "outcome": "no-change",
-      "reason": "Empty-recorder label and opacity are presentation only. Installed task guides and planning records remain accurate: the same chip records, cancels and clears through the same API. Complete Panel release checks (208 tests), motion policy and contextual browser journey pass.",
+      "reason": "Release recommendation/evidence only; APIs and installed task guidance unchanged. dogfood.45 passes 15 installed tests, .44 update/rollback, types and Vite/Next builds.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at d0a65da5a273af78dec917951b7fe2d3cd1f5c59"
+        "Changed: docs/reference/contract-conformance.md at 84cc01317ebd272d9ad7f0b093316390fe181bd8"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -373,15 +373,15 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "094b8041ed7b044c793381173dfda40317aab1aea7f4cba0c0712212365d5642",
+      "fingerprint": "7a448373a7c8c5d22a575c539903a613e0267691b8aba9417f521eed92091e5b",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "b045bfbc8376cb162edecc3f4287efb00db28aaa8a4ec4b32cdb536835d1aa81"
+        "docs/development/recommended-snapshot.json": "c91aa495b91468d82a845fde3a8bbd15d3139e074e349924a4e05f06a363b4b5"
       },
-      "head": "6836cad8e031e1e1a0eb750040a112a508658cc2",
+      "head": "84cc01317ebd272d9ad7f0b093316390fe181bd8",
       "outcome": "no-change",
-      "reason": "Release recommendation and evidence only. The padding adjustment changes no guide workflow or planning scope. dogfood.44 passes 15 installed tests, .43 update/rollback and Vite/Next builds.",
+      "reason": "Release recommendation/evidence only; APIs and installed task guidance unchanged. dogfood.45 passes 15 installed tests, .44 update/rollback, types and Vite/Next builds.",
       "evidence": [
-        "Changed: docs/development/recommended-snapshot.json at 6836cad8e031e1e1a0eb750040a112a508658cc2"
+        "Changed: docs/development/recommended-snapshot.json at 84cc01317ebd272d9ad7f0b093316390fe181bd8"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {
