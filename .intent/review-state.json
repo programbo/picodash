@@ -109,15 +109,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "e8cd762961c5eef7afd99d048eb08bd4dc595527c11e395ff30540c89fe1863b",
+      "fingerprint": "58050a44a32ecff965e772b6af23c0f45955da3139e8875dd470a67d2f06f6d9",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "137da3c6ee737c7c9bebe503a836494d395f4beeaefbbb0365beed06eacc9983"
+        "docs/reference/contract-conformance.md": "9a8163ce58f17ea44b1f9062cefbdb0b09136df89d70e056533dd1f42180b71e"
       },
-      "head": "b11ed4795396e0479066306d8c7039ea9136e532",
+      "head": "04fce87609503c4b9461fb10bfaf54fb2cb09153",
       "outcome": "no-change",
-      "reason": "Only release recommendation and verification evidence changed; the existing guide workflows and planning records are unchanged. dogfood.43 passes 15 installed tests, types, Vite/Next builds and .41 update/rollback.",
+      "reason": "Only recorder inner padding changes. Existing APIs, guide workflows and planning records remain accurate. Panel checks and contextual browser journey pass, including vertical centring, outside pencil and stable hover width.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at b11ed4795396e0479066306d8c7039ea9136e532"
+        "Changed: docs/reference/contract-conformance.md at 04fce87609503c4b9461fb10bfaf54fb2cb09153"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -163,17 +163,15 @@
       ]
     },
     "source:packages/dashpanel/src/style.css": {
-      "fingerprint": "0f524470fd247b5ed7b34a1028455e481e6f2302257c66780fcd1d948a6fe9d7",
+      "fingerprint": "98095b1be5e286d0e7563552cf7f764bd23af60d44fd0519abb1a085a9f07525",
       "snapshot": {
-        "packages/dashpanel/src/style.css": "6909e547fc344bdaba66d5b340886902545033e9c1c7618bd1732143b5f5e2a4"
+        "packages/dashpanel/src/style.css": "5c5835893d5d9395083ff554041add62d016b557bb1de19d0088aa09f1f4a9c0"
       },
-      "head": "11d047c4a39c383cdaa40eaed2e60f0175064729",
+      "head": "04fce87609503c4b9461fb10bfaf54fb2cb09153",
       "outcome": "no-change",
-      "reason": "Only recorder paint and alignment change: pencil outside the outlined keycaps, vertically centred. Existing APIs, activation, persistence and both installed task guides remain accurate; planning records retain their existing scope.",
+      "reason": "Only recorder inner padding changes. Existing APIs, guide workflows and planning records remain accurate. Panel checks and contextual browser journey pass, including vertical centring, outside pencil and stable hover width.",
       "evidence": [
-        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes pencil-outside-outline and header-centre measurements",
-        "packages/dashpanel: all 208 tests and complete release check pass",
-        "docs/reference/contract-conformance.md: final presentation evidence"
+        "Changed: packages/dashpanel/src/style.css at 04fce87609503c4b9461fb10bfaf54fb2cb09153"
       ]
     },
     "source:packages/dashpanel/tests/hotkey.test.tsx": {
