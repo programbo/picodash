@@ -95,15 +95,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "a93cb1879ec8abdde0ae71243c61337637b0edc06556ed6166e7331a7a3b08c5",
+      "fingerprint": "3c079c9c5c6c9c9743132bbe3c489adb434dba1496ea62bf195c041ec72fc999",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "cb1a593f5a131000b7c570d40a1beedfe8d2dcac2f52f6b880465784106014cb"
+        "docs/reference/contract-conformance.md": "a82ed1dbb13dad9156e167098b0005498dfd1e3190d895d1bd9ed6fa74fe8347"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "6a9db9fe84a2898ce1347c5e76abf434cd509da3",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "reason": "Recommendation evidence only: immutable .53 source 6a9db9f passed 1178 package tests and18 installed consumer tests, optional development install and current-installer .52 rollback/.53 restore, strict public example types, guide discovery/validation, Vite/Next builds and the real Lab development v3 journey. Restored production renders with zero Bridge broker/WebSocket requests; owned browser exit verified. Original two guides and all three planning files remain accurate and unchanged. External Gearmo acceptance and first-use friction remain consumer-owned; broader browser limitations and deferred audits are not claimed passing.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
+        "Changed: docs/reference/contract-conformance.md at 6a9db9fe84a2898ce1347c5e76abf434cd509da3"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -351,15 +351,15 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "598a1e557ef0069d91ecd987dd6356de28d3428f0d9c820978ba6e30e47a1d1c",
+      "fingerprint": "30e799829adacfc115aac1752bf64bf8fe84e413ba251e8bb9640f25d0d738ed",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "aaca6c39c1b542bd51e6413bed8520d3c09ebff775a32e08c3da80a5d931372b"
+        "docs/development/recommended-snapshot.json": "c85b2c1f2318ca896fa0d2a6afa47f20316192a64452eac11d785ba82b8ce290"
       },
-      "head": "595a283f4340d54d4fed371b61d080737691b2fc",
+      "head": "6a9db9fe84a2898ce1347c5e76abf434cd509da3",
       "outcome": "no-change",
-      "reason": "Recommendation and conformance now record immutable .52 source595a283,1165 package tests,17 fresh isolated installed-consumer tests, strict public dragPreview example types, guide discovery/validation, .51 upgrade/rollback and Vite/Next builds. Restored supervised Lab production magnetic journey passes16.0s with public active free posture, blocked/available distinctions and no persistence writes before commit. Existing shortcut/binding guide tasks and all three planning documents remain accurate and unchanged; this additive metadata API does not change their workflows. Broader pre-existing browser limitations and actual consumer adoption remain explicitly separate.",
+      "reason": "Immutable .53 source6a9db9f passed all six release gates1178 tests and18 fresh isolated installed consumer tests; optional devBridge install,current-installer .52 rollback/removal/.53 restore, repeat/frozen installs, strict delivered Bridge/DockReactive types, guide checks and Vite/Next builds pass. Rebuilt restored production Lab renders gallery/tools with zero Bridge broker/WebSocket requests; owned browser profile closes. Development Lab v3 journey3.5s passes with two explicitly recorded navigation/status-locator corrections. Initial shortcut/binding guides and domain_map.yaml,skill_spec.md,skill_tree.yaml remain unchanged and accurate; external observation task is public recipe rather than silently broadened guidance. Actual independent Gearmo acceptance and first-use friction/timing remain consumer-owned pending handoff results; no whole-Lab/audit passing claim.",
       "evidence": [
-        "Changed: docs/development/recommended-snapshot.json at 595a283f4340d54d4fed371b61d080737691b2fc"
+        "Changed: docs/development/recommended-snapshot.json at 6a9db9fe84a2898ce1347c5e76abf434cd509da3"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {

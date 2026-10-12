@@ -1773,7 +1773,7 @@ pass (1 test, 16.0 seconds), including public free movement while committed dock
 remain unchanged until release. Broader browser limitations recorded above remain separate;
 actual Gearmo readout adoption and camera behavior are consumer-owned verification.
 
-External Dev Bridge protocol3 adds deliberately named read-only app observations, redacted
+External Dev Bridge protocol 3 adds deliberately named read-only app observations, redacted
 available/unavailable envelopes, exact observation waits and optional build identity. Nexus writes
 remain atomic and allowlisted; solver revision/readiness and public Panel projections stay owned
 by the app. The public development host owns relay/broker/private files and its process group;
@@ -1783,8 +1783,21 @@ by real host tests. Malformed/oversized/cyclic observation recovery, synchronous
 equality no-ops, disclosure narrowing, generation fencing and quiet disabled defaults are verified
 by protocol tests. Optional dev-dependency delivery and current-installer legacy rollback have
 focused ownership/hash tests. Public DevBridge and DockReactive examples are typed and delivered.
-The existing Lab Bridge browser journey passes (1 test,3.5 seconds). Its second tab now opens
+The existing Lab Bridge browser journey passes (1 test, 3.5 seconds). Its second tab now opens
 Contract tools through the existing helper; its style probe filters the intended Number warning
 rather than counting unrelated result statuses, retaining text/count/live/atomic assertions.
 These two navigation/locator fixture corrections are separate from protocol behavior. Actual
 external application integration and first-use friction are recorded after consumer acceptance.
+
+Clean snapshot `0.1.0-dogfood.53` records source `6a9db9fe84a2898ce1347c5e76abf434cd509da3`.
+All six package release checks pass (1178 tests), as do all 18 isolated installed-consumer tests,
+guide discovery/validation, strict public examples and Vite/Next CSS builds. Optional Bridge
+installation is a devDependency; current-installer rollback to .52 removes bundle-owned Bridge
+entries and restores .53 through the same supported command. Repeat/frozen installs and hashes
+pass. The Lab production rebuild is restored under its supervisor; a fresh rendered browser
+verifies gallery/tools and zero Bridge broker/WebSocket requests, then closes its owned profile.
+The separate development Lab v3 Bridge journey passes in 3.5 seconds. Intent records an evidence-backed
+no-op for the two original guides and all three planning files; the new task has public recipes.
+Actual Gearmo integration, requested/actual solver correlation, camera/readout behavior and
+first-integration friction/timing are tracked by the consumer owner after immutable handoff.
+Broader pre-existing browser limitations above are not changed or claimed passing here.
