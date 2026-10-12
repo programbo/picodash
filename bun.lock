@@ -74,6 +74,7 @@
         "@picodash/nexus": "workspace:*",
         "@picodash/ui": "workspace:*",
         "@tanstack/react-hotkeys": "0.13.0",
+        "lucide-react": "catalog:",
         "motion": "catalog:",
       },
       "devDependencies": {

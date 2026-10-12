@@ -3,20 +3,20 @@
   "baseline": "3f6f4e994d43108d6d39856216e897318588da2c",
   "items": {
     "skill:packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": {
-      "fingerprint": "7b934f041cbf22ce39f494736548714543f839d263525cf07f5fd85c296b8bbe",
+      "fingerprint": "34985717daac4f153049c01f083ec80f43d72d5ef4329e37b35abfa63c00c3c8",
       "snapshot": {
-        "docs/reference/dashpanel.md": "6f0d28f25cd532a6534caea3395b03e7351403fd5a766b850d02142568e596e5",
+        "docs/reference/dashpanel.md": "3162e3aa944e40fa97a38684f2832377545e5e9d695e0ba40f4a47b673da6c8d",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
         "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
-        "packages/dashpanel/src/panel-hotkey.tsx": "20f21643985b79e992ea1aae829f7ef1e4204df0b23d3df8af5e8fe53433f0cd"
+        "packages/dashpanel/src/panel-hotkey.tsx": "3fcc7f87d41ea456a19f31acae7d773adecf845b8342daf385a90b2f15dcd2f8"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "outcome": "no-change",
+      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
+        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
       ]
     },
     "skill:packages/picodash/skills/bind-controls/SKILL.md": {
@@ -39,29 +39,29 @@
       ]
     },
     "planning:_artifacts": {
-      "fingerprint": "5a8fca2f2a88c5b896e48792984c6a66cc4c433ef6738401155449c30b734ecb",
+      "fingerprint": "76287f9876cc60dfa8428ec1e727b6086c5197f9d0331ecb5d11f08b34d15c3f",
       "snapshot": {
         "_artifacts/domain_map.yaml": "7fae05e81d3660e56f32a0dc042c64b6f4b7c0718bcaf6917e2792371b333dc4",
         "_artifacts/skill_spec.md": "bc0e75e4b8b009a856e577f727fabb72628c78ef5720a343ba4db40b9decdde4",
         "_artifacts/skill_tree.yaml": "4c95e940102fbc17ad5c41ee7fa564f5bdb26150830ae2ef8e6430e23b48009e",
         "docs/development/consumer-recipes.md": "87f76f251a9e2e700323c2243386c2e053d39cf8d6ac1e8c7a775b371c11d81d",
-        "docs/reference/dashpanel.md": "6f0d28f25cd532a6534caea3395b03e7351403fd5a766b850d02142568e596e5",
+        "docs/reference/dashpanel.md": "3162e3aa944e40fa97a38684f2832377545e5e9d695e0ba40f4a47b673da6c8d",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
         "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
-        "packages/dashpanel/src/panel-hotkey.tsx": "20f21643985b79e992ea1aae829f7ef1e4204df0b23d3df8af5e8fe53433f0cd",
+        "packages/dashpanel/src/panel-hotkey.tsx": "3fcc7f87d41ea456a19f31acae7d773adecf845b8342daf385a90b2f15dcd2f8",
         "packages/picodash/skills/bind-controls/SKILL.md": "f520bfeee1d185085760351a9596b5001331d43d889266a5a3b6299d2d7b27d3",
         "packages/picodash/src/detachable-group.tsx": "fd145e7903df7e83ae8986d2f8beafcc7a452f0db8ce183f26e32af2b705d147",
         "packages/picodash/src/index.ts": "c62056bb9c1b60b8c0e4d3955542de223f7521a4fdb1f4635feaecba8f0c85d5",
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "outcome": "no-change",
+      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
+        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
       ]
     },
     "source:apps/lab/src/components/contract-lab/specimen.tsx": {
@@ -81,17 +81,17 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "a7fe5c89b65a183f0aadedfab6d5e82bbbeb5c902718fc9659bc65e717b88ceb",
+      "fingerprint": "acb435cf413756405b26163771afa88782c12fe84db945ff7a6b8750f912ac2d",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "ed169635d51e50f93cb6c459c8be1e56b01b4280df9080c3fa3fc04922398dc9"
+        "apps/lab/tests/contract-lab.spec.ts": "232e5303a3a3e1d64cc281faedb3a27192a4cc1c703aecf85f342c4261665047"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "outcome": "no-change",
+      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
+        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -109,16 +109,17 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "e8ceb53f38f580e1c5911f9f91479c371770fd932b83cabb303d887cd7f61951",
+      "fingerprint": "e6e28f7ff5a6e68fe1f95f501f7118b6aaf6e2efbe557d4d187c3cdd3f8c6e80",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "0acccf85fbcb7d5e3f7788c05aa3ca07d9df6a3b359f9e8e1099828db1e8e25e"
+        "docs/reference/contract-conformance.md": "33b43a2f01003e358f5cd76f7f78a3c04d47d817ff6e0cc2fbb245f01bf0a7f3"
       },
-      "head": "2be8d0ae3cb171cf21c2973949e21486d395323d",
+      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
       "outcome": "no-change",
-      "reason": "Release recommendation and conformance evidence only; the delivered APIs and guides are unchanged from the reviewed source commit.",
+      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
       "evidence": [
-        "output/dogfood/0.1.0-dogfood.41/snapshot.json: clean source 2be8d0ae3cb171cf21c2973949e21486d395323d",
-        "docs/reference/contract-conformance.md: 15 installed tests, update/rollback, types, Vite and Next builds pass"
+        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
+        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -164,17 +165,17 @@
       ]
     },
     "source:packages/dashpanel/src/style.css": {
-      "fingerprint": "1ead8d4850e5ac404820fb63fbf7d9f8f65715395039ea2e43de3d1224edd4b7",
+      "fingerprint": "7aad94602315b1577e560dd0d06de0101ccbe26d7b7ac6e50326736202fee888",
       "snapshot": {
-        "packages/dashpanel/src/style.css": "99340a4002dee62108723909588baee6dd421e161ae820decdc3ee79661e7173"
+        "packages/dashpanel/src/style.css": "073276733d47378be21786c44c2a58f878cf3e94816ca9ebeb87a9b29b5a26dc"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "outcome": "no-change",
+      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
+        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
       ]
     },
     "source:packages/dashpanel/tests/hotkey.test.tsx": {
@@ -192,17 +193,17 @@
       ]
     },
     "source:packages/dashpanel/tests/package-artifacts.mjs": {
-      "fingerprint": "c1452075ac9b93d8f5f2fab7676915995e34ee6e3b971947128511b9fc757b1b",
+      "fingerprint": "a133a5a636f32787df5778176c11389e6924f18d4274215fe4d3dccf41062870",
       "snapshot": {
-        "packages/dashpanel/tests/package-artifacts.mjs": "c2615b60f6859aa499098a1a5e11f78c92bfe29b0d94d7c796e96ff940c663eb"
+        "packages/dashpanel/tests/package-artifacts.mjs": "057aeb63e3befa41ac0060caecbdff315d5eac5c6fff4113569c769223e16d6e"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "outcome": "no-change",
+      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
+        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
       ]
     },
     "source:packages/nexus/src/kernel/index.ts": {
@@ -574,6 +575,20 @@
         "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
         "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+      ]
+    },
+    "source:apps/lab/next-env.d.ts": {
+      "fingerprint": "b46aee41dc647464fafda3f33d94713094bc3f0b406099a41e76f28a696b9f52",
+      "snapshot": {
+        "apps/lab/next-env.d.ts": "1862ac4bbbc5192d4bf562161df66ea547ed3e67173100656ab606ae9797db2b"
+      },
+      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "outcome": "no-change",
+      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
+      "evidence": [
+        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
+        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
       ]
     }
   }

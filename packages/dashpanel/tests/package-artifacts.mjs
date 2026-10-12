@@ -25,6 +25,7 @@ async function main() {
     '@picodash/nexus': 'workspace:*',
     '@picodash/ui': 'workspace:*',
     '@tanstack/react-hotkeys': '0.13.0',
+    'lucide-react': 'catalog:',
     motion: 'catalog:',
   })
   assert.deepEqual(manifest.peerDependencies, { react: '>=19', 'react-dom': '>=19' })

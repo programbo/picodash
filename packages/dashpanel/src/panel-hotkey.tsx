@@ -9,6 +9,7 @@ import {
   validateHotkey,
 } from '@tanstack/react-hotkeys'
 import { Button } from '@picodash/ui'
+import { Pencil } from 'lucide-react'
 import { useDashPanelHostId } from './runtime/panel-controller.js'
 import { useDashPanelRuntime, useDashPanelRuntimeState } from './runtime/panel-runtime-context.js'
 import type { PanelRuntime } from './runtime/panel-runtime.js'
@@ -253,10 +254,15 @@ export function PanelHotkey({
           {recorder.isRecording ? (
             'Press keys…'
           ) : binding && !error ? (
-            formatForDisplay(binding)
+            <span data-picodash-hotkey-keys aria-hidden="true">
+              {formatForDisplay(binding, { parts: true }).map((part) => (
+                <kbd key={part}>{part}</kbd>
+              ))}
+            </span>
           ) : (
             <span aria-hidden="true">⌨</span>
           )}
+          <Pencil aria-hidden="true" data-picodash-hotkey-edit />
         </Button>
         <span id={helpId} data-picodash-panel-hotkey-help role="status">
           {recorder.isRecording

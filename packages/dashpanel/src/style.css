@@ -357,11 +357,55 @@
 }
 [data-picodash-panel-hotkey] > [data-slot='button'] {
   min-block-size: 1.5em;
-  padding: 0.1em 0.4em;
+  padding: 0.15em 0.3em;
+  gap: 0.3em;
+  white-space: nowrap;
   font-size: 0.75em;
   border: 1px solid var(--picodash-color-border);
   border-radius: 0.35em;
   color: var(--picodash-color-text-muted);
+}
+[data-picodash-hotkey-keys] {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2em;
+  pointer-events: none;
+}
+[data-picodash-hotkey-keys] kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 1.25rem;
+  block-size: 1.25rem;
+  padding-inline: 0.25em;
+  border-radius: var(--picodash-radius-control);
+  background: color-mix(in srgb, var(--picodash-color-text) 10%, transparent);
+  font: inherit;
+  font-weight: 500;
+}
+[data-picodash-hotkey-edit] {
+  flex: none;
+  inline-size: 1em;
+  block-size: 1em;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--picodash-duration-fast) var(--picodash-easing-out);
+}
+[data-picodash-panel-hotkey]
+  > [data-slot='button']:is([data-hovered], [data-focus-visible], [data-recording]) {
+  border-color: var(--picodash-color-accent);
+  background: color-mix(in srgb, var(--picodash-color-accent) 12%, transparent);
+  color: var(--picodash-color-text);
+}
+[data-picodash-panel-hotkey]
+  > [data-slot='button']:is([data-hovered], [data-focus-visible], [data-recording])
+  [data-picodash-hotkey-edit] {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-picodash-hotkey-edit] {
+    transition: none;
+  }
 }
 [data-picodash-panel-hotkey-help] {
   display: none;
