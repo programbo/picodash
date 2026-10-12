@@ -1655,3 +1655,6 @@ Recorder readability refinement: the empty prompt is upright rather than italic,
 70% opacity. Panel and group recorders use the same theme font-size token instead of inheriting
 relative header sizes. Panel checks and the contextual browser journey pass, including equal
 computed font size and face height, upright prompt, opacity, centring and outside pencil checks.
+
+Clean snapshot `0.1.0-dogfood.46` records source `fc12240800066fa410f96ca7fadacf10aef27585`.
+All 15 installed tests, .45 update/rollback, types and Vite/Next builds pass. Lab rebuild passes.

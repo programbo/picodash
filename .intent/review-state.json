@@ -103,15 +103,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "90535275591788a7c19d9bb91e247f37dd10363baf0b140d676dfa7a06091570",
+      "fingerprint": "b3f8924e495165f30b90dda90787d512295f2d3e661f51784b7637284f007263",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "c3929f99adac79db1987f31e520b4b0221b13c42f5419960a37fb0ba887bac50"
+        "docs/reference/contract-conformance.md": "020f02df83d32312f468e521ac8e0b7c3b6b79257c4d6ceacde4f239d773e5fb"
       },
-      "head": "4517636f1e6fd0f78ab027dc92fe1ab3815c23b8",
+      "head": "fc12240800066fa410f96ca7fadacf10aef27585",
       "outcome": "no-change",
-      "reason": "Presentation-only refinement: upright empty prompt, 70% rest opacity and shared recorder font-size token. Existing guides and planning records remain accurate. Panel type/lint/format and contextual browser journey pass, including equal Panel/group font size and height.",
+      "reason": "Release evidence and recommendation only; no guide or planning change. dogfood.46 passes 15 installed tests, .45 update/rollback, types and Vite/Next builds.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at 4517636f1e6fd0f78ab027dc92fe1ab3815c23b8"
+        "Changed: docs/reference/contract-conformance.md at fc12240800066fa410f96ca7fadacf10aef27585"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -373,15 +373,15 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "7a448373a7c8c5d22a575c539903a613e0267691b8aba9417f521eed92091e5b",
+      "fingerprint": "d1a05c09bd11e47564743a6bac8a4aea75792d1f5cb7d688d868afc024f93823",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "c91aa495b91468d82a845fde3a8bbd15d3139e074e349924a4e05f06a363b4b5"
+        "docs/development/recommended-snapshot.json": "75dbf3dab928c550d6f25dee1faba525283c16b2028aa39a7d12f7209c573b99"
       },
-      "head": "84cc01317ebd272d9ad7f0b093316390fe181bd8",
+      "head": "fc12240800066fa410f96ca7fadacf10aef27585",
       "outcome": "no-change",
-      "reason": "Release recommendation/evidence only; APIs and installed task guidance unchanged. dogfood.45 passes 15 installed tests, .44 update/rollback, types and Vite/Next builds.",
+      "reason": "Release evidence and recommendation only; no guide or planning change. dogfood.46 passes 15 installed tests, .45 update/rollback, types and Vite/Next builds.",
       "evidence": [
-        "Changed: docs/development/recommended-snapshot.json at 84cc01317ebd272d9ad7f0b093316390fe181bd8"
+        "Changed: docs/development/recommended-snapshot.json at fc12240800066fa410f96ca7fadacf10aef27585"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {
