@@ -1610,3 +1610,8 @@ browser journeys pass, including measured header placement, persistence and surr
 behavior. The independent installed consumer and its deliberately nonpersistent negative control
 provide the evidence described in tests/skills/README.md. Final immutable-bundle validation follows
 this source checkpoint; live designer adoption remains with Maz.
+
+Clean snapshot `0.1.0-dogfood.41` records source `2be8d0ae3cb171cf21c2973949e21486d395323d`.
+All 15 installed consumer tests pass, including the new contextual-shortcut example. Isolated
+install, repeat/frozen reinstall, .40 update/rollback, public types, Vite/Next builds and installed
+Intent discovery/version checks pass. The production Lab was rebuilt from this source.

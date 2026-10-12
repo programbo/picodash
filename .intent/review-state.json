@@ -109,17 +109,16 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "baad8b359b50689eef4119eef3c399b2043eafa18dea0395940487eb6204b6ec",
+      "fingerprint": "e8ceb53f38f580e1c5911f9f91479c371770fd932b83cabb303d887cd7f61951",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "c53eb84dd870d5cb190b60a6bd1f2023a2c531ee0f0855eee136aabae7c6215a"
+        "docs/reference/contract-conformance.md": "0acccf85fbcb7d5e3f7788c05aa3ca07d9df6a3b359f9e8e1099828db1e8e25e"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "2be8d0ae3cb171cf21c2973949e21486d395323d",
+      "outcome": "no-change",
+      "reason": "Release recommendation and conformance evidence only; the delivered APIs and guides are unchanged from the reviewed source commit.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "output/dogfood/0.1.0-dogfood.41/snapshot.json: clean source 2be8d0ae3cb171cf21c2973949e21486d395323d",
+        "docs/reference/contract-conformance.md: 15 installed tests, update/rollback, types, Vite and Next builds pass"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -383,15 +382,16 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "5daf137616fae6f8bb460282180685d8ac2aa6d8c7f67e2da6fce05e345a2139",
+      "fingerprint": "f1cadf9cae7c3c69e0228ff289f3df7ad5a3ee3329ce89873e8ce0aaa176b4ed",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "121abd70d5f23689cae5184a8b2fe51aaac880aaa6a0d76c42cfeb9a99965c19"
+        "docs/development/recommended-snapshot.json": "8618b19358d77281c7254a853254f450d0b880dd8927903f84feec6c1fee1682"
       },
-      "head": "d157c7915f62b853e5324d6a1d3cf19a4173b3c8",
+      "head": "2be8d0ae3cb171cf21c2973949e21486d395323d",
       "outcome": "no-change",
-      "reason": "Recorded clean dogfood.40 release evidence and clarified Intent 0.5.5 installed-tarball code-block typechecking limits. Source guide validation, strict installed consumer types, 14 consumer tests and Vite/Next builds pass; runtime behavior and task guidance are unchanged.",
+      "reason": "Release recommendation and conformance evidence only; the delivered APIs and guides are unchanged from the reviewed source commit.",
       "evidence": [
-        "Changed: docs/development/recommended-snapshot.json at d157c7915f62b853e5324d6a1d3cf19a4173b3c8"
+        "output/dogfood/0.1.0-dogfood.41/snapshot.json: clean source 2be8d0ae3cb171cf21c2973949e21486d395323d",
+        "docs/reference/contract-conformance.md: 15 installed tests, update/rollback, types, Vite and Next builds pass"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {
