@@ -3334,10 +3334,10 @@ test('routes recorded group shortcuts through visible parents and reopens a clos
   })
   await page.mouse.move(0, 0)
   await expect(basics).toHaveText('Click to record shortcut')
-  await expect(basics).toHaveCSS('opacity', '0.5')
+  await expect(basics).toHaveCSS('opacity', '0.7')
   await expect(basics.locator('[data-picodash-hotkey-placeholder]')).toHaveCSS(
     'font-style',
-    'italic',
+    'normal',
   )
   await basics.hover()
   await expect(basics).toHaveCSS('opacity', '1')
@@ -3356,6 +3356,15 @@ test('routes recorded group shortcuts through visible parents and reopens a clos
   await closeRecorder.click()
   await page.keyboard.press('Control+Shift+K')
   await expect(closeRecorder).toHaveAttribute('aria-pressed', 'false')
+  const recorderSize = (recorder: typeof closeRecorder) =>
+    recorder.evaluate((element) => {
+      const face = element.querySelector('[data-picodash-hotkey-face]')!
+      return {
+        font: getComputedStyle(element).fontSize,
+        height: face.getBoundingClientRect().height,
+      }
+    })
+  expect(await recorderSize(choices)).toEqual(await recorderSize(closeRecorder))
   const pencil = closeRecorder.locator('[data-picodash-hotkey-edit]')
   await closeRecorder.evaluate((element) => (element as HTMLButtonElement).blur())
   await page.mouse.move(0, 0)

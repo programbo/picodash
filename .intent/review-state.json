@@ -3,18 +3,18 @@
   "baseline": "3f6f4e994d43108d6d39856216e897318588da2c",
   "items": {
     "skill:packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": {
-      "fingerprint": "7f8d4511ec4c6ac1f990de21d2e6b6477fef63f62c6a41c9f959c58ed22a3274",
+      "fingerprint": "af21679f5e20d58d4c8bc7d4e7051f24e40ef284584617f04ba2767274b341a3",
       "snapshot": {
-        "docs/reference/dashpanel.md": "48b5d1d8af89dc6d5a41decf7ec534e433e096bb5ec46a9cbbc66edb0b294b6c",
+        "docs/reference/dashpanel.md": "1faf9d8b35ed08e19768980c0918e2c501671a50f735379d34d823edb36b167e",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
         "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
         "packages/dashpanel/src/panel-hotkey.tsx": "31e1a4613ced5692cca0da76f1d38086c466fe5924659dde5ba4a0946b42323b"
       },
-      "head": "d0a65da5a273af78dec917951b7fe2d3cd1f5c59",
+      "head": "4517636f1e6fd0f78ab027dc92fe1ab3815c23b8",
       "outcome": "no-change",
-      "reason": "Empty-recorder label and opacity are presentation only. Installed task guides and planning records remain accurate: the same chip records, cancels and clears through the same API. Complete Panel release checks (208 tests), motion policy and contextual browser journey pass.",
+      "reason": "Presentation-only refinement: upright empty prompt, 70% rest opacity and shared recorder font-size token. Existing guides and planning records remain accurate. Panel type/lint/format and contextual browser journey pass, including equal Panel/group font size and height.",
       "evidence": [
-        "Changed: docs/reference/dashpanel.md, packages/dashpanel/src/panel-hotkey.tsx at d0a65da5a273af78dec917951b7fe2d3cd1f5c59"
+        "Changed: docs/reference/dashpanel.md at 4517636f1e6fd0f78ab027dc92fe1ab3815c23b8"
       ]
     },
     "skill:packages/picodash/skills/bind-controls/SKILL.md": {
@@ -37,13 +37,13 @@
       ]
     },
     "planning:_artifacts": {
-      "fingerprint": "fee72a4b6006606329effe542a142af3073e9b2df3d19ea59c901b4bcd612304",
+      "fingerprint": "6b8eef7ed4c3f6c7cdd9b6b980b42a9eb58a74c42620202c5c010f754048d44b",
       "snapshot": {
         "_artifacts/domain_map.yaml": "7fae05e81d3660e56f32a0dc042c64b6f4b7c0718bcaf6917e2792371b333dc4",
         "_artifacts/skill_spec.md": "bc0e75e4b8b009a856e577f727fabb72628c78ef5720a343ba4db40b9decdde4",
         "_artifacts/skill_tree.yaml": "4c95e940102fbc17ad5c41ee7fa564f5bdb26150830ae2ef8e6430e23b48009e",
         "docs/development/consumer-recipes.md": "87f76f251a9e2e700323c2243386c2e053d39cf8d6ac1e8c7a775b371c11d81d",
-        "docs/reference/dashpanel.md": "48b5d1d8af89dc6d5a41decf7ec534e433e096bb5ec46a9cbbc66edb0b294b6c",
+        "docs/reference/dashpanel.md": "1faf9d8b35ed08e19768980c0918e2c501671a50f735379d34d823edb36b167e",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
         "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
         "packages/dashpanel/src/panel-hotkey.tsx": "31e1a4613ced5692cca0da76f1d38086c466fe5924659dde5ba4a0946b42323b",
@@ -53,11 +53,11 @@
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "d0a65da5a273af78dec917951b7fe2d3cd1f5c59",
+      "head": "4517636f1e6fd0f78ab027dc92fe1ab3815c23b8",
       "outcome": "no-change",
-      "reason": "Empty-recorder label and opacity are presentation only. Installed task guides and planning records remain accurate: the same chip records, cancels and clears through the same API. Complete Panel release checks (208 tests), motion policy and contextual browser journey pass.",
+      "reason": "Presentation-only refinement: upright empty prompt, 70% rest opacity and shared recorder font-size token. Existing guides and planning records remain accurate. Panel type/lint/format and contextual browser journey pass, including equal Panel/group font size and height.",
       "evidence": [
-        "Changed: docs/reference/dashpanel.md, packages/dashpanel/src/panel-hotkey.tsx at d0a65da5a273af78dec917951b7fe2d3cd1f5c59"
+        "Changed: docs/reference/dashpanel.md at 4517636f1e6fd0f78ab027dc92fe1ab3815c23b8"
       ]
     },
     "source:apps/lab/src/components/contract-lab/specimen.tsx": {
@@ -77,15 +77,15 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "dc67895c48912d187c73040f270935f1e7e980b92514f45b9bdfb8ea1e9623c6",
+      "fingerprint": "4cdf04ea3170cb2f5b853bbf8c720ee8f8a72a05193f7a66fa42a8509b2bd365",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "2fb0ad145435fef0c28e0f9d5b4f81e979eded421d3a55abf049c340847fcfaa"
+        "apps/lab/tests/contract-lab.spec.ts": "f402f90bcacbeb8ea72327ce71815c523dcab9a863746951ce06e3d3b5d809fc"
       },
-      "head": "d0a65da5a273af78dec917951b7fe2d3cd1f5c59",
+      "head": "4517636f1e6fd0f78ab027dc92fe1ab3815c23b8",
       "outcome": "no-change",
-      "reason": "Empty-recorder label and opacity are presentation only. Installed task guides and planning records remain accurate: the same chip records, cancels and clears through the same API. Complete Panel release checks (208 tests), motion policy and contextual browser journey pass.",
+      "reason": "Presentation-only refinement: upright empty prompt, 70% rest opacity and shared recorder font-size token. Existing guides and planning records remain accurate. Panel type/lint/format and contextual browser journey pass, including equal Panel/group font size and height.",
       "evidence": [
-        "Changed: apps/lab/tests/contract-lab.spec.ts at d0a65da5a273af78dec917951b7fe2d3cd1f5c59"
+        "Changed: apps/lab/tests/contract-lab.spec.ts at 4517636f1e6fd0f78ab027dc92fe1ab3815c23b8"
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -103,15 +103,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "e90cf679dfa15df45aeb27825ab45604f1b04da6e06ef91e67332481a8867859",
+      "fingerprint": "90535275591788a7c19d9bb91e247f37dd10363baf0b140d676dfa7a06091570",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "a3986837746df1866a0d4894ea399919927589a1b30ce0aa27e06d463b125c53"
+        "docs/reference/contract-conformance.md": "c3929f99adac79db1987f31e520b4b0221b13c42f5419960a37fb0ba887bac50"
       },
-      "head": "84cc01317ebd272d9ad7f0b093316390fe181bd8",
+      "head": "4517636f1e6fd0f78ab027dc92fe1ab3815c23b8",
       "outcome": "no-change",
-      "reason": "Release recommendation/evidence only; APIs and installed task guidance unchanged. dogfood.45 passes 15 installed tests, .44 update/rollback, types and Vite/Next builds.",
+      "reason": "Presentation-only refinement: upright empty prompt, 70% rest opacity and shared recorder font-size token. Existing guides and planning records remain accurate. Panel type/lint/format and contextual browser journey pass, including equal Panel/group font size and height.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at 84cc01317ebd272d9ad7f0b093316390fe181bd8"
+        "Changed: docs/reference/contract-conformance.md at 4517636f1e6fd0f78ab027dc92fe1ab3815c23b8"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -157,15 +157,15 @@
       ]
     },
     "source:packages/dashpanel/src/style.css": {
-      "fingerprint": "ccb44c867c891bcb5a014ca05e100d463b0b485e591e20d9b13587e0740ba2eb",
+      "fingerprint": "a402255f9dfe70c9df172cc7fb1d20ddfc99e533b2ef7199116761471549b237",
       "snapshot": {
-        "packages/dashpanel/src/style.css": "7ad25180fe3bf0c1ecbf48a9a6185776eb9bf93d4e8f6782f7305455fd20c07c"
+        "packages/dashpanel/src/style.css": "4083cf29cda913a4515ee19ca1d0971766372b41fa416c33ca3f9a9cd15edfed"
       },
-      "head": "d0a65da5a273af78dec917951b7fe2d3cd1f5c59",
+      "head": "4517636f1e6fd0f78ab027dc92fe1ab3815c23b8",
       "outcome": "no-change",
-      "reason": "Empty-recorder label and opacity are presentation only. Installed task guides and planning records remain accurate: the same chip records, cancels and clears through the same API. Complete Panel release checks (208 tests), motion policy and contextual browser journey pass.",
+      "reason": "Presentation-only refinement: upright empty prompt, 70% rest opacity and shared recorder font-size token. Existing guides and planning records remain accurate. Panel type/lint/format and contextual browser journey pass, including equal Panel/group font size and height.",
       "evidence": [
-        "Changed: packages/dashpanel/src/style.css at d0a65da5a273af78dec917951b7fe2d3cd1f5c59"
+        "Changed: packages/dashpanel/src/style.css at 4517636f1e6fd0f78ab027dc92fe1ab3815c23b8"
       ]
     },
     "source:packages/dashpanel/tests/hotkey.test.tsx": {

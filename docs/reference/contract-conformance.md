@@ -1650,3 +1650,8 @@ The shared motion-policy check passes; reduced motion disables the opacity trans
 
 Clean snapshot `0.1.0-dogfood.45` records source `84cc01317ebd272d9ad7f0b093316390fe181bd8`.
 All 15 installed tests, .44 update/rollback, types and Vite/Next builds pass. Lab rebuild passes.
+
+Recorder readability refinement: the empty prompt is upright rather than italic, and rests at
+70% opacity. Panel and group recorders use the same theme font-size token instead of inheriting
+relative header sizes. Panel checks and the contextual browser journey pass, including equal
+computed font size and face height, upright prompt, opacity, centring and outside pencil checks.
