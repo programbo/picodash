@@ -103,15 +103,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "f8e765ab0a2d30329e5a203fa8a9a0b7d277bf581e745a32384efa02f041fbdf",
+      "fingerprint": "5b6d18969e8054b67d4b84356c2cf741dd99849b6c8a27df305f8c47657c39ae",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "4ade29a7e857aa9a36f13b412653827fac771ff9b0907c58457ec1a62846fb94"
+        "docs/reference/contract-conformance.md": "cd09dbf7f8c459ac733a2d2a8803a5a2ef11fefb09af329985879dd0ffe79038"
       },
-      "head": "cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222",
+      "head": "2105de75503ceb17b8183f8974fc819c1bb8c48f",
       "outcome": "no-change",
-      "reason": "Presentation-only help layering and glass/pointer change: existing shortcut and bound-control guides remain accurate, with no public API or consumer workflow changes. All three planning documents retain their package ownership, task coverage, recommendations and exclusions. Verified 86 affected component/CSS tests, workspace formatting/lint/types and contextual browser layer/hit-test, recording/live feedback and clickable-help focus restoration. Lab screenshots visually reviewed; actual Gearmo rich content awaits bundle adoption.",
+      "reason": "Recommended clean dogfood.47 from source 2105de75503ceb17b8183f8974fc819c1bb8c48f after all six release checks (1157 tests), 15 installed consumer tests, .46 rollback, shipped guides/types/Vite/Next and production Lab browser journey. Documentation records evidence only; no public API, guide workflow or planning changes.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at cb0fd6b9c7617db7fee4dd05eda41e6ec02ba222"
+        "Changed: docs/reference/contract-conformance.md at 2105de75503ceb17b8183f8974fc819c1bb8c48f"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -371,15 +371,15 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "d1a05c09bd11e47564743a6bac8a4aea75792d1f5cb7d688d868afc024f93823",
+      "fingerprint": "43e607e68f979e76f30d2b9f571576c7391b7390152a5c2a34fa9f0cd4c0e6c9",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "75dbf3dab928c550d6f25dee1faba525283c16b2028aa39a7d12f7209c573b99"
+        "docs/development/recommended-snapshot.json": "5e0c8655f879e4578322ad9890cc5223c1238f34d3166a4dfb961f557c0dfa2c"
       },
-      "head": "fc12240800066fa410f96ca7fadacf10aef27585",
+      "head": "2105de75503ceb17b8183f8974fc819c1bb8c48f",
       "outcome": "no-change",
-      "reason": "Release evidence and recommendation only; no guide or planning change. dogfood.46 passes 15 installed tests, .45 update/rollback, types and Vite/Next builds.",
+      "reason": "Recommended clean dogfood.47 from source 2105de75503ceb17b8183f8974fc819c1bb8c48f after all six release checks (1157 tests), 15 installed consumer tests, .46 rollback, shipped guides/types/Vite/Next and production Lab browser journey. Documentation records evidence only; no public API, guide workflow or planning changes.",
       "evidence": [
-        "Changed: docs/development/recommended-snapshot.json at fc12240800066fa410f96ca7fadacf10aef27585"
+        "Changed: docs/development/recommended-snapshot.json at 2105de75503ceb17b8183f8974fc819c1bb8c48f"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {

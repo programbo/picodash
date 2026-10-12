@@ -1668,3 +1668,10 @@ browser journey verifies actual paint/hit order above dense contents, theme prop
 recording rejection/cancellation, reduced motion, and clickable-help focus restoration.
 Lab screenshots were visually reviewed; actual Gearmo Pressure angle content awaits consumer
 adoption of the new immutable bundle.
+
+Clean snapshot `0.1.0-dogfood.47` records source `2105de75503ceb17b8183f8974fc819c1bb8c48f`.
+All six package release checks pass (1157 tests), as do all 15 isolated installed-consumer tests,
+guide discovery/validation, .46 update/rollback, types and Vite/Next builds. The Lab production
+rebuild and the contextual tooltip/help browser journey against its restored supervised server pass,
+including actual viewport-edge placement flipping. The old opaque-help CSS assertion was updated
+to require the intended semantic translucent surface and blur.
