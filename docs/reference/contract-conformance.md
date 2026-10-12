@@ -1706,3 +1706,10 @@ journey compares top-right and full-right public bounds with the real proxy, ver
 Escape and drop clearing, and checks persistence remains unchanged during preview. Fixed/Floating
 and occupied-zone observations remain empty. The typed delivered `DockPreview.tsx` consumer and
 its isolated test exercise public composition and unmount/remount without layout writes.
+
+Clean snapshot `0.1.0-dogfood.49` records source `ffebedb20fce05a5212990fdd5ddeb692ee51d6d`.
+All six package release checks pass (1162 tests), as do all 17 isolated installed-consumer tests,
+including the public dock-preview readout, guide discovery/validation, .48 update/rollback, strict
+example types and Vite/Next builds. The production Lab rebuild and focused placement browser
+journey against the restored supervised server pass (1 test, 16.6 seconds). The application owns
+readout and camera behavior; actual Gearmo adoption is verified separately by its consumer owner.

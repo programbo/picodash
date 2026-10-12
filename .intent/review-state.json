@@ -97,15 +97,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "cb09b8631d0f72267936971f004c22482a8492f5a52aba3d198e80b784b392a3",
+      "fingerprint": "7ecea7a28a8af325f1dbc332ce4eb3e20e1705fd24a024156a0c02de9364f052",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "4199d536c2a50f013dc9a9e69e7da879e44591e577fd72ad33a2061e049de84e"
+        "docs/reference/contract-conformance.md": "cda1ed185f7cf01040351b6a40e8693cd4e8ad6bf6edbbe425190f7047ce1a76"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "ffebedb20fce05a5212990fdd5ddeb692ee51d6d",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "Recommendation/release evidence only: immutable .49 source ffebedb20fce05a5212990fdd5ddeb692ee51d6d passed 1162 package release tests, 17 isolated installed-consumer tests including dock preview, .48 rollback and .49 restore, shipped guides and strict example types, Vite/Next builds, and restored-production placement browser journey. Both existing guides and all three planning files remain accurate for their reviewed shortcut/binding tasks; no guidance behavior changed.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: docs/reference/contract-conformance.md at ffebedb20fce05a5212990fdd5ddeb692ee51d6d"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -353,15 +353,15 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "a113ea3249bf6a0171ebe5f9bf2eb3fc0519d60dbd34027f17dfa45f76812170",
+      "fingerprint": "ee93226f090e113cee54a023d0da12cddc3ece0716663d86a88740496bc2ecbe",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "e1b8f97fd859caeb77871858c753a7597578fb468dce0d1d8fd2fabe5dd6fe24"
+        "docs/development/recommended-snapshot.json": "daa619060cd3d28348ed6d259395fbe2fc57777510bebe1b7bd9babc18228c57"
       },
-      "head": "8fe7b1371e92bf1ee94e5d48e07795d691602b96",
+      "head": "ffebedb20fce05a5212990fdd5ddeb692ee51d6d",
       "outcome": "no-change",
-      "reason": "Recommendation and release evidence only: immutable .48 records the already reviewed source; 1159 package tests, 16 installed consumer tests including public help variant and .47 rollback, Vite/Next builds, and both restored-production browser journeys pass. Existing Panel shortcut and facade guides and planning remain accurate; no guidance behavior changed.",
+      "reason": "Recommendation/release evidence only: immutable .49 source ffebedb20fce05a5212990fdd5ddeb692ee51d6d passed 1162 package release tests, 17 isolated installed-consumer tests including dock preview, .48 rollback and .49 restore, shipped guides and strict example types, Vite/Next builds, and restored-production placement browser journey. Both existing guides and all three planning files remain accurate for their reviewed shortcut/binding tasks; no guidance behavior changed.",
       "evidence": [
-        "Changed: docs/development/recommended-snapshot.json at 8fe7b1371e92bf1ee94e5d48e07795d691602b96"
+        "Changed: docs/development/recommended-snapshot.json at ffebedb20fce05a5212990fdd5ddeb692ee51d6d"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {
