@@ -97,15 +97,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "21c8e38c402aa8007848134961d21a112e52cdc6a1c9a3277ab9ec3bf6b58004",
+      "fingerprint": "2ee688db636c66f3eb561c0398f40fcadc423935d2d398cff99915e9b013217f",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "0e9acfdf9d20d0117d0ab5e0ad83fee2281403be6312dff6bbde4626337d458c"
+        "docs/reference/contract-conformance.md": "3fe92793c714a63b3cda77cd01b75c2902a0944d39bdeb11bb0e8b9fd97cd571"
       },
-      "head": "80902ac2aa834173309b5bc824b6be595f1c34da",
+      "head": "e239ea60fdcc35a685edaa44bab24ac809cea5c1",
       "outcome": "no-change",
-      "reason": "Help-only trigger blur/toggle race repaired from ordered .50 production pointer trace: public trigger ref/context excludes its own trigger from outside dismissal while retaining caller policy elsewhere. Existing two shortcut/binding guides and all three planning files remain accurate; generic help composition is outside their bounded tasks. UI reference and conformance record normal same-trigger toggle behavior. All 15 scoped component/ownership/consumer-fixture tests, workspace check and both existing help/recorder browser journeys pass, including pointer second-close/third-reopen, Enter/Space, rapid handoff, exit layering, focus/Escape/outside, recording and themes/reduced motion. No coordinator or styling changes; temporary tracing removed. Fresh immutable installed check follows at release.",
+      "reason": "Recommendation/evidence only: clean immutable .51 source e239ea60fdcc35a685edaa44bab24ac809cea5c1 passed 1164 package tests, 17 installed-consumer tests, .50 rollback and .51 restore, guide checks/strict types, Vite/Next builds and both restored-production help/recorder journeys including same-trigger toggle regression. Existing two guides and all three planning files retain their reviewed tasks; no guidance behavior change or whole-Lab passing claim.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at 80902ac2aa834173309b5bc824b6be595f1c34da"
+        "Changed: docs/reference/contract-conformance.md at e239ea60fdcc35a685edaa44bab24ac809cea5c1"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -353,15 +353,15 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "c90bb45dff9dff2e9f25ccc9398f83497848d1c7c6db552568fc3d363365bf25",
+      "fingerprint": "1418ad3ee0f122e2c29eb16eac7b009e20ce1e51e9b4f66d099291ce88d8b3ad",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "b3aa14dd8dfcb883186bd64b2481a05db62d8be5b793ef1d04487b23b425f6ad"
+        "docs/development/recommended-snapshot.json": "d356d3f8b6c4c4bf6f7c767c14e38289dad80d8cef46ee7ce2c2d881405362c0"
       },
-      "head": "36bce87cc273f67aeb4d81b67394635eff78ccf0",
+      "head": "e239ea60fdcc35a685edaa44bab24ac809cea5c1",
       "outcome": "no-change",
-      "reason": "Recommendation/release evidence only: clean immutable .50 source 36bce87cc273f67aeb4d81b67394635eff78ccf0 passed 1163 package tests, 17 isolated installed-consumer tests, .49 rollback and .50 restore, shipped guides/strict example types, Vite/Next CSS builds, and restored-production scoped desktop/mobile Range/cue browser journey. Existing two guides and all three planning files retain their reviewed task coverage. Known broader browser limitations remain documented; no whole-Lab pass claim or guidance behavior change.",
+      "reason": "Recommendation/evidence only: clean immutable .51 source e239ea60fdcc35a685edaa44bab24ac809cea5c1 passed 1164 package tests, 17 installed-consumer tests, .50 rollback and .51 restore, guide checks/strict types, Vite/Next builds and both restored-production help/recorder journeys including same-trigger toggle regression. Existing two guides and all three planning files retain their reviewed tasks; no guidance behavior change or whole-Lab passing claim.",
       "evidence": [
-        "Changed: docs/development/recommended-snapshot.json at 36bce87cc273f67aeb4d81b67394635eff78ccf0"
+        "Changed: docs/development/recommended-snapshot.json at e239ea60fdcc35a685edaa44bab24ac809cea5c1"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {

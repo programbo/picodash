@@ -1747,3 +1747,10 @@ The 15 scoped component/ownership/consumer-fixture tests and workspace checks pa
 help and recorder browser journeys pass (2 tests, 15.7 seconds), including second-click close,
 third-click reopen, Enter/Space toggles, rapid A→B→A, outgoing/new layer order, Escape/focus,
 outside dismissal, themes/reduced motion and ongoing recording. Temporary event tracing is removed.
+
+Clean snapshot `0.1.0-dogfood.51` records source `e239ea60fdcc35a685edaa44bab24ac809cea5c1`.
+All six package release checks pass (1164 tests), as do all 17 isolated installed-consumer tests,
+guide discovery/validation, .50 update/rollback, strict example types and Vite/Next CSS builds.
+The production Lab rebuild and both help/recorder journeys against the restored supervised server
+pass (2 tests, 10.6 seconds), including the same-trigger pointer and keyboard regression. Broader
+browser limitations recorded above remain separate; actual Gearmo adoption is consumer-owned.
