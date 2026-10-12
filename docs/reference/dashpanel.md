@@ -1068,6 +1068,7 @@ type DashPanelController = DashPanelControllerCommands &
         readonly placement: DashPanelPlacement
         readonly presentation: DashPanelPresentation
         readonly dockPreview: DashPanelDockPreview | null
+        readonly dragPreview: DashPanelDragPreview | null
       }
   )
 
@@ -1103,6 +1104,26 @@ returning/fading proxy may remain painted after the observation clears. Disabled
 Fixed and Floating modes, keyboard magnetic movement, and modal presentations expose no dock preview.
 Available preview does not claim occupancy, change `placement`, or write Nexus/persistence; only the
 existing successful release commits placement. An unavailable controller has no preview field.
+
+`dragPreview` distinguishes idle (`null`) from movement without a dock target. Its immutable
+snapshot contains `panelId`, `input` (`pointer` or `keyboard`), the rendered free `placement`
+(mode `floating` or `hybrid`), and `dockTarget`. The target is `null` outside eligible zones,
+`{ kind: 'blocked', position }` for an occupied target, or
+`{ kind: 'available', preview: DashPanelDockPreview }` for an available destination. Disabled
+zones expose no target. Fixed Panels and modal presentations do not expose active movement.
+
+The rendered free posture starts at pickup, including pickup from a committed dock; there is no
+held-dock metadata phase. `controller.placement` remains committed until successful release.
+Applications can reserve space from `dragPreview.placement` while moving and from committed
+`placement` while idle. An available destination remains prospective. `dockPreview` is derived
+atomically from an available `dragPreview.dockTarget` and shares its `preview` object; all other
+active states expose `dockPreview: null`. Do not interpret that legacy null as idle or undocked.
+
+Notifications follow meaningful input, posture, target, or destination-bounds changes, without
+per-pointer coordinate churn. Zone leave clears only the target; cancellation, drop, and disposal
+clear the whole movement observation. Successful placement publication clears movement in the
+same snapshot. These observations never write Nexus or persistence. The bounds coordinate system
+and logical proxy meaning are the same as `DashPanelDockPreview` above.
 
 Every command rechecks current availability at execution time. Visibility, activation, and collapse
 commands mutate transient Provider runtime. Placement and reset commands invoke Nexus and return its

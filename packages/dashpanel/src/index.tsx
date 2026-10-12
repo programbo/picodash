@@ -133,6 +133,7 @@ export type {
   DashPanelCommandResult,
   DashPanelLayoutCommandResult,
   DashPanelDockPreview,
+  DashPanelDragPreview,
 } from './runtime/panel-controller.tsx'
 export { useDashPanel }
 
@@ -1547,7 +1548,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
 
   const cancelMove = () => {
     cancelPanelMagneticMotion()
-    runtime.setDockPreview(id, null)
+    runtime.setDragPreview(id, null)
     runtime.setDockAllocationPreview(id, null)
     asideRef.current?.removeAttribute('data-picodash-dragging')
     moveSession.current = null
@@ -2554,20 +2555,34 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       : null
   // Publish the same logical target that drives the proxy, not its animated DOM rectangle.
   useLayoutEffect(() => {
-    runtime.setDockPreview(
+    runtime.setDragPreview(
       id,
-      moveMode === 'pointer' &&
-        requestedPlacementMode === 'hybrid' &&
-        dockIntent?.kind === 'available'
+      moveMode && requestedPlacementMode !== 'fixed'
         ? {
             panelId: id,
-            position: dockIntent.position,
-            bounds: {
-              left: dockIntent.rect.left,
-              top: dockIntent.rect.top,
-              width: dockIntent.rect.width,
-              height: dockIntent.rect.height,
+            input: moveMode,
+            placement: {
+              mode: requestedPlacementMode === 'hybrid' ? 'hybrid' : 'floating',
+              disposition: { kind: 'free' },
             },
+            dockTarget:
+              moveMode === 'pointer' && requestedPlacementMode === 'hybrid' && dockIntent
+                ? dockIntent.kind === 'available'
+                  ? {
+                      kind: 'available',
+                      preview: {
+                        panelId: id,
+                        position: dockIntent.position,
+                        bounds: {
+                          left: dockIntent.rect.left,
+                          top: dockIntent.rect.top,
+                          width: dockIntent.rect.width,
+                          height: dockIntent.rect.height,
+                        },
+                      },
+                    }
+                  : { kind: 'blocked', position: dockIntent.position }
+                : null,
           }
         : null,
     )

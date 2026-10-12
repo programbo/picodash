@@ -420,6 +420,9 @@ function FocusedPlacementControls({
         <output
           aria-label="Prospective panel dock"
           className="block"
+          data-drag-preview={JSON.stringify(
+            panel.availability === 'available' ? panel.dragPreview : null,
+          )}
           data-preview={JSON.stringify(
             panel.availability === 'available' ? panel.dockPreview : null,
           )}

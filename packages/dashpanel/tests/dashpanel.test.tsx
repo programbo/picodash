@@ -1640,15 +1640,33 @@ it('observes dock preview through the public controller and removes it with its 
   const renderer = render(tree(true))
   expect(controller.availability === 'available' && controller.dockPreview).toBeNull()
   act(() =>
-    runtime.setDockPreview('observed', {
+    runtime.setDragPreview('observed', {
       panelId: 'observed',
-      position: 'full-left',
-      bounds: { left: 20, top: 40, width: 200, height: 300 },
+      input: 'pointer',
+      placement: { mode: 'hybrid', disposition: { kind: 'free' } },
+      dockTarget: {
+        kind: 'available',
+        preview: {
+          panelId: 'observed',
+          position: 'full-left',
+          bounds: { left: 20, top: 40, width: 200, height: 300 },
+        },
+      },
     }),
   )
   expect(controller.availability === 'available' && controller.dockPreview?.position).toBe(
     'full-left',
   )
+  if (controller.availability === 'available') {
+    expect(controller.dragPreview?.placement).toEqual({
+      mode: 'hybrid',
+      disposition: { kind: 'free' },
+    })
+    expect(
+      controller.dragPreview?.dockTarget?.kind === 'available' &&
+        controller.dragPreview.dockTarget.preview,
+    ).toBe(controller.dockPreview)
+  }
   expect(nexus.getState().scopes.get('observed')?.dashPanel).toBeUndefined()
   act(() => renderer.update(tree(false)))
   expect(controller.availability).toBe('unavailable')

@@ -125,6 +125,20 @@ export interface DashPanelDockPreview {
   readonly bounds: Readonly<{ left: number; top: number; width: number; height: number }>
 }
 
+/** Transient rendered movement posture; never persisted. */
+export interface DashPanelDragPreview {
+  readonly panelId: string
+  readonly input: 'pointer' | 'keyboard'
+  readonly placement: Readonly<{
+    mode: 'floating' | 'hybrid'
+    disposition: Readonly<{ kind: 'free' }>
+  }>
+  readonly dockTarget:
+    | null
+    | Readonly<{ kind: 'blocked'; position: DashPanelDockPosition }>
+    | Readonly<{ kind: 'available'; preview: DashPanelDockPreview }>
+}
+
 export interface PanelRuntimePanelSnapshot {
   readonly scopeId: string
   readonly visible: boolean
@@ -133,6 +147,7 @@ export interface PanelRuntimePanelSnapshot {
   readonly placement: DashPanelPlacement
   readonly placementFallbackReason?: 'dock_occupied'
   readonly dockPreview: DashPanelDockPreview | null
+  readonly dragPreview: DashPanelDragPreview | null
 }
 
 export interface PanelRuntimeSnapshot {
@@ -155,7 +170,7 @@ export interface PanelRuntime {
   resetLayout(scopeId: string): DashPanelLayoutCommandResult
   getPanelConfig(scopeId: string): PanelRuntimePanelConfig | undefined
   isDockPositionOccupied(scopeId: string, position: DashPanelDockPosition): boolean
-  setDockPreview(scopeId: string, preview: DashPanelDockPreview | null): void
+  setDragPreview(scopeId: string, preview: DashPanelDragPreview | null): void
   setDockAllocationPreview(scopeId: string, preview: PanelRuntimeDockAllocationPreview | null): void
   resolveDockTarget(request: PanelRuntimeDockTargetRequest): PanelRuntimeDockTarget | undefined
   registerElement(scopeId: string, element: HTMLElement | null): void
@@ -186,7 +201,7 @@ interface MutablePanel {
   readonly generation: symbol
   element: HTMLElement | null
   lastCornerInlineSize?: number
-  dockPreview?: DashPanelDockPreview
+  dragPreview?: DashPanelDragPreview
   dockAllocationPreview?: PanelRuntimeDockAllocationPreview
 }
 
@@ -212,7 +227,11 @@ function freezePanel(panel: MutablePanel): PanelRuntimePanelSnapshot {
     collapsed: panel.collapsed,
     collapsible: panel.collapsible,
     placement: panel.placement,
-    dockPreview: panel.dockPreview ?? null,
+    dragPreview: panel.dragPreview ?? null,
+    dockPreview:
+      panel.dragPreview?.dockTarget?.kind === 'available'
+        ? panel.dragPreview.dockTarget.preview
+        : null,
     ...(panel.placementFallbackReason
       ? { placementFallbackReason: panel.placementFallbackReason }
       : {}),
@@ -659,6 +678,8 @@ export function createPanelRuntime(): PanelRuntime {
       } as DashPanelLayoutRecord)
       if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
       if (transaction.ok) {
+        panel.dragPreview = undefined
+        panel.dockAllocationPreview = undefined
         panel.requestedPlacement = placement
         panel.placement = placement
         panel.placementFallbackReason = undefined
@@ -675,6 +696,8 @@ export function createPanelRuntime(): PanelRuntime {
       const transaction = panel.nexus?.resetDashPanelLayout()
       if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
       if (transaction.ok) {
+        panel.dragPreview = undefined
+        panel.dockAllocationPreview = undefined
         panel.requestedPlacement = panel.defaultLayout.placement
         const materialized = materializePlacement(panel, panel.defaultLayout.placement)
         panel.placement = materialized.placement
@@ -702,28 +725,56 @@ export function createPanelRuntime(): PanelRuntime {
       const panel = panelFor(scopeId)
       return panel ? dockOccupant(panel, position) !== undefined : false
     },
-    setDockPreview(scopeId, preview) {
+    setDragPreview(scopeId, preview) {
       const panel = panelFor(scopeId)
       if (!panel) return
-      const current = panel.dockPreview
-      if (
-        (!current && !preview) ||
-        (current &&
-          preview &&
-          current.position === preview.position &&
-          current.bounds.left === preview.bounds.left &&
-          current.bounds.top === preview.bounds.top &&
-          current.bounds.width === preview.bounds.width &&
-          current.bounds.height === preview.bounds.height)
-      )
-        return
-      panel.dockPreview = preview
+      const target = preview?.dockTarget
+      const next: DashPanelDragPreview | undefined = preview
         ? Object.freeze({
             panelId: scopeId,
-            position: preview.position,
-            bounds: Object.freeze({ ...preview.bounds }),
+            input: preview.input,
+            placement: Object.freeze({
+              mode: preview.placement.mode,
+              disposition: Object.freeze({ kind: 'free' as const }),
+            }),
+            dockTarget:
+              target?.kind === 'available'
+                ? Object.freeze({
+                    kind: 'available' as const,
+                    preview: Object.freeze({
+                      panelId: scopeId,
+                      position: target.preview.position,
+                      bounds: Object.freeze({ ...target.preview.bounds }),
+                    }),
+                  })
+                : target
+                  ? Object.freeze({ ...target })
+                  : null,
           })
         : undefined
+      const current = panel.dragPreview
+      const previousTarget = current?.dockTarget
+      const nextTarget = next?.dockTarget
+      const sameTarget =
+        previousTarget?.kind === 'available' && nextTarget?.kind === 'available'
+          ? previousTarget.preview.position === nextTarget.preview.position &&
+            previousTarget.preview.bounds.left === nextTarget.preview.bounds.left &&
+            previousTarget.preview.bounds.top === nextTarget.preview.bounds.top &&
+            previousTarget.preview.bounds.width === nextTarget.preview.bounds.width &&
+            previousTarget.preview.bounds.height === nextTarget.preview.bounds.height
+          : previousTarget?.kind === 'blocked' && nextTarget?.kind === 'blocked'
+            ? previousTarget.position === nextTarget.position
+            : previousTarget == null && nextTarget == null
+      if (
+        (!current && !next) ||
+        (current &&
+          next &&
+          current.input === next.input &&
+          current.placement.mode === next.placement.mode &&
+          sameTarget)
+      )
+        return
+      panel.dragPreview = next
       publish()
     },
     setDockAllocationPreview(scopeId, preview) {

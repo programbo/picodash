@@ -4,6 +4,7 @@ import type {
   DashPanelLayoutCommandResult,
   PanelRuntime,
   DashPanelDockPreview,
+  DashPanelDragPreview,
 } from './panel-runtime.ts'
 import { useDashPanelRuntime, useDashPanelRuntimeState } from './panel-runtime-context.tsx'
 import {
@@ -12,7 +13,12 @@ import {
   type DashPanelPresentation,
 } from '../placement/placement.ts'
 
-export type { DashPanelCommandResult, DashPanelLayoutCommandResult, DashPanelDockPreview }
+export type {
+  DashPanelCommandResult,
+  DashPanelLayoutCommandResult,
+  DashPanelDockPreview,
+  DashPanelDragPreview,
+}
 
 export interface DashPanelControllerCommands {
   show(): DashPanelCommandResult
@@ -39,6 +45,7 @@ export type DashPanelController =
       readonly collapsible: boolean
       readonly placement: DashPanelPlacement
       readonly dockPreview: DashPanelDockPreview | null
+      readonly dragPreview: DashPanelDragPreview | null
       readonly presentation: DashPanelPresentation
     })
 
@@ -112,6 +119,7 @@ export function useDashPanel(panelId?: string): DashPanelController {
       placement: state.placement,
       presentation: config.presentation,
       dockPreview: state.dockPreview,
+      dragPreview: state.dragPreview,
       show: () => runtime.show(scopeId),
       hide: () => runtime.hide(scopeId),
       toggleVisibility: () => runtime.toggleVisibility(scopeId),

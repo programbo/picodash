@@ -33,11 +33,13 @@ it('consumes typed dock observations without replacing committed placement', () 
     act(() => root.render(<App />))
     const readout = () => host.querySelector('output')?.textContent
     expect(readout()).toBe('available')
+    expect(host.querySelector('output')?.getAttribute('data-drag-state')).toBe('idle')
     expect(nexus.getState().scopes.get('tools')?.dashPanel).toBeUndefined()
     act(() => host.querySelector('button')!.click())
     expect(readout()).toBe('unavailable')
     act(() => host.querySelector('button')!.click())
     expect(readout()).toBe('available')
+    expect(host.querySelector('output')?.getAttribute('data-drag-state')).toBe('idle')
     expect(nexus.getState().scopes.get('tools')?.dashPanel).toBeUndefined()
   } finally {
     act(() => root.unmount())

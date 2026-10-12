@@ -1754,3 +1754,13 @@ guide discovery/validation, .50 update/rollback, strict example types and Vite/N
 The production Lab rebuild and both help/recorder journeys against the restored supervised server
 pass (2 tests, 10.6 seconds), including the same-trigger pointer and keyboard regression. Broader
 browser limitations recorded above remain separate; actual Gearmo adoption is consumer-owned.
+
+`useDashPanel` now exposes a nullable immutable `DashPanelDragPreview` derived from the existing
+move session and dock intent. Idle, free movement without a target, occupied blocked targets and
+available prospective targets remain distinct. Rendered free posture starts at pickup while
+committed placement stays docked until release. The legacy dock preview derives from the same
+snapshot and shares the available target object. Runtime regressions verify semantic no-op
+notifications, frozen fields, disposal and atomic successful placement clearing. The focused Lab
+journey verifies available proxy bounds, blocked targets, pickup/free posture, cancellation/drop,
+Fixed/Floating eligibility and unchanged persistence during observation. Public delivered readout
+source type-checks the new API and keeps idle separate from active free/blocked movement.

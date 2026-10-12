@@ -3,18 +3,18 @@
   "baseline": "3f6f4e994d43108d6d39856216e897318588da2c",
   "items": {
     "skill:packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": {
-      "fingerprint": "1b542f1b05b5fa944ea3f24bfa68ed56b6baf38b37883e96a23caa29a8669d62",
+      "fingerprint": "9b59da369e8167497c0fe204ee71061a815ebaec105e5bd8edb20bbcb651a47b",
       "snapshot": {
-        "docs/reference/dashpanel.md": "7eee87ee673e497c3bdaa768572c3824904b54d194057f8e6f1a658ced2ec86a",
+        "docs/reference/dashpanel.md": "fc5b794f0bf1c2b03849f162f4c24b494095bc529d366629b5edd5602a579f86",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
-        "packages/dashpanel/src/index.tsx": "e27d4ce0a7a4ebc1c0c95b894f56d64f13fc4af98bed6b1ce904bfa26b443461",
+        "packages/dashpanel/src/index.tsx": "e02be4329b776d23f97c27b688fbb0bdab06c7372f387baf71e364231776d534",
         "packages/dashpanel/src/panel-hotkey.tsx": "61a5cdbe593db62509bdb2b367d97d47f7efd0296c1291dee26237f821243651"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: docs/reference/dashpanel.md, packages/dashpanel/src/index.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: docs/reference/dashpanel.md, packages/dashpanel/src/index.tsx at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "skill:packages/picodash/skills/bind-controls/SKILL.md": {
@@ -35,15 +35,15 @@
       ]
     },
     "planning:_artifacts": {
-      "fingerprint": "0a3d4b26de6567fe9056377d30dd8d8cb4bfad2304d213fd573d664729b7a121",
+      "fingerprint": "dbc08e7badada7da93bc895257fe5de99c89a81b9a143ab55b91fa82afaac2c2",
       "snapshot": {
         "_artifacts/domain_map.yaml": "7fae05e81d3660e56f32a0dc042c64b6f4b7c0718bcaf6917e2792371b333dc4",
         "_artifacts/skill_spec.md": "bc0e75e4b8b009a856e577f727fabb72628c78ef5720a343ba4db40b9decdde4",
         "_artifacts/skill_tree.yaml": "4c95e940102fbc17ad5c41ee7fa564f5bdb26150830ae2ef8e6430e23b48009e",
         "docs/development/consumer-recipes.md": "c9c0bea2a841ab09dc90f2dab5aeae35bd0b740199baa0c9087cddbed67a3591",
-        "docs/reference/dashpanel.md": "7eee87ee673e497c3bdaa768572c3824904b54d194057f8e6f1a658ced2ec86a",
+        "docs/reference/dashpanel.md": "fc5b794f0bf1c2b03849f162f4c24b494095bc529d366629b5edd5602a579f86",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
-        "packages/dashpanel/src/index.tsx": "e27d4ce0a7a4ebc1c0c95b894f56d64f13fc4af98bed6b1ce904bfa26b443461",
+        "packages/dashpanel/src/index.tsx": "e02be4329b776d23f97c27b688fbb0bdab06c7372f387baf71e364231776d534",
         "packages/dashpanel/src/panel-hotkey.tsx": "61a5cdbe593db62509bdb2b367d97d47f7efd0296c1291dee26237f821243651",
         "packages/picodash/skills/bind-controls/SKILL.md": "f520bfeee1d185085760351a9596b5001331d43d889266a5a3b6299d2d7b27d3",
         "packages/picodash/src/detachable-group.tsx": "fd145e7903df7e83ae8986d2f8beafcc7a452f0db8ce183f26e32af2b705d147",
@@ -51,35 +51,35 @@
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: docs/development/consumer-recipes.md, docs/reference/dashpanel.md, packages/dashpanel/src/index.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: docs/reference/dashpanel.md, packages/dashpanel/src/index.tsx at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "source:apps/lab/src/components/contract-lab/specimen.tsx": {
-      "fingerprint": "99383858f136e69459293db41b0ee878bee7dd233e10f10f8d583a1e8517887e",
+      "fingerprint": "75e21896ad16b43fc90311a353c1a6f49f1921cc66e075309d944b39eb248e34",
       "snapshot": {
-        "apps/lab/src/components/contract-lab/specimen.tsx": "4b7b2b03cd0474019b969e3d4a4518285469482a6c14cb2ffd5b2cbe2e3272cf"
+        "apps/lab/src/components/contract-lab/specimen.tsx": "683929e7616598d9b1e5bb5e085c71de52afbcb0d46a33a639e3101b3b3497bc"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: apps/lab/src/components/contract-lab/specimen.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: apps/lab/src/components/contract-lab/specimen.tsx at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "373f470d3f69f33a212c4b0cbe088bf4e99ce8af6d13376e30264779c0452b4d",
+      "fingerprint": "f1193f7bb43f35c7a59d59495e5d9eb2a0abcf64898644a67e1eaa11f519905b",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "c9a6a1625f02f1265a789814ce73b76d732c6ceacd65f659e560a7a80df32d85"
+        "apps/lab/tests/contract-lab.spec.ts": "6f9f7ff613f7afe5dfeb72e17efd3c81757828ff5486b9717d342f9a72a81785"
       },
-      "head": "80902ac2aa834173309b5bc824b6be595f1c34da",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "Help-only trigger blur/toggle race repaired from ordered .50 production pointer trace: public trigger ref/context excludes its own trigger from outside dismissal while retaining caller policy elsewhere. Existing two shortcut/binding guides and all three planning files remain accurate; generic help composition is outside their bounded tasks. UI reference and conformance record normal same-trigger toggle behavior. All 15 scoped component/ownership/consumer-fixture tests, workspace check and both existing help/recorder browser journeys pass, including pointer second-close/third-reopen, Enter/Space, rapid handoff, exit layering, focus/Escape/outside, recording and themes/reduced motion. No coordinator or styling changes; temporary tracing removed. Fresh immutable installed check follows at release.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: apps/lab/tests/contract-lab.spec.ts at 80902ac2aa834173309b5bc824b6be595f1c34da"
+        "Changed: apps/lab/tests/contract-lab.spec.ts at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -97,15 +97,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "2ee688db636c66f3eb561c0398f40fcadc423935d2d398cff99915e9b013217f",
+      "fingerprint": "90459fa7a5164b55eb434fa8c02c0f5f0fd760e693e93b0ec8bcb5e5f11a1f5c",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "3fe92793c714a63b3cda77cd01b75c2902a0944d39bdeb11bb0e8b9fd97cd571"
+        "docs/reference/contract-conformance.md": "18a3443ce4139d863a0da7f4a9cf1fa92bba3457201c79a96971d8e22440c5bf"
       },
-      "head": "e239ea60fdcc35a685edaa44bab24ac809cea5c1",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "Recommendation/evidence only: clean immutable .51 source e239ea60fdcc35a685edaa44bab24ac809cea5c1 passed 1164 package tests, 17 installed-consumer tests, .50 rollback and .51 restore, guide checks/strict types, Vite/Next builds and both restored-production help/recorder journeys including same-trigger toggle regression. Existing two guides and all three planning files retain their reviewed tasks; no guidance behavior change or whole-Lab passing claim.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at e239ea60fdcc35a685edaa44bab24ac809cea5c1"
+        "Changed: docs/reference/contract-conformance.md at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -695,75 +695,75 @@
       ]
     },
     "source:packages/dashpanel/src/runtime/panel-controller.tsx": {
-      "fingerprint": "7c59be00cc1eb2d3ed3643a72b99c3465c0ae20340a938893b6325890f042dfe",
+      "fingerprint": "5f8a8eae7157a24a739c0b14068ed39515a7f0907c13893a709fdcefbfd649d7",
       "snapshot": {
-        "packages/dashpanel/src/runtime/panel-controller.tsx": "6ee2b855ebff292bd19c786e51703328c30fa3e0e34d7723acc9e93006692bd9"
+        "packages/dashpanel/src/runtime/panel-controller.tsx": "0a8201aa826fa7298c5ca928201f1705d72d6a9fe502b69158d8bcc513107fbe"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: packages/dashpanel/src/runtime/panel-controller.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: packages/dashpanel/src/runtime/panel-controller.tsx at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "source:packages/dashpanel/src/runtime/panel-runtime.test.ts": {
-      "fingerprint": "3df5db00aa87992293938a415e12f9d9c42d019de6c2bbd5da11566c12b01e1b",
+      "fingerprint": "6da872737c37d9dd5161afe81678d557247e587140063ad4933d2a44da2d9fdc",
       "snapshot": {
-        "packages/dashpanel/src/runtime/panel-runtime.test.ts": "2c27bee6e24811ca6d32cb5a8bae93a4d1ca44148e4d421f065e1f9fff1f5b72"
+        "packages/dashpanel/src/runtime/panel-runtime.test.ts": "1bba2bdf6bb95718abaf9a4aff70684cde228c7a38ca7c4eb3a18349147eca58"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: packages/dashpanel/src/runtime/panel-runtime.test.ts at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: packages/dashpanel/src/runtime/panel-runtime.test.ts at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "source:packages/dashpanel/src/runtime/panel-runtime.ts": {
-      "fingerprint": "9ad53ee443962596e6d0bffd74f6e9db34e08269256cc560147a982b2086a37c",
+      "fingerprint": "7dc7c25f7c4056a75400b3fafbe7d4fc426481377cfd0718be1bda16a100e12f",
       "snapshot": {
-        "packages/dashpanel/src/runtime/panel-runtime.ts": "2ea53c3a08da58772b698e14dc06d6516582a48c4bc6a474ea806b2ef4a46ca1"
+        "packages/dashpanel/src/runtime/panel-runtime.ts": "94af06138c38ced5c2c8f4ce87cbf9baee25a4f6cf07899055eeeca39d7f5185"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: packages/dashpanel/src/runtime/panel-runtime.ts at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: packages/dashpanel/src/runtime/panel-runtime.ts at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "source:packages/dashpanel/tests/dashpanel.test.tsx": {
-      "fingerprint": "6e612ae173d526c83a4f8d242dbb5632ad03750988afe8208281666b897b42bc",
+      "fingerprint": "62b5337e707c2520d714a018ad348d13f2b09119449f1a539c2b8e1e7b110b0e",
       "snapshot": {
-        "packages/dashpanel/tests/dashpanel.test.tsx": "4e180ec595ecaea9408d0749d43116005ab6e9fb4575a656c91181a9bd04bc58"
+        "packages/dashpanel/tests/dashpanel.test.tsx": "18d7abbf0d623633fb47f52f40d018b5918d72b45ede0b2a72f8c20b5f99f257"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: packages/dashpanel/tests/dashpanel.test.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: packages/dashpanel/tests/dashpanel.test.tsx at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "source:packages/picodash/tests/dogfood/DockPreview.tsx": {
-      "fingerprint": "7bad88a041f8d18dc611cad3a02889adaae595c0ee4d6818767fcb1dc50c9fb2",
+      "fingerprint": "3356b6b6da92ed1f138744284cba0a62ae07bc85475bd7cb3c5e2ad9137a701c",
       "snapshot": {
-        "packages/picodash/tests/dogfood/DockPreview.tsx": "7a0da4ec2dd711d40336a53ba9076be91f51701d5b9cb13c7e8cd4bd8fd0cde2"
+        "packages/picodash/tests/dogfood/DockPreview.tsx": "68a4ddbebdb222e285aed985467edbf8b70916c1e6f7275cf35cc889bc7f2fa3"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: packages/picodash/tests/dogfood/DockPreview.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: packages/picodash/tests/dogfood/DockPreview.tsx at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "source:packages/picodash/tests/dogfood/dock-preview.test.tsx": {
-      "fingerprint": "fba74c1ef7310f6d3abe7b29f65e7465d65634e94eb1bd5e31d86a01195944d9",
+      "fingerprint": "1874f2d1730e2d11d18cdc878fdde9585a30377ef0ff2548427fcb93a6ec2b0a",
       "snapshot": {
-        "packages/picodash/tests/dogfood/dock-preview.test.tsx": "433c755dab7e895bbe8e69ecf5c98aa4186b91ae6a58f79940bca14002a47bd5"
+        "packages/picodash/tests/dogfood/dock-preview.test.tsx": "c09a9f4e72e5f2f6e9c3fb08b34fbc8881bf8d4a74bf2bbd241600641b5206cf"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "The additive transient drag metadata is documented in the public DashPanel reference and typed delivered DockPreview consumer. Runtime/component73 tests and focused magnetic browser proof cover observation, immutable/no-op publication, disposal and atomic placement clearing. Existing docked-panel-shortcuts and bind-controls guide tasks, activation descriptions and examples remain unchanged: neither teaches transient application readout reservations. Reviewed domain_map.yaml, skill_spec.md and skill_tree.yaml retain the agreed two-task scope; no discovery expansion or planning change is needed. Fresh isolated installed consumer checks follow the clean bundle source boundary.",
       "evidence": [
-        "Changed: packages/picodash/tests/dogfood/dock-preview.test.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: packages/picodash/tests/dogfood/dock-preview.test.tsx at 3048fe55ddad6837e9cf2a8a1fef05e8b0e0e39a"
       ]
     },
     "source:apps/lab/tests/phone-artifacts.spec.ts": {

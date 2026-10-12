@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from 'vite-plus/test'
 import type { DashPanelLayoutRecord } from '@picodash/nexus'
 import { focusPanel, recordPanelEntry, restorePanelFocus } from './panel-lifecycle.ts'
-import { createPanelRuntime, type PanelRuntimeConfig } from './panel-runtime.ts'
+import {
+  createPanelRuntime,
+  type PanelRuntimeConfig,
+  type DashPanelDockPreview,
+} from './panel-runtime.ts'
 
 const config = (scopeId: string, overrides: Omit<PanelRuntimeConfig, 'scopeId'> = {}) => ({
   scopeId,
@@ -16,6 +20,7 @@ describe('private DashPanel runtime model', () => {
     expect(first.panels.first).toEqual({
       scopeId: 'first',
       dockPreview: null,
+      dragPreview: null,
       visible: true,
       collapsed: false,
       collapsible: true,
@@ -1088,21 +1093,88 @@ it('publishes immutable dock observations only when target or bounds change, wit
     position: 'top-right',
     bounds: { left: 300, top: 40, width: 220, height: 180 },
   } as const
-  runtime.setDockPreview('dragged', preview)
+  const drag = (target: DashPanelDockPreview) => ({
+    panelId: 'dragged',
+    input: 'pointer' as const,
+    placement: { mode: 'hybrid' as const, disposition: { kind: 'free' as const } },
+    dockTarget: { kind: 'available' as const, preview: target },
+  })
+  runtime.setDragPreview('dragged', drag(preview))
   const observed = runtime.getSnapshot().panels.dragged.dockPreview!
   expect(observed).toEqual(preview)
   expect(Object.isFrozen(observed.bounds)).toBe(true)
-  runtime.setDockPreview('dragged', { ...preview, bounds: { ...preview.bounds } })
+  const active = runtime.getSnapshot().panels.dragged.dragPreview!
+  expect(active.dockTarget?.kind === 'available' && active.dockTarget.preview).toBe(observed)
+  expect(Object.isFrozen(active)).toBe(true)
+  expect(Object.isFrozen(active.placement.disposition)).toBe(true)
+  runtime.setDragPreview('dragged', drag({ ...preview, bounds: { ...preview.bounds } }))
   expect(listener).toHaveBeenCalledTimes(1)
-  runtime.setDockPreview('dragged', { ...preview, bounds: { ...preview.bounds, height: 200 } })
-  runtime.setDockPreview('dragged', { ...preview, position: 'full-right' })
+  runtime.setDragPreview(
+    'dragged',
+    drag({ ...preview, bounds: { ...preview.bounds, height: 200 } }),
+  )
+  runtime.setDragPreview('dragged', drag({ ...preview, position: 'full-right' }))
   expect(listener).toHaveBeenCalledTimes(3)
   expect(setDashPanelLayout).not.toHaveBeenCalled()
-  runtime.setDockPreview('dragged', null)
+  runtime.setDragPreview('dragged', {
+    ...drag(preview),
+    dockTarget: { kind: 'blocked', position: 'top-right' },
+  })
   expect(runtime.getSnapshot().panels.dragged.dockPreview).toBeNull()
-  runtime.setDockPreview('dragged', preview)
+  expect(runtime.getSnapshot().panels.dragged.dragPreview?.dockTarget).toEqual({
+    kind: 'blocked',
+    position: 'top-right',
+  })
+  runtime.setDragPreview('dragged', { ...drag(preview), dockTarget: null })
+  const freeSnapshot = runtime.getSnapshot()
+  const notifications = listener.mock.calls.length
+  runtime.setDragPreview('dragged', { ...drag(preview), dockTarget: null })
+  expect(runtime.getSnapshot()).toBe(freeSnapshot)
+  expect(listener).toHaveBeenCalledTimes(notifications)
+  expect(freeSnapshot.panels.dragged.dragPreview?.placement).toEqual({
+    mode: 'hybrid',
+    disposition: { kind: 'free' },
+  })
+  runtime.setDragPreview('dragged', null)
+  expect(runtime.getSnapshot().panels.dragged.dockPreview).toBeNull()
+  expect(runtime.getSnapshot().panels.dragged.dragPreview).toBeNull()
+  runtime.setDragPreview('dragged', drag(preview))
   lease.release()
   expect(runtime.getSnapshot().panels.dragged).toBeUndefined()
-  runtime.setDockPreview('dragged', preview)
+  runtime.setDragPreview('dragged', drag(preview))
   expect(runtime.getSnapshot().panels.dragged).toBeUndefined()
+})
+
+it('publishes committed placement with movement cleared atomically', () => {
+  const runtime = createPanelRuntime()
+  const transaction = { ok: true as const, changedFields: [], changedScopeIds: ['dragged'] }
+  runtime.acquire(
+    config('dragged', {
+      placement: { mode: 'hybrid', disposition: { kind: 'docked', position: 'full-right' } },
+      preferredPosition: { x: 10, y: 20 },
+      nexus: {
+        setDashPanelLayout: vi.fn(() => transaction),
+        resetDashPanelLayout: vi.fn(() => transaction),
+      },
+    }),
+  )
+  runtime.setDragPreview('dragged', {
+    panelId: 'dragged',
+    input: 'pointer',
+    placement: { mode: 'hybrid', disposition: { kind: 'free' } },
+    dockTarget: null,
+  })
+  expect(runtime.getSnapshot().panels.dragged.placement.disposition).toEqual({
+    kind: 'docked',
+    position: 'full-right',
+  })
+  const observations: ReturnType<typeof runtime.getSnapshot>[] = []
+  runtime.subscribe(() => observations.push(runtime.getSnapshot()))
+  runtime.setPlacement('dragged', { mode: 'hybrid', disposition: { kind: 'free' } })
+  expect(observations).toHaveLength(1)
+  expect(observations[0].panels.dragged).toMatchObject({
+    placement: { mode: 'hybrid', disposition: { kind: 'free' } },
+    dragPreview: null,
+    dockPreview: null,
+  })
 })
