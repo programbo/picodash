@@ -413,13 +413,22 @@ function FocusedPlacementControls({
           ))}
         </div>
       </div>
-      <output
-        className="text-xs text-(--picodash-color-text-muted) lg:pb-2"
-        aria-label="Current panel placement"
-        data-contract-lab-focused-placement-state
-      >
-        {describePlacement(currentPlacement)}
-      </output>
+      <div className="text-xs text-(--picodash-color-text-muted) lg:pb-2">
+        <output aria-label="Current panel placement" data-contract-lab-focused-placement-state>
+          {describePlacement(currentPlacement)}
+        </output>
+        <output
+          aria-label="Prospective panel dock"
+          className="block"
+          data-preview={JSON.stringify(
+            panel.availability === 'available' ? panel.dockPreview : null,
+          )}
+        >
+          {panel.availability === 'available' && panel.dockPreview
+            ? `Dock target: ${panel.dockPreview.position}`
+            : 'No dock target'}
+        </output>
+      </div>
       <DashPanelTrigger panelId={focusedPlacementPanelScopeId} size="sm">
         Show panel
       </DashPanelTrigger>

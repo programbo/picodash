@@ -135,6 +135,7 @@ try {
         'Detachable.tsx',
         'GroupedControls.tsx',
         'WorkspacePanel.tsx',
+        'DockPreview.tsx',
         'SubgroupPriorities.tsx',
       ],
     }),

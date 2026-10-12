@@ -62,13 +62,7 @@ import {
   useDashPanelRuntime,
   useDashPanelRuntimeState,
 } from './runtime/panel-runtime-context.tsx'
-import {
-  DashPanelIdentityProvider,
-  useDashPanel,
-  type DashPanelController,
-  type DashPanelCommandResult,
-  type DashPanelLayoutCommandResult,
-} from './runtime/panel-controller.tsx'
+import { DashPanelIdentityProvider, useDashPanel } from './runtime/panel-controller.tsx'
 import type {
   ActionMenuConfirmation,
   ActionMenuConfirmationGuard,
@@ -134,7 +128,12 @@ export type {
   DashPanelSnapPosition,
 } from './placement/placement.ts'
 
-export type { DashPanelController, DashPanelCommandResult, DashPanelLayoutCommandResult }
+export type {
+  DashPanelController,
+  DashPanelCommandResult,
+  DashPanelLayoutCommandResult,
+  DashPanelDockPreview,
+} from './runtime/panel-controller.tsx'
 export { useDashPanel }
 
 export type { DashPanelBoundary, DashPanelBoundaryInset } from './geometry/boundary.ts'
@@ -1548,6 +1547,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
 
   const cancelMove = () => {
     cancelPanelMagneticMotion()
+    runtime.setDockPreview(id, null)
     runtime.setDockAllocationPreview(id, null)
     asideRef.current?.removeAttribute('data-picodash-dragging')
     moveSession.current = null
@@ -2552,6 +2552,26 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         ? dockIntent.rect
         : renderedRect
       : null
+  // Publish the same logical target that drives the proxy, not its animated DOM rectangle.
+  useLayoutEffect(() => {
+    runtime.setDockPreview(
+      id,
+      moveMode === 'pointer' &&
+        requestedPlacementMode === 'hybrid' &&
+        dockIntent?.kind === 'available'
+        ? {
+            panelId: id,
+            position: dockIntent.position,
+            bounds: {
+              left: dockIntent.rect.left,
+              top: dockIntent.rect.top,
+              width: dockIntent.rect.width,
+              height: dockIntent.rect.height,
+            },
+          }
+        : null,
+    )
+  }, [runtime, id, moveMode, requestedPlacementMode, dockIntent])
   const dockPreviewMapped = dockPreviewRect
     ? mapRectToContainingBlock(asideRef.current, dockPreviewRect)
     : null

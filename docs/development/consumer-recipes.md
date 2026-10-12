@@ -324,3 +324,12 @@ manufacturing, all visual layouts, remote agent connectivity, or a complete reco
 Canonical repository references for deeper API work are `docs/reference/nexus.md` (fields,
 metadata, documents, persistence) and `docs/reference/dashstack.md` (bindings, render contexts,
 reconciliation). Their status annotations distinguish implemented behavior from target contracts.
+
+## React to a prospective dock target
+
+Use `useDashPanel(panelId)` from `@picodash/dashpanel` to read transient `dockPreview` while a Hybrid
+Panel offers a valid pointer dock target. `example/DockPreview.tsx` is a typed public consumer.
+The application owns its readout positioning and camera policy. Do not infer a committed placement
+from preview or measure the proxy on every pointer event. See the
+[controller bounds and lifecycle](../reference/dashpanel.md#panel-controller) for viewport
+coordinates, occupied targets and clearing behavior.

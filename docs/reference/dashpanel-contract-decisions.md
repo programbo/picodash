@@ -189,3 +189,13 @@ The narrow `DashPanelContextHotkey` integration seam owns parent visibility/acti
 and arbitration. Different parent contexts may reuse a binding; same-parent and global conflicts
 are rejected. One eligible action runs, with the active eligible parent breaking visible ties;
 unresolved ambiguity runs nothing. Hidden/minimized parents do not admit group actions.
+
+## Transient public dock target observation (PANEL-DOCK-PREVIEW-1)
+
+Accepted from John's request: `useDashPanel(panelId)` exposes nullable `dockPreview` for application
+readouts reacting while an available Hybrid pointer target is offered. DashPanel derives identity,
+destination and prospective viewport CSS-pixel bounds from its existing drag intent. This is an
+observation, not a second drag authority, occupancy claim or persisted placement. Meaningful target
+and bounds changes notify consumers; leave, cancellation, drop and disposal clear it. Invalid and
+occupied zones, non-Hybrid modes and modal presentation offer no target. The public controller
+reference defines bounds and lifecycle; applications keep camera policy and readout composition.

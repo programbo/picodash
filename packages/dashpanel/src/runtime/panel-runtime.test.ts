@@ -15,6 +15,7 @@ describe('private DashPanel runtime model', () => {
     const first = runtime.getSnapshot()
     expect(first.panels.first).toEqual({
       scopeId: 'first',
+      dockPreview: null,
       visible: true,
       collapsed: false,
       collapsible: true,
@@ -1069,4 +1070,39 @@ describe('private DashPanel runtime model', () => {
       vi.unstubAllGlobals()
     }
   })
+})
+
+it('publishes immutable dock observations only when target or bounds change, without layout writes', () => {
+  const runtime = createPanelRuntime()
+  const setDashPanelLayout = vi.fn()
+  const lease = runtime.acquire(
+    config('dragged', {
+      placement: { mode: 'hybrid', disposition: { kind: 'free' } },
+      nexus: { setDashPanelLayout, resetDashPanelLayout: vi.fn() },
+    }),
+  )
+  const listener = vi.fn()
+  runtime.subscribe(listener)
+  const preview = {
+    panelId: 'dragged',
+    position: 'top-right',
+    bounds: { left: 300, top: 40, width: 220, height: 180 },
+  } as const
+  runtime.setDockPreview('dragged', preview)
+  const observed = runtime.getSnapshot().panels.dragged.dockPreview!
+  expect(observed).toEqual(preview)
+  expect(Object.isFrozen(observed.bounds)).toBe(true)
+  runtime.setDockPreview('dragged', { ...preview, bounds: { ...preview.bounds } })
+  expect(listener).toHaveBeenCalledTimes(1)
+  runtime.setDockPreview('dragged', { ...preview, bounds: { ...preview.bounds, height: 200 } })
+  runtime.setDockPreview('dragged', { ...preview, position: 'full-right' })
+  expect(listener).toHaveBeenCalledTimes(3)
+  expect(setDashPanelLayout).not.toHaveBeenCalled()
+  runtime.setDockPreview('dragged', null)
+  expect(runtime.getSnapshot().panels.dragged.dockPreview).toBeNull()
+  runtime.setDockPreview('dragged', preview)
+  lease.release()
+  expect(runtime.getSnapshot().panels.dragged).toBeUndefined()
+  runtime.setDockPreview('dragged', preview)
+  expect(runtime.getSnapshot().panels.dragged).toBeUndefined()
 })

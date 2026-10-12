@@ -1067,6 +1067,7 @@ type DashPanelController = DashPanelControllerCommands &
         readonly collapsible: boolean
         readonly placement: DashPanelPlacement
         readonly presentation: DashPanelPresentation
+        readonly dockPreview: DashPanelDockPreview | null
       }
   )
 
@@ -1077,6 +1078,31 @@ With no argument, `useDashPanel()` targets the nearest Panel. With `panelId`, it
 Panel in the nearest Provider. Calling the hook outside a DashPanel Provider, or omitting `panelId`
 without a nearest Panel, is a lifecycle contract error. An explicit ID that is not currently mounted
 returns an immutable unavailable controller rather than creating runtime state.
+
+`dockPreview` is transient observable metadata for the targeted Panel. It is `null` when there is
+no eligible target. During a Hybrid pointer drag over an available side or corner dock zone it is:
+
+```ts
+interface DashPanelDockPreview {
+  readonly panelId: string
+  readonly position: DashPanelDockPosition
+  readonly bounds: Readonly<{ left: number; top: number; width: number; height: number }>
+}
+```
+
+`bounds` is the prospective dock target-proxy rectangle in viewport CSS pixels, including the effective
+boundary inset and shared dock allocation. It is the logical destination of the visible target
+proxy, not the proxy's intermediate animated rectangle or the moving Panel's rectangle. Release
+can restore intrinsic height, so these bounds need not equal the final settled shell bounds. Applications
+can position readouts from this observation without measuring each pointer event or moving a camera.
+Translate viewport coordinates into the application's containing block when needed.
+
+The existing drag intent owns this observation. The hook notifies on target or bounds changes and
+clears it immediately when leaving valid zones, cancelling, dropping, or disposing the Panel. A
+returning/fading proxy may remain painted after the observation clears. Disabled and occupied targets,
+Fixed and Floating modes, keyboard magnetic movement, and modal presentations expose no dock preview.
+Available preview does not claim occupancy, change `placement`, or write Nexus/persistence; only the
+existing successful release commits placement. An unavailable controller has no preview field.
 
 Every command rechecks current availability at execution time. Visibility, activation, and collapse
 commands mutate transient Provider runtime. Placement and reset commands invoke Nexus and return its

@@ -118,6 +118,13 @@ export interface PanelRuntimeRegistration {
   release(): void
 }
 
+/** Prospective dock target in viewport CSS pixels; never persisted. */
+export interface DashPanelDockPreview {
+  readonly panelId: string
+  readonly position: DashPanelDockPosition
+  readonly bounds: Readonly<{ left: number; top: number; width: number; height: number }>
+}
+
 export interface PanelRuntimePanelSnapshot {
   readonly scopeId: string
   readonly visible: boolean
@@ -125,6 +132,7 @@ export interface PanelRuntimePanelSnapshot {
   readonly collapsible: boolean
   readonly placement: DashPanelPlacement
   readonly placementFallbackReason?: 'dock_occupied'
+  readonly dockPreview: DashPanelDockPreview | null
 }
 
 export interface PanelRuntimeSnapshot {
@@ -147,6 +155,7 @@ export interface PanelRuntime {
   resetLayout(scopeId: string): DashPanelLayoutCommandResult
   getPanelConfig(scopeId: string): PanelRuntimePanelConfig | undefined
   isDockPositionOccupied(scopeId: string, position: DashPanelDockPosition): boolean
+  setDockPreview(scopeId: string, preview: DashPanelDockPreview | null): void
   setDockAllocationPreview(scopeId: string, preview: PanelRuntimeDockAllocationPreview | null): void
   resolveDockTarget(request: PanelRuntimeDockTargetRequest): PanelRuntimeDockTarget | undefined
   registerElement(scopeId: string, element: HTMLElement | null): void
@@ -177,6 +186,7 @@ interface MutablePanel {
   readonly generation: symbol
   element: HTMLElement | null
   lastCornerInlineSize?: number
+  dockPreview?: DashPanelDockPreview
   dockAllocationPreview?: PanelRuntimeDockAllocationPreview
 }
 
@@ -202,6 +212,7 @@ function freezePanel(panel: MutablePanel): PanelRuntimePanelSnapshot {
     collapsed: panel.collapsed,
     collapsible: panel.collapsible,
     placement: panel.placement,
+    dockPreview: panel.dockPreview ?? null,
     ...(panel.placementFallbackReason
       ? { placementFallbackReason: panel.placementFallbackReason }
       : {}),
@@ -690,6 +701,30 @@ export function createPanelRuntime(): PanelRuntime {
     isDockPositionOccupied(scopeId, position) {
       const panel = panelFor(scopeId)
       return panel ? dockOccupant(panel, position) !== undefined : false
+    },
+    setDockPreview(scopeId, preview) {
+      const panel = panelFor(scopeId)
+      if (!panel) return
+      const current = panel.dockPreview
+      if (
+        (!current && !preview) ||
+        (current &&
+          preview &&
+          current.position === preview.position &&
+          current.bounds.left === preview.bounds.left &&
+          current.bounds.top === preview.bounds.top &&
+          current.bounds.width === preview.bounds.width &&
+          current.bounds.height === preview.bounds.height)
+      )
+        return
+      panel.dockPreview = preview
+        ? Object.freeze({
+            panelId: scopeId,
+            position: preview.position,
+            bounds: Object.freeze({ ...preview.bounds }),
+          })
+        : undefined
+      publish()
     },
     setDockAllocationPreview(scopeId, preview) {
       const panel = panelFor(scopeId)

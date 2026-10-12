@@ -1697,3 +1697,12 @@ rebuild and both contextual browser journeys against its restored supervised ser
 (2 tests, 9.6 seconds). This includes the larger pointers, coordinated help handoff, live recorder
 continuity, theme readability and reduced motion. Actual Gearmo adoption is verified separately
 by its owning consumer.
+
+`useDashPanel` now exposes a nullable public `DashPanelDockPreview` derived from the same drag intent
+that renders the Hybrid target proxy. Viewport CSS-pixel target bounds and panel identity remain
+transient and separate from committed placement. Runtime tests own immutable/equality notification
+and release behavior; controller tests own observation/disposal wiring. The focused placement Lab
+journey compares top-right and full-right public bounds with the real proxy, verifies zone leave,
+Escape and drop clearing, and checks persistence remains unchanged during preview. Fixed/Floating
+and occupied-zone observations remain empty. The typed delivered `DockPreview.tsx` consumer and
+its isolated test exercise public composition and unmount/remount without layout writes.

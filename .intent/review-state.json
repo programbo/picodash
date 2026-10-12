@@ -3,49 +3,47 @@
   "baseline": "3f6f4e994d43108d6d39856216e897318588da2c",
   "items": {
     "skill:packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": {
-      "fingerprint": "9ef02f1c309e99312b488d63d6afda35595176f8d5c5798922e0b7c527ddd983",
+      "fingerprint": "1b542f1b05b5fa944ea3f24bfa68ed56b6baf38b37883e96a23caa29a8669d62",
       "snapshot": {
-        "docs/reference/dashpanel.md": "938bd92b00534035df3df982178504ac1a5d302150f43d2393eb43da908fea7b",
+        "docs/reference/dashpanel.md": "7eee87ee673e497c3bdaa768572c3824904b54d194057f8e6f1a658ced2ec86a",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
-        "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
+        "packages/dashpanel/src/index.tsx": "e27d4ce0a7a4ebc1c0c95b894f56d64f13fc4af98bed6b1ce904bfa26b443461",
         "packages/dashpanel/src/panel-hotkey.tsx": "61a5cdbe593db62509bdb2b367d97d47f7efd0296c1291dee26237f821243651"
       },
-      "head": "b78cfa8e00252d4493b547fba589bf7c64df1add",
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
       "outcome": "no-change",
-      "reason": "Added the explicit public Popover help variant, documented document-scoped help ownership/non-modal dismissal and60% glass/150ms entry/100ms exit with25% larger token-sized pointers. Existing shortcut and bound-control guides and all three planning records remain accurate for their existing task coverage; generic help composition is outside that initial guide batch. Public variant type/consumer fixture,110 affected component/CSS tests, workspace formatting/lint/types, motion policy and both browser journeys pass, including rapid handoff/reversed layers/recording/reduced motion/theme readability. Root visually approved light/dark/ocean and pointer increase. Fresh immutable bundle installation follows as the release gate.",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
       "evidence": [
-        "Changed: docs/reference/dashpanel.md at b78cfa8e00252d4493b547fba589bf7c64df1add"
+        "Changed: docs/reference/dashpanel.md, packages/dashpanel/src/index.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
       ]
     },
     "skill:packages/picodash/skills/bind-controls/SKILL.md": {
-      "fingerprint": "4396cd2d1c8f3cf4ede49517b4022ae77dde79da6af99227521cc158ac219ead",
+      "fingerprint": "a97d131ae9a0ae99cedae4c070173c30076c6413119237321d43f77f8536b255",
       "snapshot": {
-        "docs/development/consumer-recipes.md": "87f76f251a9e2e700323c2243386c2e053d39cf8d6ac1e8c7a775b371c11d81d",
+        "docs/development/consumer-recipes.md": "c9c0bea2a841ab09dc90f2dab5aeae35bd0b740199baa0c9087cddbed67a3591",
         "packages/picodash/skills/bind-controls/SKILL.md": "f520bfeee1d185085760351a9596b5001331d43d889266a5a3b6299d2d7b27d3",
         "packages/picodash/src/detachable-group.tsx": "fd145e7903df7e83ae8986d2f8beafcc7a452f0db8ce183f26e32af2b705d147",
         "packages/picodash/src/index.ts": "c62056bb9c1b60b8c0e4d3955542de223f7521a4fdb1f4635feaecba8f0c85d5",
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "outcome": "no-change",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "Changed: docs/development/consumer-recipes.md at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
       ]
     },
     "planning:_artifacts": {
-      "fingerprint": "90a044aca645f51a6ab924c7dee39a27bb4dbd493e0b90b96db95d41ab485876",
+      "fingerprint": "0a3d4b26de6567fe9056377d30dd8d8cb4bfad2304d213fd573d664729b7a121",
       "snapshot": {
         "_artifacts/domain_map.yaml": "7fae05e81d3660e56f32a0dc042c64b6f4b7c0718bcaf6917e2792371b333dc4",
         "_artifacts/skill_spec.md": "bc0e75e4b8b009a856e577f727fabb72628c78ef5720a343ba4db40b9decdde4",
         "_artifacts/skill_tree.yaml": "4c95e940102fbc17ad5c41ee7fa564f5bdb26150830ae2ef8e6430e23b48009e",
-        "docs/development/consumer-recipes.md": "87f76f251a9e2e700323c2243386c2e053d39cf8d6ac1e8c7a775b371c11d81d",
-        "docs/reference/dashpanel.md": "938bd92b00534035df3df982178504ac1a5d302150f43d2393eb43da908fea7b",
+        "docs/development/consumer-recipes.md": "c9c0bea2a841ab09dc90f2dab5aeae35bd0b740199baa0c9087cddbed67a3591",
+        "docs/reference/dashpanel.md": "7eee87ee673e497c3bdaa768572c3824904b54d194057f8e6f1a658ced2ec86a",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
-        "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
+        "packages/dashpanel/src/index.tsx": "e27d4ce0a7a4ebc1c0c95b894f56d64f13fc4af98bed6b1ce904bfa26b443461",
         "packages/dashpanel/src/panel-hotkey.tsx": "61a5cdbe593db62509bdb2b367d97d47f7efd0296c1291dee26237f821243651",
         "packages/picodash/skills/bind-controls/SKILL.md": "f520bfeee1d185085760351a9596b5001331d43d889266a5a3b6299d2d7b27d3",
         "packages/picodash/src/detachable-group.tsx": "fd145e7903df7e83ae8986d2f8beafcc7a452f0db8ce183f26e32af2b705d147",
@@ -53,35 +51,35 @@
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "b78cfa8e00252d4493b547fba589bf7c64df1add",
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
       "outcome": "no-change",
-      "reason": "Added the explicit public Popover help variant, documented document-scoped help ownership/non-modal dismissal and60% glass/150ms entry/100ms exit with25% larger token-sized pointers. Existing shortcut and bound-control guides and all three planning records remain accurate for their existing task coverage; generic help composition is outside that initial guide batch. Public variant type/consumer fixture,110 affected component/CSS tests, workspace formatting/lint/types, motion policy and both browser journeys pass, including rapid handoff/reversed layers/recording/reduced motion/theme readability. Root visually approved light/dark/ocean and pointer increase. Fresh immutable bundle installation follows as the release gate.",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
       "evidence": [
-        "Changed: docs/reference/dashpanel.md at b78cfa8e00252d4493b547fba589bf7c64df1add"
+        "Changed: docs/development/consumer-recipes.md, docs/reference/dashpanel.md, packages/dashpanel/src/index.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
       ]
     },
     "source:apps/lab/src/components/contract-lab/specimen.tsx": {
-      "fingerprint": "f6d589691ddd73e780ccb70c7a8ea8a8d4df2f937ee94981f3f5bd9fd333a125",
+      "fingerprint": "99383858f136e69459293db41b0ee878bee7dd233e10f10f8d583a1e8517887e",
       "snapshot": {
-        "apps/lab/src/components/contract-lab/specimen.tsx": "613bfc80765ef6e9bd8905098a9077c57e2131c8acfe09fb80a586a3413c6bc0"
+        "apps/lab/src/components/contract-lab/specimen.tsx": "4b7b2b03cd0474019b969e3d4a4518285469482a6c14cb2ffd5b2cbe2e3272cf"
       },
-      "head": "b78cfa8e00252d4493b547fba589bf7c64df1add",
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
       "outcome": "no-change",
-      "reason": "Added the explicit public Popover help variant, documented document-scoped help ownership/non-modal dismissal and60% glass/150ms entry/100ms exit with25% larger token-sized pointers. Existing shortcut and bound-control guides and all three planning records remain accurate for their existing task coverage; generic help composition is outside that initial guide batch. Public variant type/consumer fixture,110 affected component/CSS tests, workspace formatting/lint/types, motion policy and both browser journeys pass, including rapid handoff/reversed layers/recording/reduced motion/theme readability. Root visually approved light/dark/ocean and pointer increase. Fresh immutable bundle installation follows as the release gate.",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
       "evidence": [
-        "Changed: apps/lab/src/components/contract-lab/specimen.tsx at b78cfa8e00252d4493b547fba589bf7c64df1add"
+        "Changed: apps/lab/src/components/contract-lab/specimen.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "2117cdc0faa0dd65193389dde46c639a16e9601a40d2cc84ffd465123304e6df",
+      "fingerprint": "837c3371475d42c2363bad1402b219bd450664d01c7f876fb18064ea94a17d1c",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "91aa27def6350be63149f3c95576863ca547953ae671d9e1397c73b65944d524"
+        "apps/lab/tests/contract-lab.spec.ts": "c2d0eb2097bc9515bd6b0c9687c09f483ce85ceee21010fd1bd13801b1b0f5e9"
       },
-      "head": "b78cfa8e00252d4493b547fba589bf7c64df1add",
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
       "outcome": "no-change",
-      "reason": "Added the explicit public Popover help variant, documented document-scoped help ownership/non-modal dismissal and60% glass/150ms entry/100ms exit with25% larger token-sized pointers. Existing shortcut and bound-control guides and all three planning records remain accurate for their existing task coverage; generic help composition is outside that initial guide batch. Public variant type/consumer fixture,110 affected component/CSS tests, workspace formatting/lint/types, motion policy and both browser journeys pass, including rapid handoff/reversed layers/recording/reduced motion/theme readability. Root visually approved light/dark/ocean and pointer increase. Fresh immutable bundle installation follows as the release gate.",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
       "evidence": [
-        "Changed: apps/lab/tests/contract-lab.spec.ts at b78cfa8e00252d4493b547fba589bf7c64df1add"
+        "Changed: apps/lab/tests/contract-lab.spec.ts at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -99,29 +97,27 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "9e4184a8b492e7eedb3b9be96f8677e3e45f7756e5c63e0ebce386bd77e106e7",
+      "fingerprint": "cb09b8631d0f72267936971f004c22482a8492f5a52aba3d198e80b784b392a3",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "3d5087883e4599cb4ae52d452f07ab2c94de26dafef52a0c38d6e6c59485bbff"
+        "docs/reference/contract-conformance.md": "4199d536c2a50f013dc9a9e69e7da879e44591e577fd72ad33a2061e049de84e"
       },
-      "head": "8fe7b1371e92bf1ee94e5d48e07795d691602b96",
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
       "outcome": "no-change",
-      "reason": "Recommendation and release evidence only: immutable .48 records the already reviewed source; 1159 package tests, 16 installed consumer tests including public help variant and .47 rollback, Vite/Next builds, and both restored-production browser journeys pass. Existing Panel shortcut and facade guides and planning remain accurate; no guidance behavior changed.",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at 8fe7b1371e92bf1ee94e5d48e07795d691602b96"
+        "Changed: docs/reference/contract-conformance.md at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
-      "fingerprint": "0b631a9a6a41c6faeb6071b28c80f63caefee7809ec4d1a8934da3482ff29fd1",
+      "fingerprint": "25e199c547ed87f5570c786ecfd7e99086f6d7cb99c1bfac0390f6f48e9f2ca7",
       "snapshot": {
-        "docs/reference/dashpanel-contract-decisions.md": "742d67e974ac58ffd838da0014bc4b1de4e40a06ccbb8fdfc92bb60b70bd6d11"
+        "docs/reference/dashpanel-contract-decisions.md": "2a5a7216752731741e67d7fe4e788c03322f5d5c2dd52cf0a02fef96e3b13f54"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "outcome": "no-change",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "Changed: docs/reference/dashpanel-contract-decisions.md at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
       ]
     },
     "source:docs/reference/nexus-contract-decisions.md": {
@@ -279,34 +275,24 @@
       ]
     },
     "source:scripts/dogfood/pack.mjs": {
-      "fingerprint": "5789782fb885cf4899294a7de994170e1673162db733adeeb3d9a43c8cd10dda",
+      "fingerprint": "60d22744850e734ed3804280db3ab597c32fa957229a8ae35adff88b545bba0b",
       "snapshot": {
-        "scripts/dogfood/pack.mjs": "ee133e79937a1cb8004e7f9bcfb78976b1b12bde3575118814d3bd0c28c6bc9a"
+        "scripts/dogfood/pack.mjs": "f6a8ec63ff97ee314dda8f0a636d3ce6a2fd4bdf5911666153d265acf14bfd86"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
-      "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
-      ]
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "outcome": "no-change",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "evidence": ["Changed: scripts/dogfood/pack.mjs at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"]
     },
     "source:scripts/dogfood/smoke.mjs": {
-      "fingerprint": "0e21b829e1ff2ec675235ad74d3a7c9079732b23fc524fdf1eabadc9340d0e47",
+      "fingerprint": "6d4803211583e51b9f683063cfdd268c8efcd074b2b08f9da87d75f307a709a3",
       "snapshot": {
-        "scripts/dogfood/smoke.mjs": "7105a9bbdd28708b2aeed98fd7b4b10918ff92f45d9642e5d88f173dfe5211c1"
+        "scripts/dogfood/smoke.mjs": "7d08efa9b053a2d665171cd95d83eec135973e827b39c31f8a21eeb057018f22"
       },
-      "head": "3f6f4e994d43108d6d39856216e897318588da2c",
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
       "outcome": "no-change",
-      "reason": "This change implements, documents or verifies the same two covered tasks. Existing new guides describe their consumer-facing behavior; no additional independently discoverable skill is warranted.",
-      "evidence": [
-        "packages/dashpanel/tests/hotkey.test.tsx: 206 Panel tests pass",
-        "packages/nexus/tests/scope-metadata.test.ts: 478 Nexus tests pass",
-        "packages/picodash/tests/dogfood/shortcuts.test.tsx: 28 facade tests pass",
-        "apps/lab/tests/contract-lab.spec.ts: persistence browser journey passed",
-        "tests/skills/README.md: fresh consumer passed; driver-less negative candidate failed restored binding as intended; both skills validate"
-      ]
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "evidence": ["Changed: scripts/dogfood/smoke.mjs at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"]
     },
     "source:tests/skills/README.md": {
       "fingerprint": "0da5af8c0e43230b2d6bfba071468b411c860ba9378e2dd97b4168fa0cb93fba",
@@ -708,6 +694,78 @@
       "reason": "Added the explicit public Popover help variant, documented document-scoped help ownership/non-modal dismissal and60% glass/150ms entry/100ms exit with25% larger token-sized pointers. Existing shortcut and bound-control guides and all three planning records remain accurate for their existing task coverage; generic help composition is outside that initial guide batch. Public variant type/consumer fixture,110 affected component/CSS tests, workspace formatting/lint/types, motion policy and both browser journeys pass, including rapid handoff/reversed layers/recording/reduced motion/theme readability. Root visually approved light/dark/ocean and pointer increase. Fresh immutable bundle installation follows as the release gate.",
       "evidence": [
         "Changed: packages/ui/tests/popover.types.test.tsx at b78cfa8e00252d4493b547fba589bf7c64df1add"
+      ]
+    },
+    "source:packages/dashpanel/src/runtime/panel-controller.tsx": {
+      "fingerprint": "7c59be00cc1eb2d3ed3643a72b99c3465c0ae20340a938893b6325890f042dfe",
+      "snapshot": {
+        "packages/dashpanel/src/runtime/panel-controller.tsx": "6ee2b855ebff292bd19c786e51703328c30fa3e0e34d7723acc9e93006692bd9"
+      },
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "outcome": "no-change",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "evidence": [
+        "Changed: packages/dashpanel/src/runtime/panel-controller.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+      ]
+    },
+    "source:packages/dashpanel/src/runtime/panel-runtime.test.ts": {
+      "fingerprint": "3df5db00aa87992293938a415e12f9d9c42d019de6c2bbd5da11566c12b01e1b",
+      "snapshot": {
+        "packages/dashpanel/src/runtime/panel-runtime.test.ts": "2c27bee6e24811ca6d32cb5a8bae93a4d1ca44148e4d421f065e1f9fff1f5b72"
+      },
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "outcome": "no-change",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "evidence": [
+        "Changed: packages/dashpanel/src/runtime/panel-runtime.test.ts at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+      ]
+    },
+    "source:packages/dashpanel/src/runtime/panel-runtime.ts": {
+      "fingerprint": "9ad53ee443962596e6d0bffd74f6e9db34e08269256cc560147a982b2086a37c",
+      "snapshot": {
+        "packages/dashpanel/src/runtime/panel-runtime.ts": "2ea53c3a08da58772b698e14dc06d6516582a48c4bc6a474ea806b2ef4a46ca1"
+      },
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "outcome": "no-change",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "evidence": [
+        "Changed: packages/dashpanel/src/runtime/panel-runtime.ts at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+      ]
+    },
+    "source:packages/dashpanel/tests/dashpanel.test.tsx": {
+      "fingerprint": "6e612ae173d526c83a4f8d242dbb5632ad03750988afe8208281666b897b42bc",
+      "snapshot": {
+        "packages/dashpanel/tests/dashpanel.test.tsx": "4e180ec595ecaea9408d0749d43116005ab6e9fb4575a656c91181a9bd04bc58"
+      },
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "outcome": "no-change",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "evidence": [
+        "Changed: packages/dashpanel/tests/dashpanel.test.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+      ]
+    },
+    "source:packages/picodash/tests/dogfood/DockPreview.tsx": {
+      "fingerprint": "7bad88a041f8d18dc611cad3a02889adaae595c0ee4d6818767fcb1dc50c9fb2",
+      "snapshot": {
+        "packages/picodash/tests/dogfood/DockPreview.tsx": "7a0da4ec2dd711d40336a53ba9076be91f51701d5b9cb13c7e8cd4bd8fd0cde2"
+      },
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "outcome": "no-change",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "evidence": [
+        "Changed: packages/picodash/tests/dogfood/DockPreview.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+      ]
+    },
+    "source:packages/picodash/tests/dogfood/dock-preview.test.tsx": {
+      "fingerprint": "fba74c1ef7310f6d3abe7b29f65e7465d65634e94eb1bd5e31d86a01195944d9",
+      "snapshot": {
+        "packages/picodash/tests/dogfood/dock-preview.test.tsx": "433c755dab7e895bbe8e69ecf5c98aa4186b91ae6a58f79940bca14002a47bd5"
+      },
+      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "outcome": "no-change",
+      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "evidence": [
+        "Changed: packages/picodash/tests/dogfood/dock-preview.test.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
       ]
     }
   }

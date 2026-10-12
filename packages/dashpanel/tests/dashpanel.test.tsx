@@ -1612,3 +1612,48 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 })
+
+it('observes dock preview through the public controller and removes it with its Panel', () => {
+  const nexus = makeNexus()
+  let runtime!: ReturnType<typeof useDashPanelRuntime>
+  let controller!: ReturnType<typeof useDashPanel>
+  function Probe() {
+    runtime = useDashPanelRuntime()
+    controller = useDashPanel('observed')
+    return null
+  }
+  const tree = (mounted: boolean) =>
+    createElement(DashPanelProvider, {
+      nexus,
+      children: [
+        createElement(Probe, { key: 'probe' }),
+        mounted
+          ? createElement(DashPanel, {
+              key: 'panel',
+              id: 'observed',
+              title: 'Observed',
+              defaultLayout: { placement: { mode: 'hybrid', disposition: { kind: 'free' } } },
+            })
+          : null,
+      ],
+    })
+  const renderer = render(tree(true))
+  expect(controller.availability === 'available' && controller.dockPreview).toBeNull()
+  act(() =>
+    runtime.setDockPreview('observed', {
+      panelId: 'observed',
+      position: 'full-left',
+      bounds: { left: 20, top: 40, width: 200, height: 300 },
+    }),
+  )
+  expect(controller.availability === 'available' && controller.dockPreview?.position).toBe(
+    'full-left',
+  )
+  expect(nexus.getState().scopes.get('observed')?.dashPanel).toBeUndefined()
+  act(() => renderer.update(tree(false)))
+  expect(controller.availability).toBe('unavailable')
+  act(() => renderer.update(tree(true)))
+  expect(controller.availability === 'available' && controller.dockPreview).toBeNull()
+  act(() => renderer.unmount())
+  nexus.destroy()
+})
