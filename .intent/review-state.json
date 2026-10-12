@@ -109,17 +109,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "d7308a5b6c861bc1165cf0b585a5ea3e379de9cf4c648d536ac45c1855b11bcd",
+      "fingerprint": "e8cd762961c5eef7afd99d048eb08bd4dc595527c11e395ff30540c89fe1863b",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "f1674ba2f1042cb686fabd58261658dfc6ee6fea95c8a33289dc01e82850d30c"
+        "docs/reference/contract-conformance.md": "137da3c6ee737c7c9bebe503a836494d395f4beeaefbbb0365beed06eacc9983"
       },
-      "head": "11d047c4a39c383cdaa40eaed2e60f0175064729",
+      "head": "b11ed4795396e0479066306d8c7039ea9136e532",
       "outcome": "no-change",
-      "reason": "Only recorder paint and alignment change: pencil outside the outlined keycaps, vertically centred. Existing APIs, activation, persistence and both installed task guides remain accurate; planning records retain their existing scope.",
+      "reason": "Only release recommendation and verification evidence changed; the existing guide workflows and planning records are unchanged. dogfood.43 passes 15 installed tests, types, Vite/Next builds and .41 update/rollback.",
       "evidence": [
-        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes pencil-outside-outline and header-centre measurements",
-        "packages/dashpanel: all 208 tests and complete release check pass",
-        "docs/reference/contract-conformance.md: final presentation evidence"
+        "Changed: docs/reference/contract-conformance.md at b11ed4795396e0479066306d8c7039ea9136e532"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -383,16 +381,15 @@
       ]
     },
     "source:docs/development/recommended-snapshot.json": {
-      "fingerprint": "f1cadf9cae7c3c69e0228ff289f3df7ad5a3ee3329ce89873e8ce0aaa176b4ed",
+      "fingerprint": "c87fa719ef81006071b9cd737ca3fcc0e1a3808b758f3e80bda8f9f6af30c618",
       "snapshot": {
-        "docs/development/recommended-snapshot.json": "8618b19358d77281c7254a853254f450d0b880dd8927903f84feec6c1fee1682"
+        "docs/development/recommended-snapshot.json": "7dc625cb3da2d2058f14fad5f3ed29b3cb6d490eb43a25e5c6cd23902d69bb50"
       },
-      "head": "2be8d0ae3cb171cf21c2973949e21486d395323d",
+      "head": "b11ed4795396e0479066306d8c7039ea9136e532",
       "outcome": "no-change",
-      "reason": "Release recommendation and conformance evidence only; the delivered APIs and guides are unchanged from the reviewed source commit.",
+      "reason": "Only release recommendation and verification evidence changed; the existing guide workflows and planning records are unchanged. dogfood.43 passes 15 installed tests, types, Vite/Next builds and .41 update/rollback.",
       "evidence": [
-        "output/dogfood/0.1.0-dogfood.41/snapshot.json: clean source 2be8d0ae3cb171cf21c2973949e21486d395323d",
-        "docs/reference/contract-conformance.md: 15 installed tests, update/rollback, types, Vite and Next builds pass"
+        "Changed: docs/development/recommended-snapshot.json at b11ed4795396e0479066306d8c7039ea9136e532"
       ]
     },
     "source:apps/lab/src/components/contract-lab/style-lab.tsx": {

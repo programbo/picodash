@@ -1628,3 +1628,8 @@ All 208 Panel tests, type/lint/build checks and the package artifact contract pa
 contextual browser journey now verifies hidden/visible pencil states, unchanged width on hover,
 click-to-record, keyboard focus, reduced motion, pencil/outline separation and vertical centring, alongside its existing detach, hide/reopen
 and recorder-position checks. The rendered Lab confirms both Panel and group keycaps.
+
+Clean snapshot `0.1.0-dogfood.43` records source `b11ed4795396e0479066306d8c7039ea9136e532`.
+All 15 installed tests, repeat/frozen install, .41 update/rollback, types and Vite/Next builds pass.
+The final Lab build passes. Snapshot .42 was an intermediate unpromoted package before the
+requested outside-pencil adjustment; .43 is the recommended consumer update.
