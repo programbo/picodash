@@ -3353,6 +3353,21 @@ test('routes recorded group shortcuts through visible parents and reopens a clos
   await closeRecorder.hover()
   await expect(pencil).toHaveCSS('opacity', '1')
   expect((await closeRecorder.boundingBox())!.width).toBe(restingWidth)
+  for (const recorder of [closeRecorder, choices]) {
+    const bounds = await recorder.evaluate((element) => {
+      const face = element.querySelector('[data-picodash-hotkey-face]')!.getBoundingClientRect()
+      const edit = element.querySelector('[data-picodash-hotkey-edit]')!.getBoundingClientRect()
+      const header = element.closest('[data-slot="dash-header"]')!.getBoundingClientRect()
+      return {
+        faceRight: face.right,
+        pencilLeft: edit.left,
+        faceCentre: face.y + face.height / 2,
+        headerCentre: header.y + header.height / 2,
+      }
+    })
+    expect(bounds.pencilLeft).toBeGreaterThan(bounds.faceRight)
+    expect(Math.abs(bounds.faceCentre - bounds.headerCentre)).toBeLessThanOrEqual(1)
+  }
   await closeRecorder.click()
   await expect(closeRecorder).toHaveAttribute('aria-pressed', 'true')
   await page.keyboard.press('Escape')

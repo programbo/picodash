@@ -3,20 +3,20 @@
   "baseline": "3f6f4e994d43108d6d39856216e897318588da2c",
   "items": {
     "skill:packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": {
-      "fingerprint": "34985717daac4f153049c01f083ec80f43d72d5ef4329e37b35abfa63c00c3c8",
+      "fingerprint": "a0196024f74bda793a1c6950bf1478300c0198a0a1152ac5b55934b2d4ed49ed",
       "snapshot": {
-        "docs/reference/dashpanel.md": "3162e3aa944e40fa97a38684f2832377545e5e9d695e0ba40f4a47b673da6c8d",
+        "docs/reference/dashpanel.md": "568e19aead15bd24d63e97f2cc62bb0aa4d2e98bb14fb8cebc613a68cfe5fe91",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
         "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
-        "packages/dashpanel/src/panel-hotkey.tsx": "3fcc7f87d41ea456a19f31acae7d773adecf845b8342daf385a90b2f15dcd2f8"
+        "packages/dashpanel/src/panel-hotkey.tsx": "05396c1ba3f2a1d65d167a64d486efcf2da10ddc8544a2966fef0dbd2abdcb7a"
       },
-      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "head": "11d047c4a39c383cdaa40eaed2e60f0175064729",
       "outcome": "no-change",
-      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
+      "reason": "Only recorder paint and alignment change: pencil outside the outlined keycaps, vertically centred. Existing APIs, activation, persistence and both installed task guides remain accurate; planning records retain their existing scope.",
       "evidence": [
-        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
-        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
-        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes pencil-outside-outline and header-centre measurements",
+        "packages/dashpanel: all 208 tests and complete release check pass",
+        "docs/reference/contract-conformance.md: final presentation evidence"
       ]
     },
     "skill:packages/picodash/skills/bind-controls/SKILL.md": {
@@ -39,29 +39,29 @@
       ]
     },
     "planning:_artifacts": {
-      "fingerprint": "76287f9876cc60dfa8428ec1e727b6086c5197f9d0331ecb5d11f08b34d15c3f",
+      "fingerprint": "ce73b52c0648856e9291add97abf658b8dba9ecd33b96d058f08315459f3bf69",
       "snapshot": {
         "_artifacts/domain_map.yaml": "7fae05e81d3660e56f32a0dc042c64b6f4b7c0718bcaf6917e2792371b333dc4",
         "_artifacts/skill_spec.md": "bc0e75e4b8b009a856e577f727fabb72628c78ef5720a343ba4db40b9decdde4",
         "_artifacts/skill_tree.yaml": "4c95e940102fbc17ad5c41ee7fa564f5bdb26150830ae2ef8e6430e23b48009e",
         "docs/development/consumer-recipes.md": "87f76f251a9e2e700323c2243386c2e053d39cf8d6ac1e8c7a775b371c11d81d",
-        "docs/reference/dashpanel.md": "3162e3aa944e40fa97a38684f2832377545e5e9d695e0ba40f4a47b673da6c8d",
+        "docs/reference/dashpanel.md": "568e19aead15bd24d63e97f2cc62bb0aa4d2e98bb14fb8cebc613a68cfe5fe91",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
         "packages/dashpanel/src/index.tsx": "3b9c277386fd7beb285433615e3e9b14ffff732cbf3a3ad3651300da55937609",
-        "packages/dashpanel/src/panel-hotkey.tsx": "3fcc7f87d41ea456a19f31acae7d773adecf845b8342daf385a90b2f15dcd2f8",
+        "packages/dashpanel/src/panel-hotkey.tsx": "05396c1ba3f2a1d65d167a64d486efcf2da10ddc8544a2966fef0dbd2abdcb7a",
         "packages/picodash/skills/bind-controls/SKILL.md": "f520bfeee1d185085760351a9596b5001331d43d889266a5a3b6299d2d7b27d3",
         "packages/picodash/src/detachable-group.tsx": "fd145e7903df7e83ae8986d2f8beafcc7a452f0db8ce183f26e32af2b705d147",
         "packages/picodash/src/index.ts": "c62056bb9c1b60b8c0e4d3955542de223f7521a4fdb1f4635feaecba8f0c85d5",
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "head": "11d047c4a39c383cdaa40eaed2e60f0175064729",
       "outcome": "no-change",
-      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
+      "reason": "Only recorder paint and alignment change: pencil outside the outlined keycaps, vertically centred. Existing APIs, activation, persistence and both installed task guides remain accurate; planning records retain their existing scope.",
       "evidence": [
-        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
-        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
-        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes pencil-outside-outline and header-centre measurements",
+        "packages/dashpanel: all 208 tests and complete release check pass",
+        "docs/reference/contract-conformance.md: final presentation evidence"
       ]
     },
     "source:apps/lab/src/components/contract-lab/specimen.tsx": {
@@ -81,17 +81,17 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "acb435cf413756405b26163771afa88782c12fe84db945ff7a6b8750f912ac2d",
+      "fingerprint": "730c2c10915e068cc4d812415b4769a9b4a997f4f571bde12e618eec2dfe896e",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "232e5303a3a3e1d64cc281faedb3a27192a4cc1c703aecf85f342c4261665047"
+        "apps/lab/tests/contract-lab.spec.ts": "eee96f2687a4756806081f51bb0832d8de0df1393765b932b1bcd923521affbe"
       },
-      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "head": "11d047c4a39c383cdaa40eaed2e60f0175064729",
       "outcome": "no-change",
-      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
+      "reason": "Only recorder paint and alignment change: pencil outside the outlined keycaps, vertically centred. Existing APIs, activation, persistence and both installed task guides remain accurate; planning records retain their existing scope.",
       "evidence": [
-        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
-        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
-        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes pencil-outside-outline and header-centre measurements",
+        "packages/dashpanel: all 208 tests and complete release check pass",
+        "docs/reference/contract-conformance.md: final presentation evidence"
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -109,17 +109,17 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "e6e28f7ff5a6e68fe1f95f501f7118b6aaf6e2efbe557d4d187c3cdd3f8c6e80",
+      "fingerprint": "d7308a5b6c861bc1165cf0b585a5ea3e379de9cf4c648d536ac45c1855b11bcd",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "33b43a2f01003e358f5cd76f7f78a3c04d47d817ff6e0cc2fbb245f01bf0a7f3"
+        "docs/reference/contract-conformance.md": "f1674ba2f1042cb686fabd58261658dfc6ee6fea95c8a33289dc01e82850d30c"
       },
-      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "head": "11d047c4a39c383cdaa40eaed2e60f0175064729",
       "outcome": "no-change",
-      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
+      "reason": "Only recorder paint and alignment change: pencil outside the outlined keycaps, vertically centred. Existing APIs, activation, persistence and both installed task guides remain accurate; planning records retain their existing scope.",
       "evidence": [
-        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
-        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
-        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes pencil-outside-outline and header-centre measurements",
+        "packages/dashpanel: all 208 tests and complete release check pass",
+        "docs/reference/contract-conformance.md: final presentation evidence"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -165,17 +165,17 @@
       ]
     },
     "source:packages/dashpanel/src/style.css": {
-      "fingerprint": "7aad94602315b1577e560dd0d06de0101ccbe26d7b7ac6e50326736202fee888",
+      "fingerprint": "0f524470fd247b5ed7b34a1028455e481e6f2302257c66780fcd1d948a6fe9d7",
       "snapshot": {
-        "packages/dashpanel/src/style.css": "073276733d47378be21786c44c2a58f878cf3e94816ca9ebeb87a9b29b5a26dc"
+        "packages/dashpanel/src/style.css": "6909e547fc344bdaba66d5b340886902545033e9c1c7618bd1732143b5f5e2a4"
       },
-      "head": "845d059ea1f37cd0d79de3d408909a47b2240c01",
+      "head": "11d047c4a39c383cdaa40eaed2e60f0175064729",
       "outcome": "no-change",
-      "reason": "Presentation-only keycaps and edit affordance preserve the existing recorder activation, props, binding format, persistence and contextual workflow. Both installed guides and all three planning records remain accurate.",
+      "reason": "Only recorder paint and alignment change: pencil outside the outlined keycaps, vertically centred. Existing APIs, activation, persistence and both installed task guides remain accurate; planning records retain their existing scope.",
       "evidence": [
-        "packages/dashpanel/src/panel-hotkey.tsx: existing recorder trigger with display parts and Lucide pencil",
-        "packages/dashpanel/tests: all 208 tests and package artifact checks pass",
-        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes hover width, pencil opacity, keyboard focus, reduced motion and recording"
+        "apps/lab/tests/contract-lab.spec.ts: contextual journey passes pencil-outside-outline and header-centre measurements",
+        "packages/dashpanel: all 208 tests and complete release check pass",
+        "docs/reference/contract-conformance.md: final presentation evidence"
       ]
     },
     "source:packages/dashpanel/tests/hotkey.test.tsx": {

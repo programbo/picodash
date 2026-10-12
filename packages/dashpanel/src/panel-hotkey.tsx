@@ -251,17 +251,19 @@ export function PanelHotkey({
           }}
           data-recording={recorder.isRecording || undefined}
         >
-          {recorder.isRecording ? (
-            'Press keys…'
-          ) : binding && !error ? (
-            <span data-picodash-hotkey-keys aria-hidden="true">
-              {formatForDisplay(binding, { parts: true }).map((part) => (
-                <kbd key={part}>{part}</kbd>
-              ))}
-            </span>
-          ) : (
-            <span aria-hidden="true">⌨</span>
-          )}
+          <span data-picodash-hotkey-face>
+            {recorder.isRecording ? (
+              'Press keys…'
+            ) : binding && !error ? (
+              <span data-picodash-hotkey-keys aria-hidden="true">
+                {formatForDisplay(binding, { parts: true }).map((part) => (
+                  <kbd key={part}>{part}</kbd>
+                ))}
+              </span>
+            ) : (
+              <span aria-hidden="true">⌨</span>
+            )}
+          </span>
           <Pencil aria-hidden="true" data-picodash-hotkey-edit />
         </Button>
         <span id={helpId} data-picodash-panel-hotkey-help role="status">

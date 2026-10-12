@@ -1619,11 +1619,12 @@ Intent discovery/version checks pass. The production Lab was rebuilt from this s
 ### Shortcut keycaps and edit affordance (2026-10-12)
 
 Panel and contextual-group recorders share individually rendered platform-aware keycaps inside
-one outlined button. A Lucide pencil keeps its layout space at zero opacity, appearing on hover,
-keyboard focus and recording. The full chip remains the existing recorder trigger. The short
+one clickable control. The outline surrounds only the keycap face; the Lucide pencil sits
+outside it, keeps its layout space at zero opacity, and appears on hover, keyboard focus and recording.
+The control is vertically centred in both Panel and group headers. The full chip remains the existing recorder trigger. The short
 opacity transition respects reduced motion. No public prop, binding or persistence change.
 
 All 208 Panel tests, type/lint/build checks and the package artifact contract pass. The existing
 contextual browser journey now verifies hidden/visible pencil states, unchanged width on hover,
-click-to-record, keyboard focus and reduced motion, alongside its existing detach, hide/reopen
+click-to-record, keyboard focus, reduced motion, pencil/outline separation and vertical centring, alongside its existing detach, hide/reopen
 and recorder-position checks. The rendered Lab confirms both Panel and group keycaps.
