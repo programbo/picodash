@@ -3,6 +3,7 @@ import { useContext, useEffect, useId, useLayoutEffect, useRef } from 'react'
 import { Group } from 'react-aria-components'
 import { animate } from 'motion'
 import { useRangeResult } from './range-result.js'
+import { RangeReferenceMarks } from './range-reference-marks.js'
 import { thumbSnapSpring, minimumStepPixels } from './stepped-thumb-motion.js'
 import type { NumberRangeValue, RangeSliderProps } from './ui-values.js'
 import { usePrimaryControlRef, useReadOnlyDescription } from './control-accessibility.js'
@@ -341,6 +342,14 @@ export function DetentRangeSlider({
               </Group>
             )
           })}
+          <RangeReferenceMarks
+            positions={[
+              position(min),
+              position(max),
+              ...(startDetent ? [position(startDetent.value)] : []),
+              ...(endDetent ? [position(endDetent.value)] : []),
+            ]}
+          />
           {actual.marker}
         </div>
       </div>

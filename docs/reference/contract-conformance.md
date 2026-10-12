@@ -1713,3 +1713,20 @@ including the public dock-preview readout, guide discovery/validation, .48 updat
 example types and Vite/Next builds. The production Lab rebuild and focused placement browser
 journey against the restored supervised server pass (1 test, 16.6 seconds). The application owns
 readout and camera behavior; actual Gearmo adoption is verified separately by its consumer owner.
+
+RangeSlider and RangeDashlet now show unlabelled, deduplicated regular-minimum/maximum and configured
+detent dots using the existing muted reference-dot treatment. Dots touch the painted track bottom;
+the actual-result triangle/readout and thumb interaction geometry remain separate. A dimmed physical
+left extension joins continuously at the real track endpoint, retains the outer column-edge cap,
+and adds neither a mark nor an interactive domain at that edge. All paint is absolute and pointer-none.
+Shared scroll cues now use a 12.5×7.5px anchored border triangle, 82% opacity and an unclipped
+shape-following dark shadow. Scroll timelines, direction, no-overflow clearing and reduced-motion
+behavior remain unchanged; forced colors uses solid CanvasText with no shadow.
+The 30 affected component/CSS tests, workspace checks, motion policy and browser suite cap pass.
+The scoped desktop/mobile light/dark browser journey passes (1 test, 7.9 seconds), including
+reference-dot positions, decorative extension bounds, actual detent operation, scroll-end cue
+visibility, reduced motion and forced colors. Root visually approved the single correction pass.
+The broader gallery label/input-centre assertion remains failing at 6px against a <3px requirement;
+the untouched test reproduces the same failure on the restored .49 production baseline. The phone
+boundary artifact journey also reached its 30-second timeout during the initial broad probe; its
+cause was not established. Neither broad journey is claimed passing by this scoped verification.

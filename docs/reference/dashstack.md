@@ -2337,6 +2337,12 @@ use `binding.createValueGesture` for atomic live records and revision-safe cance
 RangeSlider accepts an optional `createGesture` factory with the same lifecycle and range-valued
 update. Without a factory, onChange remains controlled and the host owns cancellation.
 
+Range tracks show quiet, unlabelled dots at the regular minimum and maximum and each configured
+detent endpoint. Coincident positions render once; ordinary discrete steps do not create extra dots.
+The actual-result arrow and label remain separate. A dimmed decorative extension reaches from the
+track's physical left endpoint to the control-column edge; it adds no marker or interactive domain
+at that edge. Both dots and extension ignore pointer input and add no row spacing.
+
 Pointer gaps, held-key parking, new-press crossing, Home/End, RTL and reduced motion follow Slider.
 A start thumb cannot enter the end detent, or vice versa. Plain Slider/RangeSlider steps whose
 rendered separation is at least 8px receive the same stiff spring paint during active interaction;

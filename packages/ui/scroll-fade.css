@@ -98,14 +98,17 @@
     position: absolute;
     position-anchor: --_picodash-scrollport;
     left: anchor(center);
-    width: 10px;
-    height: 6px;
+    box-sizing: border-box;
+    width: 12.5px;
+    height: 7.5px;
+    border-inline: 6.25px solid transparent;
     margin: 0;
     translate: -50% -50%;
-    background: var(--picodash-color-text);
+    color: var(--picodash-color-text);
+    filter: drop-shadow(0 1px 1px rgb(0 0 0 / 40%));
     pointer-events: none;
     z-index: 3;
-    opacity: var(--_picodash-scroll-cue);
+    opacity: calc(var(--_picodash-scroll-cue) * 0.82);
     animation: picodash-scroll-fade-start auto linear;
     animation-timeline: --_picodash-scrollport;
     /* Keep the scroll end inside the active interval; no fill means inactive
@@ -115,12 +118,12 @@
 
   :has(> [data-picodash-scroll-fade])::before {
     top: calc(anchor(top) + min(anchor-size(height) * 0.125, 20px));
-    clip-path: polygon(50% 0, 100% 100%, 0 100%);
+    border-block-end: 7.5px solid currentColor;
   }
 
   :has(> [data-picodash-scroll-fade])::after {
     top: calc(anchor(bottom) - min(anchor-size(height) * 0.125, 20px));
-    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    border-block-start: 7.5px solid currentColor;
     animation-name: picodash-scroll-fade-end;
   }
 }
@@ -128,7 +131,9 @@
 @media (forced-colors: active) {
   :has(> [data-picodash-scroll-fade])::before,
   :has(> [data-picodash-scroll-fade])::after {
-    background: CanvasText;
+    color: CanvasText;
+    filter: none;
+    opacity: var(--_picodash-scroll-cue);
     forced-color-adjust: none;
   }
 }

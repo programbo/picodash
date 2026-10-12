@@ -341,7 +341,7 @@ test('captures phone-sized boundary contraction with start and end lanes', async
         bottom: getComputedStyle(element, '::after').opacity,
         pointerEvents: getComputedStyle(element, '::after').pointerEvents,
       }))
-    await expect.poll(cues).toEqual({ top: '0', bottom: '1', pointerEvents: 'none' })
+    await expect.poll(cues).toEqual({ top: '0', bottom: '0.82', pointerEvents: 'none' })
     await expect.poll(async () => (await fade()).start).toBe(0)
     // A short overflow can already be inside the final 96px fade range.
     await expect.poll(async () => (await fade()).end).toBeLessThan(1)
@@ -359,14 +359,14 @@ test('captures phone-sized boundary contraction with start and end lanes', async
     })
     await expect.poll(async () => (await fade()).start).toBeGreaterThan(0)
     await expect.poll(async () => (await fade()).end).toBeLessThan(1)
-    await expect.poll(cues).toMatchObject({ top: '1', bottom: '1' })
+    await expect.poll(cues).toMatchObject({ top: '0.82', bottom: '0.82' })
     await capture(page, testInfo, 'boundary-scroll-middle.png')
     expect(await automatic.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
     await automatic.evaluate((element) => {
       element.scrollTop = element.scrollHeight
     })
     await expect.poll(async () => (await fade()).end).toBe(1)
-    await expect.poll(cues).toMatchObject({ top: '1', bottom: '0' })
+    await expect.poll(cues).toMatchObject({ top: '0.82', bottom: '0' })
     await capture(page, testInfo, 'boundary-scroll-end.png')
     expect(
       await automatic.evaluate(

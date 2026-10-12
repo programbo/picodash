@@ -50,6 +50,7 @@ import { validateSliderOptions, type SliderDetent } from './slider-options.js'
 import { useValueControlGesture, type ValueGestureFactory } from './numeric-control-gesture.js'
 import { useSteppedThumbMotion } from './stepped-thumb-motion.js'
 import { useRangeResult } from './range-result.js'
+import { RangeReferenceMarks } from './range-reference-marks.js'
 import type { TargetResult } from './target-result.js'
 import { composeControlClassName } from './ui-class-name.js'
 
@@ -326,6 +327,7 @@ function ContinuousRangeSlider({
             isInvalid={props['aria-invalid'] === true || props['aria-invalid'] === 'true'}
             aria-errormessage={props['aria-errormessage']}
           />
+          <RangeReferenceMarks positions={min === max ? ['0%'] : ['0%', '100%']} />
           {actual.marker}
         </SliderTrack>
       </AriaSlider>

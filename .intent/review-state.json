@@ -71,15 +71,15 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "837c3371475d42c2363bad1402b219bd450664d01c7f876fb18064ea94a17d1c",
+      "fingerprint": "2c5e058f6ddb37805656481122fdccff5eb68fcb99047078a427ad31db362904",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "c2d0eb2097bc9515bd6b0c9687c09f483ce85ceee21010fd1bd13801b1b0f5e9"
+        "apps/lab/tests/contract-lab.spec.ts": "1a8d7ac8cc85d4650da7e4086c76de3446968d94a2f73cae93813f1b09a5e9d9"
       },
-      "head": "e466825985740c3f4d6c4fa42e9ffd8910c5fd98",
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
       "outcome": "no-change",
-      "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
       "evidence": [
-        "Changed: apps/lab/tests/contract-lab.spec.ts at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+        "Changed: apps/lab/tests/contract-lab.spec.ts at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -97,15 +97,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "7ecea7a28a8af325f1dbc332ce4eb3e20e1705fd24a024156a0c02de9364f052",
+      "fingerprint": "eb2b6e65e92779e636e7d372de733369c99ff617a43d24b76066ffc63c87336e",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "cda1ed185f7cf01040351b6a40e8693cd4e8ad6bf6edbbe425190f7047ce1a76"
+        "docs/reference/contract-conformance.md": "26274f21876db1563f107574a9a70167d302d0587ba2ba773a788ed8125c7cd9"
       },
-      "head": "ffebedb20fce05a5212990fdd5ddeb692ee51d6d",
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
       "outcome": "no-change",
-      "reason": "Recommendation/release evidence only: immutable .49 source ffebedb20fce05a5212990fdd5ddeb692ee51d6d passed 1162 package release tests, 17 isolated installed-consumer tests including dock preview, .48 rollback and .49 restore, shipped guides and strict example types, Vite/Next builds, and restored-production placement browser journey. Both existing guides and all three planning files remain accurate for their reviewed shortcut/binding tasks; no guidance behavior changed.",
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at ffebedb20fce05a5212990fdd5ddeb692ee51d6d"
+        "Changed: docs/reference/contract-conformance.md at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -393,17 +393,15 @@
       ]
     },
     "source:docs/reference/dashstack.md": {
-      "fingerprint": "4b553f5da6f54797a7cf04ef75afc2757f89339b42dfdf758ef2b6204f879ba6",
+      "fingerprint": "c64491d80468da0f88bbf794ec3d9f4c0f550694693797bcb148334b89516819",
       "snapshot": {
-        "docs/reference/dashstack.md": "546b30606d473cdd01b9a241e90dc4748850399065e8246daf54460a2214ed21"
+        "docs/reference/dashstack.md": "1f80025e5ffc6591d4855143dcc117a9530514a5ecc1c0236148e824241695e9"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "outcome": "no-change",
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "Changed: docs/reference/dashstack.md at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
       ]
     },
     "source:docs/reference/picodash.md": {
@@ -461,15 +459,15 @@
       ]
     },
     "source:packages/dashstack/src/style.css": {
-      "fingerprint": "8311b77fe97b5a3d1fcb3a0f526575fda8ea927b48dedffcc7e2a4ba7b8899d4",
+      "fingerprint": "6bf9719e897aa6ad76a44889adb608b9d49db96e88723baf22e0a3bd676fa085",
       "snapshot": {
-        "packages/dashstack/src/style.css": "94a73046c2163a04f0b03895a6637d3173fd3799c03f49b86fc21c9f0a09eb5d"
+        "packages/dashstack/src/style.css": "53108ebde54cae0011589363aa10e839020e50e59d9393d11eb51ba8abd04fb7"
       },
-      "head": "b78cfa8e00252d4493b547fba589bf7c64df1add",
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
       "outcome": "no-change",
-      "reason": "Added the explicit public Popover help variant, documented document-scoped help ownership/non-modal dismissal and60% glass/150ms entry/100ms exit with25% larger token-sized pointers. Existing shortcut and bound-control guides and all three planning records remain accurate for their existing task coverage; generic help composition is outside that initial guide batch. Public variant type/consumer fixture,110 affected component/CSS tests, workspace formatting/lint/types, motion policy and both browser journeys pass, including rapid handoff/reversed layers/recording/reduced motion/theme readability. Root visually approved light/dark/ocean and pointer increase. Fresh immutable bundle installation follows as the release gate.",
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
       "evidence": [
-        "Changed: packages/dashstack/src/style.css at b78cfa8e00252d4493b547fba589bf7c64df1add"
+        "Changed: packages/dashstack/src/style.css at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
       ]
     },
     "source:packages/picodash/style.css": {
@@ -557,14 +555,14 @@
       ]
     },
     "source:docs/reference/ui.md": {
-      "fingerprint": "3f025ce8945cbd7e0110af3ef80c5a5952cd494e3268843b6a84920d7a4e365b",
+      "fingerprint": "3d65765fd7d6a85361fa77aee4be5aa7f5dfc575ef3a12c5c58c572d83a2593e",
       "snapshot": {
-        "docs/reference/ui.md": "8a0811ab3342f9a62f3cf3e3ecd129457993f10c51bf76ff8c87a25abb6d14ff"
+        "docs/reference/ui.md": "c25c930509a406d16af5324b935517bee968da7ce1770e3c7155436950ff0ad8"
       },
-      "head": "b78cfa8e00252d4493b547fba589bf7c64df1add",
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
       "outcome": "no-change",
-      "reason": "Added the explicit public Popover help variant, documented document-scoped help ownership/non-modal dismissal and60% glass/150ms entry/100ms exit with25% larger token-sized pointers. Existing shortcut and bound-control guides and all three planning records remain accurate for their existing task coverage; generic help composition is outside that initial guide batch. Public variant type/consumer fixture,110 affected component/CSS tests, workspace formatting/lint/types, motion policy and both browser journeys pass, including rapid handoff/reversed layers/recording/reduced motion/theme readability. Root visually approved light/dark/ocean and pointer increase. Fresh immutable bundle installation follows as the release gate.",
-      "evidence": ["Changed: docs/reference/ui.md at b78cfa8e00252d4493b547fba589bf7c64df1add"]
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
+      "evidence": ["Changed: docs/reference/ui.md at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"]
     },
     "source:packages/dashstack/tests/dashstack.test.tsx": {
       "fingerprint": "943edebfcc792346b62082377c5d20c62f297a18c86f93949cb04e45ee64681d",
@@ -766,6 +764,78 @@
       "reason": "New nullable public dockPreview observes existing Hybrid pointer intent and target-proxy viewport bounds without altering committed layout, shortcut lifecycle or value binding. Public controller/decision/consumer documentation and delivered typed example cover the addition. All 78 focused runtime/controller/drag/public-consumer tests, workspace formatting/lint/types, 5 packaging policy tests and the existing real placement browser journey pass, including active Escape, target changes, leave, drop, occupied-zone and mode eligibility with no preview persistence writes. The two existing guides and all three planning documents still accurately cover their bounded shortcut/binding tasks; dock-preview observation does not change those recommendations. Fresh immutable installed-consumer verification follows at release.",
       "evidence": [
         "Changed: packages/picodash/tests/dogfood/dock-preview.test.tsx at e466825985740c3f4d6c4fa42e9ffd8910c5fd98"
+      ]
+    },
+    "source:apps/lab/tests/phone-artifacts.spec.ts": {
+      "fingerprint": "f3802d9acae643f5c2d11053b11745a4dc50d854b89873b6f64c939b8c53f37a",
+      "snapshot": {
+        "apps/lab/tests/phone-artifacts.spec.ts": "d0148aeb05134d6fff30cba34529bf750f68d04c8230575f9d572fea5c17fd7d"
+      },
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "outcome": "no-change",
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
+      "evidence": [
+        "Changed: apps/lab/tests/phone-artifacts.spec.ts at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
+      ]
+    },
+    "source:packages/dashstack/src/detent-range.tsx": {
+      "fingerprint": "d2bcc612cf75b4499ae508c9c7101687a370b2f628a2c63f110e9d4825cc216e",
+      "snapshot": {
+        "packages/dashstack/src/detent-range.tsx": "021014f6dd2d794238bd3fc22f3e4e0dde4b8e553eca1ee695c64fc288631561"
+      },
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "outcome": "no-change",
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
+      "evidence": [
+        "Changed: packages/dashstack/src/detent-range.tsx at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
+      ]
+    },
+    "source:packages/dashstack/src/range-reference-marks.tsx": {
+      "fingerprint": "222aa5042842b2af35b4c35b2a7c24c99754e13afb48bd82a46493c067ab992e",
+      "snapshot": {
+        "packages/dashstack/src/range-reference-marks.tsx": "758f5a0a5eef3a410863bd4c6413357a9da1ca58d32c501f7d6ebb8739f0f829"
+      },
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "outcome": "no-change",
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
+      "evidence": [
+        "Changed: packages/dashstack/src/range-reference-marks.tsx at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
+      ]
+    },
+    "source:packages/dashstack/src/ui-values.tsx": {
+      "fingerprint": "6639c2d1ab41905f7b3fd630430aa9813b5b217fe2b2324bfcc8655046169e66",
+      "snapshot": {
+        "packages/dashstack/src/ui-values.tsx": "d8e7be419719b5199df559d2359ad25dc9c5b7e5c4d4208eb84df63e065de068"
+      },
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "outcome": "no-change",
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
+      "evidence": [
+        "Changed: packages/dashstack/src/ui-values.tsx at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
+      ]
+    },
+    "source:packages/dashstack/tests/range-result.test.tsx": {
+      "fingerprint": "4ed9e572f6ed826793eb92cdfc1d11fa0f84fc74a154e0c2c8d478f2cc78e32b",
+      "snapshot": {
+        "packages/dashstack/tests/range-result.test.tsx": "dea9ada8d3dc44b2c92e015523f9ff0e7b95988b358a62b00956043085b835ab"
+      },
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "outcome": "no-change",
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
+      "evidence": [
+        "Changed: packages/dashstack/tests/range-result.test.tsx at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
+      ]
+    },
+    "source:packages/ui/scroll-fade.css": {
+      "fingerprint": "684679a0d077336428a9314dde571c7994924365e926e2006803e9e8d7bd6a71",
+      "snapshot": {
+        "packages/ui/scroll-fade.css": "d5e3f367dd4ee1250be8e0b829f4b503af50aecfea30a4e6a5ed0c98bed84a4f"
+      },
+      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "outcome": "no-change",
+      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
+      "evidence": [
+        "Changed: packages/ui/scroll-fade.css at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
       ]
     }
   }

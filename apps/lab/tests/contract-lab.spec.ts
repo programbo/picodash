@@ -445,6 +445,134 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
   await expect(page.getByRole('heading', { name: 'Dashlet Lab', exact: true })).toBeVisible()
 })
 
+test('shows Range reference dots, decorative extension and scroll cues on desktop and touch', async ({
+  page,
+  browser,
+}, testInfo) => {
+  const context = await browser.newContext({
+    ...devices['iPhone 13'],
+    baseURL: testInfo.project.use.baseURL,
+  })
+  try {
+    const phone = await context.newPage()
+    await phone.goto('/lab')
+    await expect(phone.getByRole('heading', { name: 'Dashlet Lab', exact: true })).toBeVisible()
+    await captureRangePolish(phone, 'mobile')
+  } finally {
+    await context.close()
+  }
+  await page.goto('/lab')
+  await expect(page.getByRole('heading', { name: 'Dashlet Lab', exact: true })).toBeVisible()
+  await captureRangePolish(page, 'desktop')
+})
+
+async function captureRangePolish(page: Page, size: string) {
+  const range = page.locator('[data-picodash-dashlet="range-detents"]')
+  await expect(range.locator('[data-picodash-range-reference-mark]')).toHaveCount(3)
+  await range.scrollIntoViewIfNeeded()
+  await range.getByRole('slider', { name: /^End / }).press('End')
+  const positions = await range.evaluate((row) => {
+    const track = row.querySelector('[data-picodash-detent-track]')!.getBoundingClientRect()
+    return {
+      width: track.width,
+      dots: [...row.querySelectorAll('[data-picodash-range-reference-mark]')].map((dot) => {
+        const box = dot.getBoundingClientRect()
+        return box.left + box.width / 2 - track.left
+      }),
+    }
+  })
+  const expected = [0, positions.width - Math.min(24, positions.width * 0.3), positions.width]
+  for (const [index, x] of positions.dots.entries()) expect(x).toBeCloseTo(expected[index]!, 0)
+  const regular = page.locator('[data-picodash-dashlet="RangeDashlet"]')
+  await expect(regular.locator('[data-picodash-range-reference-mark]')).toHaveCount(2)
+  const extension = await range.evaluate((row) => {
+    const track = row.querySelector('[data-picodash-detent-track]')!
+    const style = getComputedStyle(track)
+    const paint = getComputedStyle(track, '::after')
+    return {
+      inset: parseFloat(style.marginLeft),
+      left: parseFloat(paint.left),
+      width: parseFloat(paint.width),
+      pointer: paint.pointerEvents,
+    }
+  })
+  expect(extension.left).toBeCloseTo(-extension.inset, 1)
+  expect(extension.width).toBeCloseTo(extension.inset, 1)
+  expect(extension.pointer).toBe('none')
+  const markGap = await range.evaluate((row) => {
+    const track = row.querySelector('[data-picodash-detent-track]')!.getBoundingClientRect()
+    const dot = row.querySelector('[data-picodash-range-reference-mark]')!.getBoundingClientRect()
+    return dot.top - track.bottom
+  })
+  expect(Math.abs(markGap)).toBeLessThan(0.2)
+  await range.screenshot({ path: `/tmp/sol50-range-${size}-dark.png` })
+  await page.getByRole('button', { name: 'Light theme', exact: true }).click()
+  await range.screenshot({ path: `/tmp/sol50-range-${size}-light.png` })
+  const list = page.getByRole('list', { name: 'Dashlet gallery', exact: true })
+  const root = list.locator('xpath=ancestor::*[@data-picodash-dashstack][1]')
+  await root.evaluate((element) => {
+    const pinned = [
+      ...element.querySelectorAll<HTMLElement>(
+        ':scope > [data-picodash-dashstack-list] > [data-picodash-dashstack-band]',
+      ),
+    ]
+      .filter((band) => band.dataset.picodashDashstackBand !== 'automatic')
+      .reduce((sum, band) => sum + band.offsetHeight, 0)
+    const height = `${pinned + 320}px`
+    element.style.height = height
+    element.style.maxHeight = height
+    element.style.flex = `0 0 ${height}`
+  })
+  const band = list.locator('[data-picodash-dashstack-band="automatic"]')
+  await expect
+    .poll(() => band.evaluate((element) => element.scrollHeight - element.clientHeight))
+    .toBeGreaterThan(100)
+  await band.evaluate((element) => {
+    element.scrollTop = (element.scrollHeight - element.clientHeight) / 2
+  })
+  await expect
+    .poll(() => list.evaluate((element) => getComputedStyle(element, '::after').opacity))
+    .toBe('0.82')
+  const cue = await list.evaluate((element) => {
+    const style = getComputedStyle(element, '::after')
+    return {
+      width: style.width,
+      height: style.height,
+      clip: style.clipPath,
+      shadow: style.filter,
+      pointer: style.pointerEvents,
+    }
+  })
+  expect(cue).toMatchObject({ width: '12.5px', height: '7.5px', clip: 'none', pointer: 'none' })
+  expect(cue.shadow).toContain('drop-shadow')
+  await band.screenshot({ path: `/tmp/sol50-scroll-${size}-light.png` })
+  await page.getByRole('button', { name: 'Dark theme', exact: true }).click()
+  await band.screenshot({ path: `/tmp/sol50-scroll-${size}-dark.png` })
+  await band.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  await expect
+    .poll(() => list.evaluate((element) => getComputedStyle(element, '::after').opacity))
+    .toBe('0')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await expect
+    .poll(() => list.evaluate((element) => getComputedStyle(element, '::before').opacity))
+    .toBe('0.82')
+  await page.emulateMedia({ forcedColors: 'active' })
+  await expect
+    .poll(() => list.evaluate((element) => getComputedStyle(element, '::before').filter))
+    .toBe('none')
+  await expect
+    .poll(() => list.evaluate((element) => getComputedStyle(element, '::before').opacity))
+    .toBe('1')
+  await page.emulateMedia({ forcedColors: 'none', reducedMotion: 'no-preference' })
+  await root.evaluate((element) => {
+    element.style.removeProperty('height')
+    element.style.removeProperty('max-height')
+    element.style.removeProperty('flex')
+  })
+}
+
 async function samplePanelHeightTransition(page: Page, panel: Locator, action: Locator) {
   const before = await panel.evaluate((element) => element.getBoundingClientRect().height)
   const actionElement = await action.elementHandle()

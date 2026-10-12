@@ -1680,7 +1680,8 @@
 @media (pointer: fine) {
   /* Reserve the enlarged endpoint thumb plus breathing room inside the input column. */
   .picodash-dashstack-range-slider-track {
-    margin-inline: calc(var(--picodash-space-3) * 1.25 + var(--picodash-space-1));
+    --_picodash-range-track-inset: calc(var(--picodash-space-3) * 1.25 + var(--picodash-space-1));
+    margin-inline: var(--_picodash-range-track-inset);
   }
   .picodash-dashstack-range-slider:dir(ltr)
     [data-picodash-dashstack-range-slider-thumb][data-picodash-range-end='start'],
@@ -2965,7 +2966,8 @@
 }
 .picodash-dashstack-range-slider[data-detent-range] [data-picodash-detent-track] {
   background: color-mix(in oklab, var(--picodash-color-text) 12%, transparent);
-  margin-inline: calc(var(--picodash-control-height-md) / 2);
+  --_picodash-range-track-inset: calc(var(--picodash-control-height-md) / 2);
+  margin-inline: var(--_picodash-range-track-inset);
 }
 .picodash-dashstack-range-slider[data-detent-range] [data-picodash-detent-track]::before {
   inset-inline: var(--_picodash-detent-start) var(--_picodash-detent-end);
@@ -2983,7 +2985,8 @@
 }
 @media (pointer: fine) {
   .picodash-dashstack-range-slider[data-detent-range] [data-picodash-detent-track] {
-    margin-inline: calc(var(--picodash-space-3) * 1.25);
+    --_picodash-range-track-inset: calc(var(--picodash-space-3) * 1.25);
+    margin-inline: var(--_picodash-range-track-inset);
   }
 }
 
@@ -3294,4 +3297,38 @@
   [data-slot='dash-header-trailing'] {
   grid-column: -2 / -1;
   grid-row: 1;
+}
+
+/* Quiet scale boundaries stay independent of the actual-result arrow and row height. */
+[data-picodash-range-reference-marks] {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-start: 100%;
+  pointer-events: none;
+}
+[data-picodash-range-reference-mark] {
+  position: absolute;
+  margin-inline-start: calc(-1 * var(--picodash-border-width-thin));
+  inline-size: calc(2 * var(--picodash-border-width-thin));
+  block-size: calc(2 * var(--picodash-border-width-thin));
+  border-radius: var(--picodash-radius-control);
+  background: var(--picodash-color-text-muted);
+}
+
+/* Extend paint to the physical left column edge without extending the input domain. */
+.picodash-dashstack-range-slider-track {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.picodash-dashstack-range-slider-track::after {
+  content: '';
+  position: absolute;
+  left: calc(-1 * var(--_picodash-range-track-inset, var(--picodash-space-1)));
+  width: var(--_picodash-range-track-inset, var(--picodash-space-1));
+  inset-block: 0;
+  border-radius: var(--picodash-radius-control);
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  background: color-mix(in oklab, var(--picodash-color-text) 12%, transparent);
+  pointer-events: none;
 }

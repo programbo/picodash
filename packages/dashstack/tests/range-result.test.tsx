@@ -146,3 +146,48 @@ describe('independent Range outcomes', () => {
     nexus.destroy()
   })
 })
+
+it('shows only scale boundary/detent dots, preserving the separate actual pointer and thumb controls', () => {
+  const props = { value: { start: 6, end: 13 }, onChange: vi.fn(), min: 2, max: 12, step: 1 }
+  const view = render(
+    <RangeSlider
+      {...props}
+      endDetent={{ value: 13, label: 'Any' }}
+      result={{ status: 'ready', value: 4 }}
+    />,
+  )
+  const dots = () => [
+    ...view.container.querySelectorAll<HTMLElement>('[data-picodash-range-reference-mark]'),
+  ]
+  expect(dots()).toHaveLength(3)
+  expect(dots().map((dot) => dot.style.insetInlineStart)).toEqual([
+    'calc(var(--_picodash-detent-start) + (100% - var(--_picodash-detent-start) - var(--_picodash-detent-end)) * 0)',
+    'calc(var(--_picodash-detent-start) + (100% - var(--_picodash-detent-start) - var(--_picodash-detent-end)) * 1)',
+    '100%',
+  ])
+  expect(
+    view.container
+      .querySelector('[data-picodash-range-reference-marks]')
+      ?.getAttribute('aria-hidden'),
+  ).toBe('true')
+  expect(
+    view.container
+      .querySelector('[data-picodash-achieved-pointer]')
+      ?.getAttribute('data-picodash-achieved-pointer'),
+  ).toBe('arrow')
+  expect(screen.getAllByRole('slider')).toHaveLength(2)
+  expect(screen.getByLabelText('Actual').textContent).toBe('4')
+  view.rerender(
+    <RangeSlider
+      {...props}
+      startDetent={{ value: 0, label: 'Off' }}
+      endDetent={{ value: 13, label: 'Any' }}
+    />,
+  )
+  expect(dots()).toHaveLength(4)
+  view.rerender(<RangeSlider {...props} value={{ start: 6, end: 12 }} />)
+  expect(dots().map((dot) => dot.style.insetInlineStart)).toEqual(['0%', '100%'])
+  view.rerender(<RangeSlider {...props} min={6} max={6} value={{ start: 6, end: 6 }} />)
+  expect(dots()).toHaveLength(1)
+  expect(props.onChange).not.toHaveBeenCalled()
+})
