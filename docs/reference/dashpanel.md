@@ -1146,7 +1146,9 @@ See [PANEL-TRANSFER-1](dashpanel-contract-decisions.md#detachable-group-hosting-
 `recordableHotkey` (default `false`) adds a small shortcut chip after the title when a Panel is
 collapsible and docked, or offers Close. The outlined chip contains separate keycaps and a Lucide
 pencil outside the outline that appears on hover, keyboard focus or recording without changing its width.
-The complete control is vertically centred in its Panel or group header. Clicking
+The complete control is vertically centred in its Panel or group header. An empty recorder shows
+“Click to record shortcut” in light italic text at half opacity, reaching full opacity on hover
+or keyboard focus. Recording and saved shortcuts remain fully opaque. Clicking
 anywhere on the chip records a modifier chord using TanStack Hotkeys. Escape cancels;
 Delete/Backspace clears. Conflicts and reserved editing/navigation chords leave recording active
 and retain the previous key. Labels use platform-specific modifiers and physical key positions.

@@ -1640,3 +1640,10 @@ vertical centring, the outside pencil and stable hover width. No API or guide wo
 
 Clean snapshot `0.1.0-dogfood.44` records source `6836cad8e031e1e1a0eb750040a112a508658cc2`.
 All 15 installed tests, .43 update/rollback, types and Vite/Next builds pass; the Lab rebuild passes.
+
+Empty shortcut recorders now show “Click to record shortcut” in weight-300 italic text. Their
+button opacity transitions from 0.5 at rest to 1 on hover or keyboard focus; recording and saved
+bindings remain fully opaque. Existing hover paint, outside pencil and centring are preserved.
+All 208 Panel tests and the complete release check pass. The contextual browser journey verifies
+the empty prompt/style, hover opacity and saved opacity, plus the existing recording/layout checks.
+The shared motion-policy check passes; reduced motion disables the opacity transition.

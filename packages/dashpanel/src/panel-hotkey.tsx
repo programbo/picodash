@@ -250,6 +250,7 @@ export function PanelHotkey({
             if (recorder.isRecording) recorder.cancelRecording()
           }}
           data-recording={recorder.isRecording || undefined}
+          data-empty={(!binding || !!error) && !recorder.isRecording ? true : undefined}
         >
           <span data-picodash-hotkey-face>
             {recorder.isRecording ? (
@@ -261,7 +262,7 @@ export function PanelHotkey({
                 ))}
               </span>
             ) : (
-              <span aria-hidden="true">⌨</span>
+              <span data-picodash-hotkey-placeholder>Click to record shortcut</span>
             )}
           </span>
           <Pencil aria-hidden="true" data-picodash-hotkey-edit />

@@ -3332,11 +3332,22 @@ test('routes recorded group shortcuts through visible parents and reopens a clos
     name: 'Record shortcut for group Choices',
     exact: true,
   })
+  await page.mouse.move(0, 0)
+  await expect(basics).toHaveText('Click to record shortcut')
+  await expect(basics).toHaveCSS('opacity', '0.5')
+  await expect(basics.locator('[data-picodash-hotkey-placeholder]')).toHaveCSS(
+    'font-style',
+    'italic',
+  )
+  await basics.hover()
+  await expect(basics).toHaveCSS('opacity', '1')
   for (const recorder of [basics, choices]) {
     await recorder.click()
     await page.keyboard.press('Control+Shift+G')
     await expect(recorder).toHaveAttribute('aria-pressed', 'false')
     await expect(recorder).toContainText('G')
+    await page.mouse.move(0, 0)
+    await expect(recorder).toHaveCSS('opacity', '1')
   }
   const closeRecorder = page.getByRole('button', {
     name: 'Record shortcut for Choices & temporal',
