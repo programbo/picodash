@@ -3060,6 +3060,8 @@
     --_picodash-number-face-height: max(32px, var(--picodash-control-height-md));
     position: relative;
     isolation: isolate;
+    display: flex;
+    align-items: center;
   }
   [data-picodash-number-shell]::before {
     content: '';

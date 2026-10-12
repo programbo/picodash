@@ -291,9 +291,12 @@ metadata, not the host store's application values. Saving only values would lose
 
 ## 5. Observe and control the same model from an agent
 
-The bundle provides headless **in-process APIs**, not a shipped CLI, MCP server, HTTP service, or
-browser discovery protocol. Dev Bridge remains private and absent. Installing the bundle does not
-make a running browser Nexus reachable from another process.
+The five default runtime packages provide headless **in-process APIs**. Installing them does not
+make a running browser Nexus reachable from another process. For external agent discovery,
+inspection, allowlisted writes and matching waits, install the optional private development
+package with `--dev-bridge` and follow the [Agent Dev Bridge recipe](agent-dev-bridge.md).
+Its public host, browser adapter and CLI are development-only; ordinary and production app
+startup do not activate them.
 
 For code holding the same Nexus instance, the supported calls are:
 
@@ -310,10 +313,11 @@ summary returned by the shared selector. Do not expose arbitrary root access or 
 blindly. A scope organizes state; it is not an authorization boundary. The receiving application
 owns transport, input validation, permissions, and which values or drafts it discloses.
 
-For an out-of-process agent, the host must implement that narrow adapter or the agent must use the
-application's accessible UI. This is an explicit unsupported delivery seam, not an undocumented
-consumer setup step. No new transport is implemented by these recipes. Likewise, an asynchronous
-solver needs an application-owned pending/cancellation/result workflow; Nexus validators are
+For an out-of-process agent, the optional Bridge supplies the narrow transport. The application
+registers its disclosure and write allowlists, plus named read-only JSON observations from its
+own model. The agent selects an explicit app, tab and generation; it cannot evaluate arbitrary
+code or obtain undisclosed state. An asynchronous solver still needs an application-owned
+pending/cancellation/result workflow and revision-correlated observations; Nexus validators are
 synchronous. Keep that workflow explicit rather than spreading it across unrelated effects.
 
 ## Verification and limits

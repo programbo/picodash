@@ -68,7 +68,13 @@ export async function startPicodashDevBridgeRelay(
   const credentials = new Map<string, { origin: string }>()
   const active = new Map<string, Session>()
   const tombstones = new Map<string, { id: string; generation: number }>()
-  const server = createServer((req, res) => void http(req, res))
+  const server = createServer((req, res) => {
+    void http(req, res).catch(() => {
+      if (!res.headersSent && !res.destroyed)
+        write(res, 500, err('internal_error', 'Nexus operation failed.'))
+      else res.destroy()
+    })
+  })
   const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 * 1024 })
   let closed = false
   server.on('upgrade', (req, socket, head) => {
@@ -428,7 +434,14 @@ export async function startPicodashDevBridgeRelay(
       write(res, 400, err('invalid_request', 'Invalid request.'))
       return
     }
-    const session = [...active.values()].find((x) => x.id === decodeURIComponent(m[1]!))
+    let sessionId: string
+    try {
+      sessionId = decodeURIComponent(m[1]!)
+    } catch {
+      write(res, 400, err('invalid_request', 'Invalid request.'))
+      return
+    }
+    const session = [...active.values()].find((x) => x.id === sessionId)
     if (!session) {
       write(res, 404, err('session_not_found', 'Session not found.'))
       return

@@ -142,8 +142,15 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
           label: label.getBoundingClientRect().toJSON(),
           content: content.getBoundingClientRect().toJSON(),
           input: input.getBoundingClientRect().toJSON(),
+          fontSize: Number.parseFloat(getComputedStyle(input).fontSize),
+          shellHeight: input.parentElement!.getBoundingClientRect().height,
         }
       })
+      expect(geometry.fontSize).toBeGreaterThanOrEqual(16)
+      if (name === 'NumberDashlet') {
+        expect(geometry.input.height).toBe(32)
+        expect(geometry.shellHeight).toBeGreaterThanOrEqual(44)
+      }
       expect(geometry.input.width).toBeGreaterThan(geometry.content.width * 0.7)
       expect(
         Math.abs(

@@ -29,6 +29,12 @@ On John's machine the source checkout is:
 /Users/john/.codex/worktrees/918b3f3e-fbd3-443a-b926-2c30c6bd42fa/picodash
 ```
 
+The bundle includes the linked Markdown contracts under `docs/`, preserving their contract and
+implementation status. Local guide links resolve within the copied bundle. Code/test diagnostics
+not needed to consume the packages are labelled `source checkout: path`; they are source references,
+not bundled runtime files or additional supported APIs. Packing and installed smoke both validate
+local inline Markdown links.
+
 A copied bundle already identifies itself in `snapshot.json`. Its source commit is provenance;
 its source checkout path is not needed after installation. The repository recommendation can move
 forward without changing an older immutable bundle.

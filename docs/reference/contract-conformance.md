@@ -1801,3 +1801,26 @@ no-op for the two original guides and all three planning files; the new task has
 Actual Gearmo integration, requested/actual solver correlation, camera/readout behavior and
 first-integration friction/timing are tracked by the consumer owner after immutable handoff.
 Broader pre-existing browser limitations above are not changed or claimed passing here.
+
+The five confirmed dogfood .53 audit findings receive a bounded repair batch. Relay session URL
+segments decode once at the authenticated HTTP boundary; malformed percent escapes return
+structured `invalid_request` responses even with no active sessions, and valid encoded IDs still
+route normally. The async HTTP boundary maps unexpected failures to redacted structured errors.
+The existing relay security suite verifies malformed zero/one-session requests, no unhandled
+rejections and subsequent discovery. Numeric touch chrome retains its 32 px face inside a centred
+44 px shell and at least 16 px entry text; the original full phone gallery journey owns the
+rendered centre/entry/overflow oracle. The typed composition table labels the already deferred
+prototypes consistently; no catalog promotion or export removal is made. Consumer recipes describe
+the optional development Bridge instead of denying its delivered route. Portable packing includes
+only the linked Markdown contract snapshot and existing public examples; undelivered code/test
+references are explicit source-checkout text. Bundle and installed-consumer gates reject missing
+or escaping local inline Markdown links. No other audit gap is represented as repaired.
+
+Built production phone evidence shows zero centre delta for Search, Text and Number; the Number
+face stays 32 px inside a 44 px shell, entry fonts remain at least 16 px, and fresh browser
+traffic contains no Bridge broker/WebSocket requests or page errors. The full original phone
+journey is not claimed passing: production reaches its later development-only credential read;
+under the owned development Bridge it reaches a later paired-label placement assertion. A
+same-state comparison with both repair CSS declarations disabled produces identical paired
+rectangles (labels above the controls), so that later assertion is unaffected by this repair.
+No retry, skipped assertion or unrelated paired-label change is used to manufacture a pass.

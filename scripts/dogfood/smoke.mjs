@@ -5,11 +5,13 @@ import { dirname, join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { readSnapshot } from './install.mjs'
+import { checkGuideLinks } from './guides.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 const bundle = resolve(process.argv[2] ?? '')
 if (!process.argv[2]) throw new Error('Usage: bun run dogfood:check /path/to/bundle')
 const snapshot = await readSnapshot(bundle)
+await checkGuideLinks(bundle)
 const alternative = process.argv[3] ? resolve(process.argv[3]) : undefined
 const alternativeSnapshot = alternative ? await readSnapshot(alternative) : undefined
 const catalog = JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).workspaces.catalog
@@ -81,6 +83,7 @@ try {
   }
   // Assert the delivered guides and examples, not merely the source checkout's fixtures.
   const vendor = join(consumer, 'vendor/picodash', snapshot.version)
+  await checkGuideLinks(vendor)
   for (const entry of await readdir(bundle, { withFileTypes: true })) {
     if (entry.isFile() && entry.name.endsWith('.md'))
       assert.deepEqual(

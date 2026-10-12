@@ -18,29 +18,31 @@
       ]
     },
     "skill:packages/picodash/skills/bind-controls/SKILL.md": {
-      "fingerprint": "924f4891486a17f52a6e2259f99417c68d5918fcf71850aa31548e835693cce4",
+      "fingerprint": "4082714c118e2dfa9d3a3093f4c8003626c1e6d0b6b26480fb23b6a9cc1a0f84",
       "snapshot": {
-        "docs/development/consumer-recipes.md": "f83a8f67d32e95efb901b6c5d6ea81154e92149bd61907c24ccc22fd71dc0cae",
+        "docs/development/consumer-recipes.md": "4534d8a3b5d286d98667795be035627bd96f231d5589bb38248c34405033a493",
         "packages/picodash/skills/bind-controls/SKILL.md": "f520bfeee1d185085760351a9596b5001331d43d889266a5a3b6299d2d7b27d3",
         "packages/picodash/src/detachable-group.tsx": "fd145e7903df7e83ae8986d2f8beafcc7a452f0db8ce183f26e32af2b705d147",
         "packages/picodash/src/index.ts": "c62056bb9c1b60b8c0e4d3955542de223f7521a4fdb1f4635feaecba8f0c85d5",
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "reason": "The bind-controls guide uses supported in-process Nexus/UI composition and has no Bridge absence or stable-prototype claim. Consumer recipe external route is corrected using the existing .53 public Bridge recipe; guide recommendations and code remain accurate.",
       "evidence": [
-        "Changed: docs/development/consumer-recipes.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
+        "packages/picodash/skills/bind-controls/SKILL.md",
+        "docs/development/consumer-recipes.md",
+        "Intent validates both original guides; strict installed guide task checks remain release gates."
       ]
     },
     "planning:_artifacts": {
-      "fingerprint": "a26fda6e546ff11230d266d8741ad8e64f485f7a8a0d799c01c7326dd3d79a49",
+      "fingerprint": "d13117e4fcc07176820e50d2049862ead4c5f5153dbe1449fd2cc77f9508db7f",
       "snapshot": {
         "_artifacts/domain_map.yaml": "7fae05e81d3660e56f32a0dc042c64b6f4b7c0718bcaf6917e2792371b333dc4",
         "_artifacts/skill_spec.md": "bc0e75e4b8b009a856e577f727fabb72628c78ef5720a343ba4db40b9decdde4",
         "_artifacts/skill_tree.yaml": "4c95e940102fbc17ad5c41ee7fa564f5bdb26150830ae2ef8e6430e23b48009e",
-        "docs/development/consumer-recipes.md": "f83a8f67d32e95efb901b6c5d6ea81154e92149bd61907c24ccc22fd71dc0cae",
+        "docs/development/consumer-recipes.md": "4534d8a3b5d286d98667795be035627bd96f231d5589bb38248c34405033a493",
         "docs/reference/dashpanel.md": "fc5b794f0bf1c2b03849f162f4c24b494095bc529d366629b5edd5602a579f86",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
         "packages/dashpanel/src/index.tsx": "e02be4329b776d23f97c27b688fbb0bdab06c7372f387baf71e364231776d534",
@@ -51,11 +53,14 @@
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "reason": "All three existing planning files still cover only original bound controls and persistent Panel/group shortcuts; HTTP decoding, touch centering and portable guide/status corrections add no new guide task, API, prerequisite or coverage claim.",
       "evidence": [
-        "Changed: docs/development/consumer-recipes.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
+        "_artifacts/domain_map.yaml",
+        "_artifacts/skill_spec.md",
+        "_artifacts/skill_tree.yaml",
+        "Scope comparison against b837f8d; both existing skill validations pass."
       ]
     },
     "source:apps/lab/src/components/contract-lab/specimen.tsx": {
@@ -71,39 +76,41 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "c257ecf104943d8d04cb4e8f9f4917a4d4490f0e246ca29f89697d0fb3824b33",
+      "fingerprint": "b7c01d16cfc459aa2863eb25335ad3b19d1a8443ae3aba53877ad384c934f817",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "f054d077b0a99c9439c017c5443fb93cf7f6b7f5b6cd85e97636bb5d12559c15"
+        "apps/lab/tests/contract-lab.spec.ts": "70f3c1142d60c047db78c2b3ef9a56ca7785189eaeaafb9421e98f62671f2e56"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
       "evidence": [
-        "Changed: apps/lab/tests/contract-lab.spec.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+        "apps/lab/tests/contract-lab.spec.ts",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
       ]
     },
     "source:docs/development/dogfooding.md": {
-      "fingerprint": "40d37d3955e3acc131331890d99a2222c3f2b30b3df0da3c8e88507219783eb2",
+      "fingerprint": "84f601e1e56e3fd665fe4ec449afa6ff658137de04d4b0adc5fb75171d1a2d82",
       "snapshot": {
-        "docs/development/dogfooding.md": "c27be1b592d2c27a93a4b00c4a9a87072519df295771aa80e2ad26a2538b7deb"
+        "docs/development/dogfooding.md": "73b1e959478e8e31f69e1f44a0c4c1805cc987b3c8fd98091bf254306dd40ea5"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
       "evidence": [
-        "Changed: docs/development/dogfooding.md at b403b854604fbf2fad413a6e4c30c1da6593a662"
+        "docs/development/dogfooding.md",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "3c079c9c5c6c9c9743132bbe3c489adb434dba1496ea62bf195c041ec72fc999",
+      "fingerprint": "ce74b2bdb8da2fd6aecd2a6a2f7916e9f4c1cb0e596670d07eacf23f559145e0",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "a82ed1dbb13dad9156e167098b0005498dfd1e3190d895d1bd9ed6fa74fe8347"
+        "docs/reference/contract-conformance.md": "33df14f60a1a7876d468a03b6b4738237835d776390b61799c3a58d15f6a8fef"
       },
-      "head": "6a9db9fe84a2898ce1347c5e76abf434cd509da3",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "Recommendation evidence only: immutable .53 source 6a9db9f passed 1178 package tests and18 installed consumer tests, optional development install and current-installer .52 rollback/.53 restore, strict public example types, guide discovery/validation, Vite/Next builds and the real Lab development v3 journey. Restored production renders with zero Bridge broker/WebSocket requests; owned browser exit verified. Original two guides and all three planning files remain accurate and unchanged. External Gearmo acceptance and first-use friction remain consumer-owned; broader browser limitations and deferred audits are not claimed passing.",
+      "reason": "Both original guides and all three planning records remain accurate for bound controls and persistent shortcuts. Five scoped audit repairs preserve APIs and task coverage: HTTP boundary rejection, coarse numeric centering, existing deferred status, optional Bridge recipe and portable inline links.12 relay-security and7 delivery tests pass; actual33-document link closure and both skill validations pass. Built phone centering passes; later paired-label failure is unchanged in CSS baseline comparison, not claimed repaired.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at 6a9db9fe84a2898ce1347c5e76abf434cd509da3"
+        "Changed: docs/reference/contract-conformance.md at b837f8d5717b6ee0894ceabe74ca2e39df992eda"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -273,24 +280,30 @@
       ]
     },
     "source:scripts/dogfood/pack.mjs": {
-      "fingerprint": "e1a642e89cc276a5d19177c4fff031ed8686d78868a9bdeea1bbf97ea4fc06de",
+      "fingerprint": "2d767104acdd0e687d72a899f2e3af1d48b14cfac63c1012644bec78776f8000",
       "snapshot": {
-        "scripts/dogfood/pack.mjs": "01f9d68c109068bb25bdfce98a88eebd96dd92fd846a4200dad05218d1ca18b5"
+        "scripts/dogfood/pack.mjs": "390bc49ea659411f1a8e9b2bd3e3edd715b34aa46f24a5d5fa2e8ebb47c183b5"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
-      "evidence": ["Changed: scripts/dogfood/pack.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"]
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
+      "evidence": [
+        "scripts/dogfood/pack.mjs",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
+      ]
     },
     "source:scripts/dogfood/smoke.mjs": {
-      "fingerprint": "5a8ed8cbf8e02822cc07a1fc868142243f0daf2df1b10671794bfe4e55a8d6a1",
+      "fingerprint": "0e0c34c58b93753919453dccbdf0a44f07ebbf1857ec45dd727424e81e719594",
       "snapshot": {
-        "scripts/dogfood/smoke.mjs": "396fe35a10db9ffa5f7abb0129154fdfa400bfaf372c9eaca5082fc8c4d416be"
+        "scripts/dogfood/smoke.mjs": "0a8de97439403007e4b65aaeff40c6a31c722b825de60111a1c5e40e2ab23a2a"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
-      "evidence": ["Changed: scripts/dogfood/smoke.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"]
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
+      "evidence": [
+        "scripts/dogfood/smoke.mjs",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
+      ]
     },
     "source:tests/skills/README.md": {
       "fingerprint": "0da5af8c0e43230b2d6bfba071468b411c860ba9378e2dd97b4168fa0cb93fba",
@@ -391,15 +404,16 @@
       ]
     },
     "source:docs/reference/dashstack.md": {
-      "fingerprint": "c64491d80468da0f88bbf794ec3d9f4c0f550694693797bcb148334b89516819",
+      "fingerprint": "8cb9607dbcd71219272297b99bc5b5a514d3cbd170ffb96bca88f2d0b88a232d",
       "snapshot": {
-        "docs/reference/dashstack.md": "1f80025e5ffc6591d4855143dcc117a9530514a5ecc1c0236148e824241695e9"
+        "docs/reference/dashstack.md": "fe0752dc9a5d65e3c4cfd6b3c9897f1fd8c5a1d350176143ff4f67b3a5a9a5b4"
       },
-      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
       "evidence": [
-        "Changed: docs/reference/dashstack.md at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
+        "docs/reference/dashstack.md",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
       ]
     },
     "source:docs/reference/picodash.md": {
@@ -457,15 +471,16 @@
       ]
     },
     "source:packages/dashstack/src/style.css": {
-      "fingerprint": "6bf9719e897aa6ad76a44889adb608b9d49db96e88723baf22e0a3bd676fa085",
+      "fingerprint": "48f5cdeb453b5d5ba89f2a2642d0c508432c915e9c081716e3944bab81ee4405",
       "snapshot": {
-        "packages/dashstack/src/style.css": "53108ebde54cae0011589363aa10e839020e50e59d9393d11eb51ba8abd04fb7"
+        "packages/dashstack/src/style.css": "0b424e12f8841ac386dfd44f04c8fa577340106c735e666001df904e0284947b"
       },
-      "head": "5fce48d1cf99fa8517bb424bb254fe0a8762db7c",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "Presentation-only Range references/left extension and shared scroll cue polish; no public API, value mapping, thumb hit geometry, detent lifecycle or persistence changes. Existing two shortcut/binding guides and all three planning documents remain accurate for their bounded tasks. Public references/conformance document precise geometry and scroll behavior. 30 affected component/CSS tests, workspace formatting/lint/types, motion policy, suite cap and scoped desktop/mobile light/dark browser journey pass; root approved single visual correction. Untouched gallery alignment failure reproduced on .49 baseline and separate initial phone artifact timeout are documented rather than claimed passing. Fresh immutable consumer checks follow at release.",
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
       "evidence": [
-        "Changed: packages/dashstack/src/style.css at 5fce48d1cf99fa8517bb424bb254fe0a8762db7c"
+        "packages/dashstack/src/style.css",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
       ]
     },
     "source:packages/picodash/style.css": {
@@ -1023,15 +1038,16 @@
       ]
     },
     "source:packages/dev-bridge/src/relay.ts": {
-      "fingerprint": "7248d1200f3599693637c8afcee014f5bd820df2720723f129d5acad21ae9823",
+      "fingerprint": "7001c7bdcea2c557f2a58a6283f54bb7e80692a1455a4cbf8d715be467bb8005",
       "snapshot": {
-        "packages/dev-bridge/src/relay.ts": "6a589754a03f022973b661ac23d35a3062473920d8c153fb203c05fd541a7e96"
+        "packages/dev-bridge/src/relay.ts": "1fffa0e1dc28dbe69235df73662f0489e1803a13be5fee3d81aaa6bb08fd5cad"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
       "evidence": [
-        "Changed: packages/dev-bridge/src/relay.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+        "packages/dev-bridge/src/relay.ts",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
       ]
     },
     "source:packages/dev-bridge/src/serialization.ts": {
@@ -1119,15 +1135,16 @@
       ]
     },
     "source:packages/dev-bridge/tests/relay-security.test.ts": {
-      "fingerprint": "cc11a420fad3004822ff68b48b3bd65feee6d9514f9cd91432ed6157065d3b8e",
+      "fingerprint": "3be6dd826fd70e1d631fa4413022e9b49e7dff2a3925222f580205b946391447",
       "snapshot": {
-        "packages/dev-bridge/tests/relay-security.test.ts": "8f95477d9555ef964dd468fba797de819645573d14dafc194956f53603fbe086"
+        "packages/dev-bridge/tests/relay-security.test.ts": "72ca2a00ae4aca2b69e4d8d1316deb81660433ba33f518cca4ffbeb26b023e16"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
       "evidence": [
-        "Changed: packages/dev-bridge/tests/relay-security.test.ts at b403b854604fbf2fad413a6e4c30c1da6593a662"
+        "packages/dev-bridge/tests/relay-security.test.ts",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
       ]
     },
     "source:packages/dev-bridge/tests/relay.test.ts": {
@@ -1203,27 +1220,55 @@
       ]
     },
     "source:scripts/dogfood/dogfood.test.mjs": {
-      "fingerprint": "71a075e8dc2431dcbdf4ca0aff110154d047bea1c6aa436e3e783a5c0b1fdbec",
+      "fingerprint": "bb9e83394a5c4816211ac140d0f9ecef537ea686125dba5b65e7d21422c4320d",
       "snapshot": {
-        "scripts/dogfood/dogfood.test.mjs": "b71720a54080a50b6d74f88db5aaaf2ed508ad3523781431ffd45b34b52a1f46"
+        "scripts/dogfood/dogfood.test.mjs": "fac6bafdae35b43498a7b0f9295ee5a3a74869392de30d2db447f42b4443eb44"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
       "evidence": [
-        "Changed: scripts/dogfood/dogfood.test.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"
+        "scripts/dogfood/dogfood.test.mjs",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
       ]
     },
     "source:scripts/dogfood/install.mjs": {
-      "fingerprint": "0a103f7754b41b07a315cf2e22f5e1a30fc28003941e904b67b80cc8a94b35af",
+      "fingerprint": "849b4995a94829fe6b9ed090dc78b26f58eef8d5b3da5a1b41e8c5b6d49237c1",
       "snapshot": {
-        "scripts/dogfood/install.mjs": "af400d39411011b81913c7cb288309c5baf972a6da915a4516961578c6774708"
+        "scripts/dogfood/install.mjs": "b7e67a74c8c6addde8c007862da7990a0dd977d3a5beecab51362d5890814173"
       },
-      "head": "b403b854604fbf2fad413a6e4c30c1da6593a662",
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
       "outcome": "no-change",
-      "reason": "External development Bridge v3 is documented through the supported host/install/browser/observation/CLI recipe; read-only app sources never mirror into Nexus or add application commands.52 Bridge tests,6 delivery policies, private credential-file CLI, public quiet-default fixture, package artifacts, workspace types and real Lab v3 journey3.5s pass. New dock-reactive public example covers integrated and standalone providers; typed imports use dragPreview posture and target bounds while camera remains app-owned. The existing bind-controls and docked-panel-shortcuts guides still accurately teach their agreed tasks; they do not claim Bridge/solver observation coverage. Read domain_map.yaml, skill_spec.md and skill_tree.yaml preserve that initial two-task batch; no activation/purpose or planning change required. New independent Bridge task is discoverable through development task index and copyable delivered source; actual fresh Gearmo consumer verification and friction timing follow immutable handoff, not claimed here.",
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
       "evidence": [
-        "Changed: scripts/dogfood/install.mjs at b403b854604fbf2fad413a6e4c30c1da6593a662"
+        "scripts/dogfood/install.mjs",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
+      ]
+    },
+    "source:apps/lab/test-results/.last-run.json": {
+      "fingerprint": "55fe725268e77e3cdb1aba90c92f7161b8d6b41fb1b944c9ba40c8a3d2c9aa68",
+      "snapshot": {
+        "apps/lab/test-results/.last-run.json": "70b30a50855b7c5b859d3f3ea99e587b865e336ae9b51983dd861a74484a8afb"
+      },
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
+      "outcome": "no-change",
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
+      "evidence": [
+        "apps/lab/test-results/.last-run.json",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
+      ]
+    },
+    "source:scripts/dogfood/guides.mjs": {
+      "fingerprint": "0145021357de87bb53a54d9567f80e964e76f9632afce06728e4faf0ac200a48",
+      "snapshot": {
+        "scripts/dogfood/guides.mjs": "7acf0edd5d810f7dadb94937e50dbc9b7b995dd287262b1f8543af2ecc260976"
+      },
+      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
+      "outcome": "no-change",
+      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
+      "evidence": [
+        "scripts/dogfood/guides.mjs",
+        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
       ]
     }
   }

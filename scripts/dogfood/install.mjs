@@ -152,7 +152,10 @@ async function main() {
     const guides = (await readdir(bundle, { withFileTypes: true }))
       .filter((entry) => entry.isFile() && entry.name.endsWith('.md'))
       .map((entry) => entry.name)
-    for (const file of ['snapshot.json', 'install.mjs', ...guides, 'example'])
+    const directories = (await readdir(bundle, { withFileTypes: true }))
+      .filter((entry) => entry.isDirectory() && entry.name === 'docs')
+      .map((entry) => entry.name)
+    for (const file of ['snapshot.json', 'install.mjs', ...guides, 'example', ...directories])
       await cp(join(bundle, file), join(vendor, file), { recursive: true })
   }
   await writeFile(manifestPath, JSON.stringify(next, null, 2) + '\n')

@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { locateSnapshot } from './locate.mjs'
 import { consumerManifest, readSnapshot } from './install.mjs'
 import { distributionManifest, names, sha256, validVersion } from './pack.mjs'
+import { packGuides, checkGuideLinks, guideFiles } from './guides.mjs'
 
 const snapshot = (version = '0.1.0-dogfood.1') => ({
   schemaVersion: 1,
@@ -152,4 +153,40 @@ test('Bridge is optional development-only delivery with owned update and legacy 
   )
   assert.throws(() => consumerManifest(foreign, current, { devBridge: true }), /not bundle-owned/)
   assert.throws(() => consumerManifest(original, legacy, { devBridge: true }), /does not include/)
+})
+
+test('portable guides retain linked Markdown and examples without shipping source diagnostics', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'picodash-guides-'))
+  const output = join(root, 'bundle')
+  try {
+    await mkdir(join(root, 'docs/development'), { recursive: true })
+    await mkdir(join(root, 'docs/reference'), { recursive: true })
+    await mkdir(join(output, 'example'), { recursive: true })
+    for (const [source] of guideFiles)
+      await writeFile(join(root, 'docs/development', source), '# Guide\n')
+    await writeFile(
+      join(root, 'docs/development/dogfooding.md'),
+      '[Contract](../reference/control.md#contract) [Example](../../packages/picodash/tests/dogfood/Controls.tsx) [Diagnostic](../../apps/lab/test.ts)\n',
+    )
+    await writeFile(
+      join(root, 'docs/reference/control.md'),
+      '# Contract\n[Install](../development/dogfooding.md) [External](https://example.com/)\n',
+    )
+    await writeFile(join(output, 'example/Controls.tsx'), '// public example\n')
+    assert.equal(await packGuides(root, output, ['Controls.tsx']), 9)
+    assert.equal(await checkGuideLinks(output), 9)
+    const installed = join(root, 'consumer/vendor/picodash/0.1.0-dogfood.54')
+    await cp(output, installed, { recursive: true })
+    assert.equal(await checkGuideLinks(installed), 9)
+    const guide = await readFile(join(output, 'GUIDE.md'), 'utf8')
+    assert.match(guide, /\[Contract\]\(docs\/reference\/control.md#contract\)/)
+    assert.match(guide, /\[Example\]\(example\/Controls.tsx\)/)
+    assert.match(guide, /Diagnostic \(source checkout: `apps\/lab\/test.ts`\)/)
+    await rm(join(output, 'docs/reference/control.md'))
+    await assert.rejects(checkGuideLinks(output), /Missing portable guide link/)
+    await writeFile(join(output, 'GUIDE.md'), '[Outside](../private.md)\n')
+    await assert.rejects(checkGuideLinks(output), /escapes bundle/)
+  } finally {
+    await rm(root, { recursive: true, force: true })
+  }
 })

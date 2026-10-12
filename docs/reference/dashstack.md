@@ -868,7 +868,7 @@ issues, axes, and legends are guides; anatomy and compound content provide layer
 `DashGroup`, and `DashStack` provide composition and identity. These roles are additive and
 explicit—no component infers hidden fields or identity from its children.
 
-| Stable component       | Canonical field/value contract    | Semantic distinction                                                                     |
+| Deferred prototype     | Canonical field/value contract    | Semantic distinction                                                                     |
 | ---------------------- | --------------------------------- | ---------------------------------------------------------------------------------------- |
 | `RadioGroupDashlet`    | one scalar choice                 | Longer or vertical choice list; use `SegmentedDashlet` for compact visible choices.      |
 | `ComboboxDashlet`      | one scalar choice                 | Searchable single selection.                                                             |
@@ -879,6 +879,9 @@ explicit—no component infers hidden fields or identity from its children.
 | `ProgressDashlet`      | one numeric field                 | Determinate, field-bound progress only.                                                  |
 | `StatusDashlet`        | one explicit status value         | Uses an option map for label, tone, and optional icon; never infers tone from the value. |
 | `ColorDashlet`         | one CSS color string              | Nexus schemas decide which CSS formats or color spaces are accepted.                     |
+
+These evaluation prototypes remain deferred from stable promotion; the table describes their
+existing binding contracts, not release acceptance.
 
 Temporal Dashlets use strict JSON values and never persist `Date` instances. Calendar dates are ISO
 date strings, local times are ISO time strings, date-times are RFC 3339 strings with offsets, and

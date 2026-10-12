@@ -12,6 +12,65 @@ import {
 } from './support/raw.js'
 
 describe('dev bridge relay security boundaries', () => {
+  test.each([false, true])(
+    'rejects malformed session escapes with an active session: %s',
+    async (withSession) => {
+      const relay = await startPicodashDevBridgeRelay({
+        allowedBrowserOrigins: ['http://localhost'],
+      })
+      let socket: ReturnType<typeof openSocket> | undefined
+      const unhandled: unknown[] = []
+      const onUnhandled = (reason: unknown) => unhandled.push(reason)
+      process.on('unhandledRejection', onUnhandled)
+      try {
+        if (withSession) {
+          const credential = relay.issueBrowserCredential('http://localhost')
+          socket = openSocket(credential.webSocketUrl, credential.origin)
+          await waitOpen(socket)
+          frame(socket, registerFrame(credential.token))
+          expect((await readFrame(socket)).type).toBe('registered')
+        }
+        for (const sessionId of ['%ZZ', '%E0%A4%A', '%']) {
+          const response = await fetch(
+            `${relay.baseUrl}/v1/sessions/${sessionId}/generations/1/snapshot`,
+            {
+              headers: { authorization: `Bearer ${relay.agentCredential.token}` },
+              signal: AbortSignal.timeout(1000),
+            },
+          )
+          expect(response.status).toBe(400)
+          expect(await response.json()).toMatchObject({
+            type: 'bridge_error',
+            error: { code: 'invalid_request', message: 'Invalid request.' },
+          })
+          const sessions = await createPicodashDevBridgeClient(relay.agentCredential).listSessions()
+          expect(sessions).toHaveLength(withSession ? 1 : 0)
+        }
+        if (withSession) {
+          const sessions = await createPicodashDevBridgeClient(relay.agentCredential).listSessions()
+          const session = sessions[0]!
+          const encodedId = `%${session.sessionId.charCodeAt(0).toString(16)}${session.sessionId.slice(1)}`
+          const response = await fetch(
+            `${relay.baseUrl}/v1/sessions/${encodedId}/generations/${session.generation}/snapshot`,
+            { headers: { authorization: `Bearer ${relay.agentCredential.token}` } },
+          )
+          // A registered peer without a snapshot is valid but unsynchronized.
+          expect(response.status).toBe(409)
+          expect(await response.json()).toMatchObject({
+            type: 'bridge_error',
+            error: { code: 'session_unsynchronized' },
+          })
+        }
+        await new Promise<void>((resolve) => setImmediate(resolve))
+        expect(unhandled).toEqual([])
+      } finally {
+        process.off('unhandledRejection', onUnhandled)
+        await closeSocket(socket)
+        await relay.close()
+      }
+    },
+  )
+
   test.each([1, 2])(
     'rejects retired version-%s peers during the WebSocket handshake',
     async (version) => {

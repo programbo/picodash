@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { packGuides, checkGuideLinks } from './guides.mjs'
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
 export const names = ['nexus', 'ui', 'dashpanel', 'dashstack', 'picodash', 'dev-bridge']
@@ -95,31 +96,8 @@ async function main() {
       packages.push({ name: source.name, file, sha256: sha256(await readFile(join(output, file))) })
     }
     await cp(join(root, 'scripts/dogfood/install.mjs'), join(output, 'install.mjs'))
-    await cp(join(root, 'docs/development/dogfooding.md'), join(output, 'GUIDE.md'))
-    await cp(
-      join(root, 'docs/development/consumer-recipes.md'),
-      join(output, 'consumer-recipes.md'),
-    )
-    await cp(join(root, 'docs/development/numeric-targets.md'), join(output, 'numeric-targets.md'))
-    await writeFile(
-      join(output, 'linked-controls.md'),
-      (await readFile(join(root, 'docs/development/linked-controls.md'), 'utf8')).replace(
-        '(dogfooding.md)',
-        '(GUIDE.md)',
-      ),
-    )
-    await cp(
-      join(root, 'docs/development/open-ended-ranges.md'),
-      join(output, 'open-ended-ranges.md'),
-    )
-    for (const file of ['agent-dev-bridge.md', 'dock-reactive-layout.md', 'index.md']) {
-      const text = (await readFile(join(root, 'docs/development', file), 'utf8'))
-        .replaceAll('(dogfooding.md', '(GUIDE.md')
-        .replaceAll('../../packages/picodash/tests/dogfood/', 'example/')
-      await writeFile(join(output, file), text)
-    }
     await mkdir(join(output, 'example'))
-    for (const file of [
+    const examples = [
       'Controls.tsx',
       'Shortcuts.tsx',
       'ContextualShortcuts.tsx',
@@ -136,9 +114,11 @@ async function main() {
       'DockReactive.tsx',
       'DevBridge.tsx',
       'SubgroupPriorities.tsx',
-    ]) {
+    ]
+    for (const file of examples) {
       await cp(join(root, 'packages/picodash/tests/dogfood', file), join(output, 'example', file))
     }
+    await packGuides(root, output, examples)
     await writeFile(
       join(output, 'snapshot.json'),
       JSON.stringify(
@@ -154,6 +134,7 @@ async function main() {
         2,
       ) + '\n',
     )
+    await checkGuideLinks(output)
     process.stdout.write(
       `Snapshot: ${output}\nSource: ${sourceCommit}${dirty ? ' (dirty trial)' : ''}\n`,
     )
