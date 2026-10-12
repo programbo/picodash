@@ -1730,3 +1730,10 @@ The broader gallery label/input-centre assertion remains failing at 6px against 
 the untouched test reproduces the same failure on the restored .49 production baseline. The phone
 boundary artifact journey also reached its 30-second timeout during the initial broad probe; its
 cause was not established. Neither broad journey is claimed passing by this scoped verification.
+
+Clean snapshot `0.1.0-dogfood.50` records source `36bce87cc273f67aeb4d81b67394635eff78ccf0`.
+All six package release checks pass (1163 tests), as do all 17 isolated installed-consumer tests,
+guide discovery/validation, .49 update/rollback, strict example types and Vite/Next CSS builds.
+The production Lab rebuild and scoped desktop/mobile Range/cue journey against its restored
+supervised server pass (1 test, 2.8 seconds). This does not change the broader browser limitations
+recorded above. Actual Gearmo adoption remains the consumer owner's separate verification.
