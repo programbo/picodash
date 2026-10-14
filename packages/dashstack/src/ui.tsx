@@ -154,40 +154,57 @@ export function NumberField({
   validateNumberFieldConfiguration(min, max, step)
   const inputRef = usePrimaryControlRef<HTMLInputElement>()
   const pendingTextEdit = useRef(false)
-  const pendingImmediateEdit = useRef(false)
-  const immediateEditGeneration = useRef(0)
-  const previousConfiguration = useRef({ value, min, max, step, formatOptions })
+  const pendingImmediateEdit = useRef<Event | null>(null)
+  const previousConfiguration = useRef({
+    value,
+    min,
+    max,
+    step,
+    formatOptions,
+    disabled: props.disabled,
+    readOnly: props.readOnly,
+  })
   const previous = previousConfiguration.current
   if (
     !Object.is(previous.value, value) ||
     !Object.is(previous.min, min) ||
     !Object.is(previous.max, max) ||
     !Object.is(previous.step, step) ||
-    !equalNumberFormatOptions(previous.formatOptions, formatOptions)
+    !equalNumberFormatOptions(previous.formatOptions, formatOptions) ||
+    previous.disabled !== props.disabled ||
+    previous.readOnly !== props.readOnly
   ) {
     pendingTextEdit.current = false
-    pendingImmediateEdit.current = false
-    immediateEditGeneration.current += 1
-    previousConfiguration.current = { value, min, max, step, formatOptions }
+    pendingImmediateEdit.current = null
+    previousConfiguration.current = {
+      value,
+      min,
+      max,
+      step,
+      formatOptions,
+      disabled: props.disabled,
+      readOnly: props.readOnly,
+    }
   }
 
   const canEdit = !props.disabled && !props.readOnly
   const markTextEdit = () => {
     if (canEdit) pendingTextEdit.current = true
   }
-  const markImmediateEdit = () => {
-    if (!canEdit) return
-    pendingImmediateEdit.current = true
-    const generation = ++immediateEditGeneration.current
-    void Promise.resolve().then(() => {
-      if (immediateEditGeneration.current === generation) pendingImmediateEdit.current = false
-    })
+  const markImmediateEdit = (event: Event) => {
+    if (canEdit) pendingImmediateEdit.current = event
   }
   const handleChange = (next: number) => {
-    if (!pendingTextEdit.current && !pendingImmediateEdit.current) return
+    // Native dispatch may drain microtasks between capture and bubble listeners. The event's
+    // dispatch phase bounds immediate intent without authorizing a later no-edit blur.
+    const immediateEdit = pendingImmediateEdit.current
+    if (
+      !canEdit ||
+      (!pendingTextEdit.current && (!immediateEdit || immediateEdit.eventPhase === Event.NONE))
+    )
+      return
     pendingTextEdit.current = false
-    pendingImmediateEdit.current = false
-    immediateEditGeneration.current += 1
+    pendingImmediateEdit.current = null
     onChange(Number.isNaN(next) ? null : next)
   }
 
@@ -231,18 +248,15 @@ export function NumberField({
           onPasteCapture={markTextEdit}
           onCutCapture={markTextEdit}
           onKeyDownCapture={(event) => {
-            if (isImmediateNumberEditKey(event.key)) markImmediateEdit()
-            else if (event.key.length === 1 || event.key === 'Backspace' || event.key === 'Delete')
-              markTextEdit()
+            if (isImmediateNumberEditKey(event.key)) markImmediateEdit(event.nativeEvent)
           }}
           onWheelCapture={(event) => {
             if (Math.abs(event.deltaY) > Math.abs(event.deltaX) && event.deltaY !== 0)
-              markImmediateEdit()
+              markImmediateEdit(event.nativeEvent)
           }}
           onBlur={() => {
             pendingTextEdit.current = false
-            pendingImmediateEdit.current = false
-            immediateEditGeneration.current += 1
+            pendingImmediateEdit.current = null
           }}
         />
         {unit ? (

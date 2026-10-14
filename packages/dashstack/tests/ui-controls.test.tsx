@@ -681,6 +681,50 @@ describe('NumberField configuration and behavior', () => {
     act(() => view.unmount())
   })
 
+  it('expires no-op key and wheel intent before a later formatted blur', () => {
+    for (const edit of ['Home', 'copy', 'wheel'] as const) {
+      const changes: Array<number | null> = []
+      const view = render(
+        createElement(NumberField, {
+          value: 1.234567,
+          formatOptions: { maximumFractionDigits: 2 },
+          onChange: (next) => changes.push(next),
+          'aria-label': 'Exact number',
+        }),
+      )
+      const input = view.root.element.querySelector<HTMLInputElement>('input')!
+      fireEvent.focus(input)
+      if (edit === 'copy') fireEvent.keyDown(input, { key: 'c', ctrlKey: true })
+      else if (edit === 'Home') fireEvent.keyDown(input, { key: 'Home' })
+      else fireEvent.wheel(input, { deltaY: 10, deltaX: 0, ctrlKey: true })
+      fireEvent.blur(input)
+      expect(changes, edit).toEqual([])
+      act(() => view.unmount())
+    }
+  })
+
+  it('discards text intent when disabled or read-only policy changes without a new value', () => {
+    for (const policy of ['disabled', 'readOnly'] as const) {
+      const changes: Array<number | null> = []
+      const renderField = (blocked: boolean) =>
+        createElement(NumberField, {
+          value: 1.234567,
+          formatOptions: { maximumFractionDigits: 2 },
+          [policy]: blocked,
+          onChange: (next) => changes.push(next),
+          'aria-label': 'Policy number',
+        })
+      const view = render(renderField(false))
+      const input = () => view.root.element.querySelector<HTMLInputElement>('input')!
+      fireEvent.change(input(), { target: { value: '2.5' } })
+      act(() => view.update(renderField(true)))
+      act(() => view.update(renderField(false)))
+      fireEvent.blur(input())
+      expect(changes, policy).toEqual([])
+      act(() => view.unmount())
+    }
+  })
+
   it('rejects invalid direct NumberField configuration synchronously', () => {
     const invalidConfigurations: readonly {
       readonly name: string

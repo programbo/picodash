@@ -137,6 +137,11 @@ retains the null draft, and the adapter uses `NaN` only to display an empty Numb
 NaN to Nexus or persist it. Do not use `draftValue ?? value`, because that replaces an intentional
 empty draft with the accepted value.
 
+Mounting, focus, untouched blur, and value or configuration updates do not call `onChange`.
+Native direction keys and wheel edits commit during their event dispatch. A direction key that
+cannot change the value and a copy shortcut do not authorize a later blur replacement. Changing
+disabled or read-only policy discards pending edit intent.
+
 Incomplete text such as `-` stays inside NumberField while editing. It is not a Nexus draft yet:
 the public control has no raw-text callback or controlled text-value prop. On numeric commit,
 Nexus either accepts the candidate or retains the rejected numeric/null draft. Formatting or

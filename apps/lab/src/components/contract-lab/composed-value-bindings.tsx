@@ -1,5 +1,6 @@
 import { DashGroup, Dashlet, type SingleFieldDashletRenderContext } from '@picodash/dashstack'
 import { Display, NumberField, Switch, TextField } from '@picodash/dashstack/ui'
+import { NumberFieldContext } from 'react-aria-components'
 import type { ValueBindingNexus } from './value-binding-model'
 
 export function renderComposedValueBindings({
@@ -39,18 +40,22 @@ export function renderComposedValueBindings({
             descriptionId,
             disabled,
           }: SingleFieldDashletRenderContext<number>) => (
-            <NumberField
-              id={binding.controlId}
-              aria-labelledby={labelId}
-              aria-describedby={[descriptionId, binding.issuesId].filter(Boolean).join(' ')}
-              aria-invalid={binding.invalid || undefined}
-              aria-errormessage={binding.issuesId}
-              disabled={disabled}
-              value={typeof binding.draftValue === 'number' ? binding.draftValue : binding.value}
-              onChange={(value) => {
-                if (value !== null) binding.setInput(value)
-              }}
-            />
+            <NumberFieldContext.Provider value={{ commitBehavior: 'validate' }}>
+              <NumberField
+                step={0.01}
+                formatOptions={{ maximumFractionDigits: 10 }}
+                id={binding.controlId}
+                aria-labelledby={labelId}
+                aria-describedby={[descriptionId, binding.issuesId].filter(Boolean).join(' ')}
+                aria-invalid={binding.invalid || undefined}
+                aria-errormessage={binding.issuesId}
+                disabled={disabled}
+                value={typeof binding.draftValue === 'number' ? binding.draftValue : binding.value}
+                onChange={(value) => {
+                  if (value !== null) binding.setInput(value)
+                }}
+              />
+            </NumberFieldContext.Provider>
           )}
         </Dashlet>
         <Dashlet id="enabled" label="Live updates" field={nexus.fields.enabled} disabled={disabled}>

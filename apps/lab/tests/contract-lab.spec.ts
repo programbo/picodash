@@ -881,6 +881,41 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
     }
   }
 
+  // Native dispatch drains microtasks between capture and bubble handlers; fireEvent does not.
+  const exactInput = composed.getByRole('textbox', { name: 'Refresh interval', exact: true })
+  const exactInterval = 28.7233090642
+  await client.setValues(await currentSession(), {
+    type: 'set_values',
+    requestId: 'native-number-exact-value',
+    values: { interval: exactInterval },
+  })
+  await expect(exactInput).toHaveValue(String(exactInterval))
+  await exactInput.focus()
+  await exactInput.press('ControlOrMeta+c')
+  await exactInput.press('Tab')
+  await expect.poll(async () => (await values()).interval).toBe(exactInterval)
+  await exactInput.focus()
+  await exactInput.press('Home') // No minimum: no-op must not authorize a later blur.
+  await exactInput.press('Tab')
+  await expect.poll(async () => (await values()).interval).toBe(exactInterval)
+  await exactInput.focus()
+  await exactInput.press('ArrowUp')
+  await expect.poll(async () => (await values()).interval).toBe(28.73)
+  await expect(exactInput).toHaveValue('28.73')
+  await exactInput.press('ArrowDown')
+  await expect.poll(async () => (await values()).interval).toBe(28.72)
+  await page.mouse.move(
+    ...(await exactInput.evaluate((input) => {
+      const bounds = input.getBoundingClientRect()
+      return [bounds.x + bounds.width / 2, bounds.y + bounds.height / 2] as [number, number]
+    })),
+  )
+  await page.mouse.wheel(0, -100)
+  await expect.poll(async () => (await values()).interval).toBe(28.71)
+  await exactInput.fill('28.7233190642')
+  await exactInput.press('Tab')
+  await expect.poll(async () => (await values()).interval).toBe(28.7233190642)
+
   await region.getByRole('button', { name: 'Apply example values' }).click()
   await expect.poll(values).toEqual({ name: 'Evening', interval: 15, enabled: false })
   const session = await currentSession()

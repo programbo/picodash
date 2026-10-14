@@ -1840,3 +1840,19 @@ geometry records Number centre delta 0 px, compact face 32 px, shell 44 px and a
 text, with no page errors or Bridge broker/WebSocket traffic. Full phone-suite success is not
 claimed: the original development journey reaches the unchanged paired-label assertion described
 above. The geometry repair and five audit findings are complete; broader audit gaps remain separate.
+
+### Native NumberField event lifetime, 2026-10-15
+
+The existing standalone value-binding Lab journey now exercises a public composed NumberField
+with React Aria context `commitBehavior: validate`, step `0.01`, and ten fraction digits. Native
+Chromium ArrowUp from `28.7233090642` failed before the repair (unchanged canonical value) and
+passes afterward (`28.73`), with ArrowDown (`28.72`), native wheel (`28.71`), and exact typed text
+commit (`28.7233190642`) observed through Dev Bridge. The same journey retains focus, policy,
+theme, reset, and persistence checks without adding a collected browser test.
+
+NumberField now bounds immediate edit intent by the native Event dispatch phase rather than a
+microtask expiry. This preserves authorization across native capture/bubble scheduling and expires
+no-op events before later blur. The owning `ui-controls.test.tsx` checks formatted untouched blur,
+text/null edits, arrows, wheel, copy/no-op keys, configuration resets, and disabled/read-only policy
+changes without changing the value. This repair adds no public prop and leaves exact-value API
+and TargetSlider representation decisions unresolved.

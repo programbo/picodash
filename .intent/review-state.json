@@ -76,16 +76,15 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "b7c01d16cfc459aa2863eb25335ad3b19d1a8443ae3aba53877ad384c934f817",
+      "fingerprint": "96ecff07351c866782ad20103969b497609d001666e0a68519c1c81a64e4e8b4",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "70f3c1142d60c047db78c2b3ef9a56ca7785189eaeaafb9421e98f62671f2e56"
+        "apps/lab/tests/contract-lab.spec.ts": "729a3b537138808ccb0d0e3c6782e3fa9670780c689fb25d4931d7439f9a7d4f"
       },
-      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
+      "head": "1e896f551902e2f1a2706dd10b0d38eb2bebfa50",
       "outcome": "no-change",
-      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
+      "reason": "Native NumberField event authorization changes implementation, not public APIs or the two registered consumer tasks. Exact native Chromium value-binding journey passed with arrows, wheel and typed commits; ui-controls 80 tests passed with no-edit formatted blur and disabled/readOnly reset checks. Numeric-target guidance and conformance record explain the corrected no-write boundary. Reviewed _artifacts/domain_map.yaml, skill_spec.md and skill_tree.yaml: existing ownership, task coverage, prerequisites and gaps remain accurate, so all three are unchanged. Fresh immutable consumer proof is deferred because this task does not package a release.",
       "evidence": [
-        "apps/lab/tests/contract-lab.spec.ts",
-        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
+        "Changed: apps/lab/tests/contract-lab.spec.ts at 1e896f551902e2f1a2706dd10b0d38eb2bebfa50"
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -102,15 +101,15 @@
       ]
     },
     "source:docs/reference/contract-conformance.md": {
-      "fingerprint": "541eb0be6aed710d1547a6d5d40a592b487f33a5f823f343335b3355e45b3f4e",
+      "fingerprint": "00554d5557fcfc3d08e455c4f114764e5ab72f6ee718e24b2fa3473e8aeaf579",
       "snapshot": {
-        "docs/reference/contract-conformance.md": "bbbb296ff15f57ea4f08eddb2777e7f8f1f000e73202e9886fb85cadd9251136"
+        "docs/reference/contract-conformance.md": "818a30cc3d94b98c05c1df29827b3585c6aebe9c1a8f94759e716059905b1160"
       },
-      "head": "207713b0f1840e97e9dc3a388ccb614e686c23d7",
+      "head": "1e896f551902e2f1a2706dd10b0d38eb2bebfa50",
       "outcome": "no-change",
-      "reason": "Final .54 recommendation/provenance records verified release and installed outcomes only. Both original guides and all three planning records retain the same accurate tasks and recommendations; no API, prerequisite or coverage expansion. Paired-label limitation remains explicit.",
+      "reason": "Native NumberField event authorization changes implementation, not public APIs or the two registered consumer tasks. Exact native Chromium value-binding journey passed with arrows, wheel and typed commits; ui-controls 80 tests passed with no-edit formatted blur and disabled/readOnly reset checks. Numeric-target guidance and conformance record explain the corrected no-write boundary. Reviewed _artifacts/domain_map.yaml, skill_spec.md and skill_tree.yaml: existing ownership, task coverage, prerequisites and gaps remain accurate, so all three are unchanged. Fresh immutable consumer proof is deferred because this task does not package a release.",
       "evidence": [
-        "Changed: docs/reference/contract-conformance.md at 207713b0f1840e97e9dc3a388ccb614e686c23d7"
+        "Changed: docs/reference/contract-conformance.md at 1e896f551902e2f1a2706dd10b0d38eb2bebfa50"
       ]
     },
     "source:docs/reference/dashpanel-contract-decisions.md": {
@@ -1269,6 +1268,54 @@
       "evidence": [
         "scripts/dogfood/guides.mjs",
         "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
+      ]
+    },
+    "source:apps/lab/src/components/contract-lab/composed-value-bindings.tsx": {
+      "fingerprint": "af81e41428facee27b518c6115b219f27ce64d531300df3dfa5face735a4bac7",
+      "snapshot": {
+        "apps/lab/src/components/contract-lab/composed-value-bindings.tsx": "29439586758aed9f59cce0b4bb6755166535744a3219e9a85352c41688a3ebe5"
+      },
+      "head": "1e896f551902e2f1a2706dd10b0d38eb2bebfa50",
+      "outcome": "no-change",
+      "reason": "Native NumberField event authorization changes implementation, not public APIs or the two registered consumer tasks. Exact native Chromium value-binding journey passed with arrows, wheel and typed commits; ui-controls 80 tests passed with no-edit formatted blur and disabled/readOnly reset checks. Numeric-target guidance and conformance record explain the corrected no-write boundary. Reviewed _artifacts/domain_map.yaml, skill_spec.md and skill_tree.yaml: existing ownership, task coverage, prerequisites and gaps remain accurate, so all three are unchanged. Fresh immutable consumer proof is deferred because this task does not package a release.",
+      "evidence": [
+        "Changed: apps/lab/src/components/contract-lab/composed-value-bindings.tsx at 1e896f551902e2f1a2706dd10b0d38eb2bebfa50"
+      ]
+    },
+    "source:docs/development/numeric-targets.md": {
+      "fingerprint": "4278a71d9eae807a76cac88dd27baf24586e6b1a3e6ee0baa5ac3399838e9446",
+      "snapshot": {
+        "docs/development/numeric-targets.md": "b2f404296940f3a646d5908b6d40ecb6401e0d6d9322260b8241faf4bd762e66"
+      },
+      "head": "1e896f551902e2f1a2706dd10b0d38eb2bebfa50",
+      "outcome": "no-change",
+      "reason": "Native NumberField event authorization changes implementation, not public APIs or the two registered consumer tasks. Exact native Chromium value-binding journey passed with arrows, wheel and typed commits; ui-controls 80 tests passed with no-edit formatted blur and disabled/readOnly reset checks. Numeric-target guidance and conformance record explain the corrected no-write boundary. Reviewed _artifacts/domain_map.yaml, skill_spec.md and skill_tree.yaml: existing ownership, task coverage, prerequisites and gaps remain accurate, so all three are unchanged. Fresh immutable consumer proof is deferred because this task does not package a release.",
+      "evidence": [
+        "Changed: docs/development/numeric-targets.md at 1e896f551902e2f1a2706dd10b0d38eb2bebfa50"
+      ]
+    },
+    "source:packages/dashstack/src/ui.tsx": {
+      "fingerprint": "a9a3dc8be2c5a56709605547226f44926d4a2828b589273b9fa1b3b797412788",
+      "snapshot": {
+        "packages/dashstack/src/ui.tsx": "6346de62835e7b65a193d8698e383b728979ced756a627732e112a8f063fd26e"
+      },
+      "head": "1e896f551902e2f1a2706dd10b0d38eb2bebfa50",
+      "outcome": "no-change",
+      "reason": "Native NumberField event authorization changes implementation, not public APIs or the two registered consumer tasks. Exact native Chromium value-binding journey passed with arrows, wheel and typed commits; ui-controls 80 tests passed with no-edit formatted blur and disabled/readOnly reset checks. Numeric-target guidance and conformance record explain the corrected no-write boundary. Reviewed _artifacts/domain_map.yaml, skill_spec.md and skill_tree.yaml: existing ownership, task coverage, prerequisites and gaps remain accurate, so all three are unchanged. Fresh immutable consumer proof is deferred because this task does not package a release.",
+      "evidence": [
+        "Changed: packages/dashstack/src/ui.tsx at 1e896f551902e2f1a2706dd10b0d38eb2bebfa50"
+      ]
+    },
+    "source:packages/dashstack/tests/ui-controls.test.tsx": {
+      "fingerprint": "9ed983901158106cbc3a96b948bb96576914b4e9f79c8b3ff49e93de97570c3f",
+      "snapshot": {
+        "packages/dashstack/tests/ui-controls.test.tsx": "2cdb544e7c24f391f5a767f11367afd30a0224bb599eed39e1adb5200ae47625"
+      },
+      "head": "1e896f551902e2f1a2706dd10b0d38eb2bebfa50",
+      "outcome": "no-change",
+      "reason": "Native NumberField event authorization changes implementation, not public APIs or the two registered consumer tasks. Exact native Chromium value-binding journey passed with arrows, wheel and typed commits; ui-controls 80 tests passed with no-edit formatted blur and disabled/readOnly reset checks. Numeric-target guidance and conformance record explain the corrected no-write boundary. Reviewed _artifacts/domain_map.yaml, skill_spec.md and skill_tree.yaml: existing ownership, task coverage, prerequisites and gaps remain accurate, so all three are unchanged. Fresh immutable consumer proof is deferred because this task does not package a release.",
+      "evidence": [
+        "Changed: packages/dashstack/tests/ui-controls.test.tsx at 1e896f551902e2f1a2706dd10b0d38eb2bebfa50"
       ]
     }
   }
