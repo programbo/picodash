@@ -293,6 +293,7 @@ describe('DashPanel portal ownership', () => {
     })
     expect(panel.getAttribute('data-picodash-placement')).toBe('floating-free')
     expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({
+      version: 2,
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 31, y: 30 },
     })
@@ -1004,6 +1005,7 @@ describe('DashPanel portal ownership', () => {
       (portal.querySelector('[data-free-control]') as HTMLButtonElement).click(),
     )
     expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({
+      version: 2,
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 0, y: 0 },
     })
@@ -1115,6 +1117,7 @@ describe('DashPanel portal ownership', () => {
 
     await act(async () => {
       scoped.setDashPanelLayout({
+        version: 2,
         placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
         preferredPosition: { x: 30, y: 30 },
       })
@@ -1136,6 +1139,7 @@ describe('DashPanel portal ownership', () => {
     const portal = document.createElement('div')
     const boundary = document.createElement('div')
     scoped.setDashPanelLayout({
+      version: 2,
       placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
       preferredPosition: { x: 30, y: 30 },
     })
@@ -1181,6 +1185,7 @@ describe('DashPanel portal ownership', () => {
 
     await act(async () => {
       scoped.setDashPanelLayout({
+        version: 2,
         placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
         preferredPosition: { x: 30, y: 30 },
       })
@@ -1312,6 +1317,7 @@ describe('DashPanel portal ownership', () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
     expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({
+      version: 2,
       placement: { mode: 'hybrid', disposition: { kind: 'free' } },
       preferredPosition: { x: 0, y: 0 },
     })
@@ -1328,6 +1334,7 @@ describe('DashPanel portal ownership', () => {
       move.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
     expect(nexus.getState().scopes.get('inspector')?.dashPanel).toEqual({
+      version: 2,
       placement: { mode: 'hybrid', disposition: { kind: 'free' } },
       preferredPosition: { x: 40, y: 0 },
     })
@@ -1456,6 +1463,7 @@ describe('DashPanel portal ownership', () => {
       window.dispatchEvent(pointer('pointerup', 10, 8))
     })
     expect(nexus.getState().scopes.get('pointer')?.dashPanel).toEqual({
+      version: 2,
       placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
       preferredPosition: { x: 30, y: 30 },
     })
@@ -1474,6 +1482,7 @@ describe('DashPanel portal ownership', () => {
       keyboardMove.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, key: 'Enter' }))
     })
     expect(nexus.getState().scopes.get('keyboard')?.dashPanel).toEqual({
+      version: 2,
       placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
       preferredPosition: { x: 40, y: 40 },
     })
@@ -1671,6 +1680,7 @@ describe('DashPanel portal ownership', () => {
 
     await act(async () => {
       nexus.scope('corner').setDashPanelLayout({
+        version: 2,
         placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'top-left' } },
         preferredPosition: { x: 0, y: 0 },
       })
@@ -1780,6 +1790,7 @@ describe('DashPanel portal ownership', () => {
     expect(panel.style.inlineSize).toBe('300px')
     await act(async () => {
       nexus.scope('inspector').setDashPanelLayout({
+        version: 2,
         placement: { mode: 'floating', disposition: { kind: 'snapped', position: 'top-left' } },
         preferredPosition: { x: 0, y: 0 },
       })

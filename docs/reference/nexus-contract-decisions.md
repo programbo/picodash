@@ -6,7 +6,7 @@ why the model exists; this page states what the model requires.
 
 ## Status
 
-> Contract: Accepted
+> Contract: Revised for sparse version-2 Panel metadata and ephemeral interaction events
 > Implementation: Prototype
 > Evidence: The conformance matrix has not yet reconciled most decisions with implementation.
 
@@ -685,9 +685,11 @@ their public prop and behavior types and translate to Nexus records through
 selectors, not as mutable authoring objects.
 
 The DashList record shape is accepted as root-order override, group-order overrides, and node
-collapse overrides. The DashPanel record is accepted as settled canonical placement plus finite
-`preferredPosition` offsets from the effective boundary's top-left after inset and before snap
-offset. The exact Nexus-owned record union is defined in the Nexus target reference; it uses
+collapse overrides. The version-2 DashPanel record contains independent optional settled placement,
+finite `preferredPosition`, and per-axis manual-size overrides. At least one override exists; an
+omitted property follows current declarations. Position offsets are relative to the effective
+boundary's top-left after inset and before snap offset. The exact Nexus-owned record union is
+defined in the Nexus target reference; it uses
 `center-left/right` rather than the prototype's `middle-left/right` and includes standalone
 top/bottom dock positions.
 
@@ -1488,27 +1490,84 @@ Persistence and root/target notification use the existing atomic metadata pipeli
 
 ### 10.1 Durable layout override
 
-Panel layout persistence is an optional override of current declared defaults. A completed move,
-snap, or dock writes the override. Preview and cancelled interactions write nothing. Reset removes
-the override. A compatible override wins over later default changes. An unknown position, invalid
-mode/disposition combination, or non-finite coordinate rejects the alpha envelope; beta recovery may
-quarantine that complete Panel record and use the current default. A valid record whose target is
-disabled by current Provider or Panel policy remains durable and dormant; UI policy does not make
-Nexus data invalid.
+Panel layout persistence is a sparse override of current declared defaults. The exact version-2
+record is `{ version: 2, placement?, preferredPosition?, manualSize? }`, with at least one override.
+`manualSize` has at least one positive finite CSS-pixel `width` or `height`. A missing axis remains
+automatic or follows its declared preferred size; it is not populated merely because another axis
+was resized. A size-only override never freezes placement or position defaults.
+
+A completed changed move, snap, dock, or resize writes one complete validated candidate. Preview,
+cancelled, and unchanged gestures write nothing. West/north geometry changes commit position and
+size atomically. Size restoration removes only the requested manual axes and retains placement;
+full Panel reset removes all overrides. Removing the last override removes the Panel record.
+
+Hydration recognizes only the exact valid obsolete prototype shape `{ placement,
+preferredPosition }`: it discards that Panel preference, preserves independently valid same-scope
+List metadata, and emits `panel_layout_obsolete`. No value is migrated. Unsupported or malformed
+Panel payloads otherwise retain the existing whole-scope quarantine policy. Canonical values are
+unaffected. Setters and document import accept only strict v2; unsupported document data is rejected.
+The domain's `version: 2` signals the cutover within envelope/document `formatVersion: 1`, without
+changing application `schemaVersion`. Older strict readers fail validation instead of silently
+applying the new shape. A valid target disabled by current UI policy remains durable and dormant.
 
 ### 10.2 Durable boundary
 
-Persisted Panel metadata contains canonical placement, disposition, and a finite
-`preferredPosition`. Coordinates are CSS-pixel offsets from the effective boundary's top-left after
-inset and before snap offset. Layout belongs to the scope, not to `providerId`. Remounting under
-another Provider reuses compatible layout and projects it into current geometry; separate
-host-specific layouts use separate scope IDs.
+Persisted Panel metadata contains only explicitly overridden placement/disposition, preferred free
+position, and manual size. Coordinates are CSS-pixel offsets from the effective boundary's top-left
+after inset and before snap offset. Layout belongs to the scope, not to `providerId`. Remounting
+under another Provider reuses compatible layout and projects it into current geometry; separate
+host-specific layouts use separate scope IDs. Viewport contraction and allocation never replace
+retained manual axes or preferred position. A temporarily allocation-owned dimension remains dormant.
 
 ### 10.3 Transient Panel runtime
 
 Visibility, activation, z-order, focus, drag previews, hover, menus, portal ownership, and resolved
 boundaries are not persisted. Provider owns host coordination; component-local state owns
 high-frequency visuals.
+
+### 10.5 Ephemeral interaction events (INTERACTION-EVENTS-1)
+
+Every root and scoped Nexus exposes `.events.subscribe(listener, filter?)` and
+`.events.getSequence()`. Filters may narrow `scopeIds`, entity `kinds`, and event `types`; a scoped
+subscription additionally fixes its own scope. The channel is independent of root/scoped snapshots,
+binding interaction state, diagnostics, documents, and persistence. Publication changes none of
+those snapshot references or persistence revisions. The default channel retains no history.
+
+The envelope contains `{ sequence, timestamp, source: { scopeId, kind, generation }, event }`.
+Sequence is root-local and monotonically increasing; time is monotonic; source identity is derived
+from a live root-owned lease. The typed input union reports hover/focus entry and exit, normalized
+pointer interactions, move/resize/reorder drag lifecycle, command outcomes, and automatic layout
+projection. Geometry distinguishes initial, requested, applied, cumulative delta, and previous
+published-sample delta; native DOM events and arbitrary content never cross this boundary.
+
+`publishNexusInteraction(lease, input)` from the public integration entry validates the live entity
+lease. `useNexusInteractionPublisher()` reuses the nearest declarative entity's existing lease and
+returns a stable publisher that produces no event while that entity is inactive. It acquires no
+duplicate entity and grants no command authority. Unrecognized or released direct leases are
+rejected; the lease itself determines the root, so callers cannot supply another root's identity.
+
+Payloads are strict detached immutable JSON, capped at 4 KiB. Subscriber failures are isolated;
+reentrant publication drains through a bounded queue instead of recursive dispatch. Root destruction
+clears event subscribers and use-after-destroy rules apply. Product publishers own frame coalescing,
+final-update flushing, and exactly one terminal event per started drag. A terminal outcome describes
+the owning command result, not a claim that pending persistence flushed successfully.
+
+Invalid direct publication uses `invalid-interaction-publisher` with safe
+`{ reason: 'wrong-kind' | 'released' | 'unavailable' }`; invalid payload/filter/capacity data uses
+`invalid-interaction-event` with a safe reason, never the rejected payload. Existing root destruction
+continues to use `use-after-destroy`.
+
+Identity fields retain ordinary Nexus lexical validation; the complete 4 KiB event bound, rather
+than an independent short-ID cap, controls payload size. Pointer `button: -1` is valid for a
+movement sample with no changed button. When declarative publication exceeds payload or dispatch
+capacity, it returns no event and records scoped `interaction_delivery_limited` with reason
+`payload-size | dispatch-capacity`; a later successful event removes the warning. This preserves
+the product gesture while explicitly reporting incomplete observation. Direct publication and
+wire normalization still throw their structured invalid-event error.
+
+See [ADR 0007](../adr/0007-panel-manual-sizing-and-interaction-events.md) and the
+[target event reference](nexus.md#interaction-events). Event filters organize trusted observation;
+they are not authorization boundaries. Dev Bridge supplies its own explicit disclosure policy.
 
 ### 10.4 Declarative removal
 

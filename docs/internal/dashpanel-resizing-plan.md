@@ -1,10 +1,12 @@
-# DashPanel resizing and Resize Lab proposal
+# DashPanel resizing and Resize Lab implementation plan
 
-> Contract: Draft
-> Implementation: Planned
-> Evidence: Source and contract inspection at `9229caf4ff20c0f82b2a6a5bc1e23ddb4db4aea6`,
-> 2026-11-12. No resizing implementation or runtime verification accompanies this plan.
-> This proposal does not replace the accepted references until its decision slice lands.
+> Contract: Accepted by the owner on 2026-11-12
+> Implementation: Verified for this scoped local resizing/event cut; broader product gates remain separate
+> Evidence: Original planning inspection at `9229caf4ff20c0f82b2a6a5bc1e23ddb4db4aea6`;
+> current evidence is tracked in the [conformance matrix](../reference/contract-conformance.md#dashpanel-resizing-and-interaction-observation).
+> [ADR 0007](../adr/0007-panel-manual-sizing-and-interaction-events.md) and the revised target
+> references now own the accepted contract. The source-based assessment below preserves the
+> planning baseline; proposed names yield to the exact owning references when reconciled.
 
 ## Scope
 
@@ -220,8 +222,12 @@ grips persistently for coarse pointers. `always` keeps them visible; `hidden` hi
 not hit targets, cursor feedback, keyboard access, or the non-drag size control. Active targets have
 a clear pressed/resizing treatment and correct directional resize cursors. Corners take precedence
 over edges. Hit regions must not steal header buttons, content selection, scrollbars, or List reorder
-handles. Coarse-pointer explicit grips and action controls retain 44px targets; do not turn the
-entire border into an overlapping 44px touch strip. Default touch scrolling works outside grips.
+handles. The accepted implementation revision keeps supplementary border grips compact (20px
+corners and 10px fine-edge default), because eight 44px border targets can overlap header/content
+on a minimum Panel. Coarse pointers instead receive an always-visible 44×44px “Resize panel” header
+action and 44px numeric/tap editor inputs/actions providing the same functionality. Standard chrome
+retains 44px targets. Default touch scrolling works outside grips. See ADR 0007 for this explicit
+revision of the original all-grips-44px proposal.
 
 If a dedicated movement grip is desired, add a narrow `moveHandle: 'header' | 'grip' | 'both'`
 policy, defaulting to existing header behavior. It shares the move session and has a distinct
@@ -248,22 +254,26 @@ announcing every pointer frame. Reduced motion removes interpolation, never feed
 
 ## Architecture decisions
 
-| Boundary          | Decision                                                                                                                                                                       | Evidence                                                                                                                     | Rejected alternative                                                                            | Consequence and proof                                                                                                         |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Durable model     | Nexus-owned version-2 Panel record with independent optional placement, preferredPosition, manualSize; at least one override; manualSize has at least one positive finite axis | First size-only interaction must not freeze declared placement/position                                                      | Copy every declared default into today's full record; unrelated defaults would become overrides | Strict codec, persistence/document round trips, changed-default tests; amend ADR 0002                                         |
-| Upgrade           | Explicit Panel-record version cutover; obsolete prototype records use existing whole-Panel quarantine/current-default recovery                                                 | Pre-v1 recovery policy; current codec accepts exact keys                                                                     | Silent compatibility migration or accepting malformed partial records                           | Document loss of old prototype overrides; leave List/value records intact; prove recovery                                     |
-| Gesture model     | Explicit operation state machine; recommend XState v5 for capture/cancel/effect ownership, with a typed reducer if a new dependency is declined                                | Existing callbacks, motion, observers and previews already form a coordinated protocol; XState is not currently a dependency | More independent resize booleans in the large Panel entrypoint                                  | Separate pure solver, measurement, session, and rendering modules; preserve existing movement behavior; no app-wide migration |
-| Measurement       | Candidate-width-first content measurement; stable natural-content wrapper and optional explicit metrics                                                                        | Width affects wrapping; current shell measurement removes resolved dimensions                                                | Treat constrained shell rect or scrollHeight as universal natural size                          | Browser probe proves content growth while shell is capped and Motion is active                                                |
-| Nexus observation | Add a non-durable typed event channel; keep pointer frames and preview authority local                                                                                         | Binding snapshots are not an interaction event log; diagnostics describe current conditions                                  | Writing every frame to metadata, fields, binding state, or diagnostics                          | No value/root snapshot notifications or persistence revision changes for hover/preview                                        |
-| Product ownership | DashPanel owns resize targets, policy, commands, geometry; UI supplies unchanged primitives/tokens only                                                                        | Accepted independent products and UI admission rules                                                                         | Put Panel semantics in UI or require DashList to measure all content                            | Arbitrary-content Panel and standalone List probes; facade exact reexports                                                    |
-| Lab               | A “Resize lab” scenario inside Placement, with its own component and model                                                                                                     | Six-preset policy and existing Style/Reorder playground patterns                                                             | New route, seventh preset, assertion-only driver commands                                       | Existing loadPreset/reset seam; all other operations visible and labelled                                                     |
+| Boundary          | Decision                                                                                                                                                                       | Evidence                                                                                                                                          | Rejected alternative                                                                            | Consequence and proof                                                                                                         |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Durable model     | Nexus-owned version-2 Panel record with independent optional placement, preferredPosition, manualSize; at least one override; manualSize has at least one positive finite axis | First size-only interaction must not freeze declared placement/position                                                                           | Copy every declared default into today's full record; unrelated defaults would become overrides | Strict codec, persistence/document round trips, changed-default tests; amend ADR 0002                                         |
+| Upgrade           | Explicit Panel v2 cutover; exact valid obsolete prototype records discard only Panel preference with a warning; malformed records retain whole-scope quarantine                | Pre-v1 recovery policy; current codec accepts exact keys                                                                                          | Silent compatibility migration or accepting malformed partial records                           | Document loss of old prototype overrides; leave List/value records intact; prove recovery                                     |
+| Gesture model     | Explicit operation lifecycle implemented with a typed product-local reducer and owned effects; no new runtime dependency                                                       | Existing callbacks, motion, observers and previews already form a coordinated protocol; the reducer makes exclusive sessions and cleanup explicit | More independent resize booleans in the large Panel entrypoint                                  | Separate pure solver, measurement, session, and rendering modules; preserve existing movement behavior; no app-wide migration |
+| Measurement       | Candidate-width-first content measurement; stable natural-content wrapper and optional explicit metrics                                                                        | Width affects wrapping; current shell measurement removes resolved dimensions                                                                     | Treat constrained shell rect or scrollHeight as universal natural size                          | Browser probe proves content growth while shell is capped and Motion is active                                                |
+| Nexus observation | Add a non-durable typed event channel; keep pointer frames and preview authority local                                                                                         | Binding snapshots are not an interaction event log; diagnostics describe current conditions                                                       | Writing every frame to metadata, fields, binding state, or diagnostics                          | No value/root snapshot notifications or persistence revision changes for hover/preview                                        |
+| Product ownership | DashPanel owns resize targets, policy, commands, geometry; UI supplies unchanged primitives/tokens only                                                                        | Accepted independent products and UI admission rules                                                                                              | Put Panel semantics in UI or require DashList to measure all content                            | Arbitrary-content Panel and standalone List probes; facade exact reexports                                                    |
+| Lab               | A “Resize lab” scenario inside Placement, with its own component and model                                                                                                     | Six-preset policy and existing Style/Reorder playground patterns                                                                                  | New route, seventh preset, assertion-only driver commands                                       | Existing loadPreset/reset seam; all other operations visible and labelled                                                     |
 
 Logical durable example: `{ version: 2, manualSize: { width: 480 } }`. Placement and position may be
 absent and then follow current declarations. A move may add their overrides without deleting size;
 restore-size removes only requested size keys. Removing the final override removes the Panel record.
 Persist no resolved bounds, automatic measurements, constraints, or interaction state. The version
 belongs to the Panel payload, not a silent change to application schemaVersion or every List record.
-The decision slice must specify document-format signaling for older readers that cannot decode v2.
+Panel `version: 2` signals the domain cutover within envelope/document `formatVersion: 1`; setters
+and document imports require strict v2, and older strict readers fail validation. Hydration recognizes
+only the exact valid obsolete `{ placement, preferredPosition }` record, discards that Panel
+preference, preserves independently valid same-scope List metadata, and emits `panel_layout_obsolete`.
+Arbitrary malformed records retain existing whole-scope quarantine.
 
 ### Interaction protocol and Nexus events
 
@@ -314,8 +324,9 @@ coordinates have an explicitly separate coordinate space. Bounds and current rec
 versioned detached JSON records. Every event carries root-local monotonic sequence, source
 generation, scope attribution, and monotonic time. Hover, focus and all lifecycle transitions are
 delivered immediately; only motion/drag updates coalesce. Flush a final update before the terminal
-event. An end event reports commit `accepted | unchanged | rejected` and the owning command result;
-cancellation has a reason and no durable write. Preserve existing pending-persistence status: a
+event. An end event reports commit `accepted | unchanged | rejected` derived from the owning
+command result; the complete transaction remains available from that command. Cancellation has a
+reason and no durable write. Preserve existing pending-persistence status: a
 canonical accepted change is not a claim that storage flushed successfully.
 
 Exceptions in one subscriber must not interrupt later subscribers or roll back a commit. Drain a
@@ -409,18 +420,24 @@ Manual checklist, grouped by task:
 
 ## Risk and finding traceability
 
-| Risk or finding                                                         | Invariant                    | Planned control                                                         | Faithful proof                                                                                        | Owner                         | Status    |
-| ----------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- | ----------------------------- | --------- |
-| R1: viewport projection saved as user intent                            | Retained preference          | Sparse manual axes plus pure projection                                 | Shrink/reload/expand; untouched axes and position byte-equivalent in saved record                     | Nexus + Panel, slice 1        | specified |
-| R2: left/top resize changes size but loses anchor                       | Atomic geometry              | Shared rectangle solver and one commit                                  | Eight-target model matrix and browser opposite-edge check                                             | Panel, slice 1                | specified |
-| R3: size-only write freezes defaults                                    | Overrides only               | Versioned sparse record and prune-empty codec                           | Change declarations after width-only resize; restore only size; reload/document round trip            | Nexus, slice 1                | specified |
-| R4: shell measurement misses overflowing or animated content            | Natural versus resolved size | Separate content observer/metrics; frame scheduler                      | Grow hidden overflow; interrupt accordion animation; restore auto; no observer-loop errors            | Panel, slice 2                | specified |
-| R5: frame events cause root rerenders/storage growth or lose completion | Ephemeral observation        | Separate typed channel, coalescing, bounded queues, final flush         | Event-count/revision assertions, slow-consumer overflow and repeated-session capacity probe           | Nexus/Bridge, slice 0         | specified |
-| R6: stale capture commits after policy/content/host changes             | Workflow truth               | Generation/freshness guard and one cleanup owner                        | Mid-drag changes, external write, lost capture, unmount, StrictMode; zero stale writes                | Panel, slices 1–2             | specified |
-| R7: handles conflict with dock anchors or peer allocation               | Placement integrity          | Placement target table and allocation preview                           | Pure target matrix plus existing real peer-placement journey                                          | Panel, slice 3                | specified |
-| R8: drag-only UI excludes users; invisible grips are undiscoverable     | Outcome parity               | Numeric action, focus feedback, coarse targets and shaped manual marker | Keyboard and tap-only journey; focus/announcement and forced-color checks                             | Panel/UI consumption, slice 3 | specified |
-| R9: arbitrary content has no inferable intrinsic extent                 | Honest constraints           | Pending/unavailable metrics and explicit app overrides                  | Canvas/virtualized fixture uses explicit metrics; missing metric diagnostic and recovery              | Panel/Lab, slice 2            | specified |
-| R10: event disclosure bypasses Bridge's existing authority              | Public boundaries            | Lease-bound publisher, event allowlist and cursor generation            | Foreign/released publisher, undisclosed scope, oversized payload, reload and teardown protocol probes | Nexus/Bridge, slice 0         | specified |
+| Risk or finding                                                                                    | Invariant                                                | Planned control                                                                               | Faithful proof                                                                                                                                       | Owner                                             | Status                                           |
+| -------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- | ------------------------------------------------ |
+| R1: viewport projection saved as user intent                                                       | Retained preference                                      | Sparse manual axes plus pure projection                                                       | Shrink/reload/expand; untouched axes and position byte-equivalent in saved record                                                                    | Nexus + Panel, slice 1                            | specified                                        |
+| R2: left/top resize changes size but loses anchor                                                  | Atomic geometry                                          | Shared rectangle solver and one commit                                                        | Eight-target model matrix and browser opposite-edge check                                                                                            | Panel, slice 1                                    | specified                                        |
+| R3: size-only write freezes defaults                                                               | Overrides only                                           | Versioned sparse record and prune-empty codec                                                 | Change declarations after width-only resize; restore only size; reload/document round trip                                                           | Nexus, slice 1                                    | specified                                        |
+| R4: shell measurement misses overflowing or animated content                                       | Natural versus resolved size                             | Separate content observer/metrics; frame scheduler                                            | Grow hidden overflow; interrupt accordion animation; restore auto; no observer-loop errors                                                           | Panel, slice 2                                    | specified                                        |
+| R5: frame events cause root rerenders/storage growth or lose completion                            | Ephemeral observation                                    | Separate typed channel, coalescing, bounded queues, final flush                               | Event-count/revision assertions, slow-consumer overflow and repeated-session capacity probe                                                          | Nexus/Bridge, slice 0                             | specified                                        |
+| R6: stale capture commits after policy/content/host changes                                        | Workflow truth                                           | Generation/freshness guard and one cleanup owner                                              | Mid-drag changes, external write, lost capture, unmount, StrictMode; zero stale writes                                                               | Panel, slices 1–2                                 | specified                                        |
+| R7: handles conflict with dock anchors or peer allocation                                          | Placement integrity                                      | Placement target table and allocation preview                                                 | Pure target matrix plus existing real peer-placement journey                                                                                         | Panel, slice 3                                    | specified                                        |
+| R8: drag-only UI excludes users; invisible grips are undiscoverable                                | Outcome parity                                           | Numeric action, focus feedback, coarse targets and shaped manual marker                       | Keyboard and tap-only journey; focus/announcement and forced-color checks                                                                            | Panel/UI consumption, slice 3                     | specified                                        |
+| R9: arbitrary content has no inferable intrinsic extent                                            | Honest constraints                                       | Pending/unavailable metrics and explicit app overrides                                        | Canvas/virtualized fixture uses explicit metrics; missing metric diagnostic and recovery                                                             | Panel/Lab, slice 2                                | specified                                        |
+| R10: event disclosure bypasses Bridge's existing authority                                         | Public boundaries                                        | Lease-bound publisher, event allowlist and cursor generation                                  | Foreign/released publisher, undisclosed scope, oversized payload, reload and teardown protocol probes                                                | Nexus/Bridge, slice 0                             | specified                                        |
+| R11: runtime cache lags an external Panel metadata write                                           | Authoritative intent and atomic merge                    | Read current scoped getState at command execution; immediate active-gesture commit fence      | External write before React effect is retained; stale gesture commits nothing                                                                        | Panel/Nexus command boundary, final stabilization | locally verified; owning tests and full Lab gate |
+| R12: existing move events bypass resize frame scheduling                                           | Bounded observation and final outcome                    | Shared frame coalescing/final flush for movement event publication                            | Controlled high-rate move input emits bounded updates and one terminal event; teardown removes pending frame                                         | Panel interaction owner, final stabilization      | locally verified; owning tests and full Lab gate |
+| R13: resolved minimum does not reach the DOM when natural content is smaller                       | Rendered size matches the solver                         | Apply the resolved block size when a minimum raises natural height                            | Natural height200 with minHeight300 renders300; no saved preference change                                                                           | Panel sizing/rendering boundary                   | locally verified; owning tests and full Lab gate |
+| R14: preferred height percentage resolves against a different portal containing block              | Geometry boundary is independent of portal ownership     | Resolve height prop/token px/rem/% through the effective-boundary resolver before measurement | Different portal and 200px boundary with 50% preferred height resolve 100px                                                                          | Panel preferred-size measurement                  | locally verified; owning tests and full Lab gate |
+| R15: owned FLIP scale feeds natural content metrics                                                | Natural measurement excludes owned animation projection  | Exclude the owned transform across the complete shell/content helper                          | Existing placement journey retains 217px natural height instead of scaled 43.4px                                                                     | Panel measurement and placement seam              | locally verified; owning tests and full Lab gate |
+| R16: natural-content observer entries are mistaken for boundary changes and cancel collapse motion | Owned animation responds to the correct observation role | Classify actual boundary entries separately; content updates only refresh their measurement   | Component motion survives content update and cancels on boundary change; regular/coarse browser journey samples intermediate collapse/expand heights | Panel observer and animation owner                | locally verified; owning tests and full Lab gate |
 
 Recurring lessons are carried by discriminated session/event types (R6/R10), strict schema and
 codec invariants (R1/R3), canonical solver/command boundaries (R2/R7/R8), bounded queues (R5), and
@@ -505,7 +522,8 @@ that slice instead of starting recursive whole-project review cycles.
 
 ### Work estimate
 
-Planning estimate for one engineer with agent assistance, including focused tests and docs:
+Original source-based planning estimate for one engineer with agent assistance, retained as a
+baseline rather than a current remaining-work estimate:
 
 | Slice                                                                    | Focused engineering days |
 | ------------------------------------------------------------------------ | ------------------------ |
@@ -525,13 +543,13 @@ one Playwright engine.
 
 ## Acceptance matrices
 
-| Primary owner         | Matrix and observable pass condition                                                                                                                                                                                                                                                                                     |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Nexus                 | Strict finite/sparse record and v2 serialization; automatic/one-axis/two-axis; size-only restore/full reset; documents capture/import; quarantine without List/value loss; pending write failure; no preview persistence or canonical-value notification                                                                 |
-| Panel pure/model      | Eight free targets × grow/shrink/min/max/crossing; opposite anchor; fractional pixels; centered targets; locked axes; dock allocation; projected start; untouched-axis preservation; no-op/cancel; dynamic impossible intervals                                                                                          |
-| Panel component/types | Public props/exports/style exclusions; target eligibility and handle modes; controller result/source model; one operation owner; event ordering/diffs; capture loss/unmount/StrictMode cleanup; numeric and keyboard commands; labels/focus/live-region behavior                                                         |
-| Dev Bridge protocol   | Explicit event disclosure, source-generation checks, payload caps, cursor ordering/gaps, coalescing, terminal retention, reload, disconnect/abort, slow consumer and subscriber failures; no event mutation authority                                                                                                    |
-| Contract Lab browser  | Free resize/boundary/storage round trip; fixed/manual/animated-content measurement and scrolling; real peer allocation and input parity in existing journeys; owner-document portals, zoom, touch targets, reduced motion, theme/forced colors; screenshots/video show idle/hover/pressed/resizing/manual/limited states |
+| Primary owner         | Matrix and observable pass condition                                                                                                                                                                                                                                                                                               |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Nexus                 | Strict finite/sparse record and v2 serialization; automatic/one-axis/two-axis; size-only restore/full reset; documents capture/import; exact obsolete recovery preserving valid Lists, malformed-scope quarantine, and canonical-value preservation; pending write failure; no preview persistence or canonical-value notification |
+| Panel pure/model      | Eight free targets × grow/shrink/min/max/crossing; opposite anchor; fractional pixels; centered targets; locked axes; dock allocation; projected start; untouched-axis preservation; no-op/cancel; dynamic impossible intervals                                                                                                    |
+| Panel component/types | Public props/exports/style exclusions; target eligibility and handle modes; controller result/source model; one operation owner; event ordering/diffs; capture loss/unmount/StrictMode cleanup; numeric and keyboard commands; labels/focus/live-region behavior                                                                   |
+| Dev Bridge protocol   | Explicit event disclosure, source-generation checks, payload caps, cursor ordering/gaps, coalescing, terminal retention, reload, disconnect/abort, slow consumer and subscriber failures; no event mutation authority                                                                                                              |
+| Contract Lab browser  | Free resize/boundary/storage round trip; fixed/manual/animated-content measurement and scrolling; real peer allocation and input parity in existing journeys; owner-document portals, zoom, touch targets, reduced motion, theme/forced colors; screenshots/video show idle/hover/pressed/resizing/manual/limited states           |
 
 Use table/model tests for permutations. Browser tests prove real layout/capture/focus/observation,
 not every numeric case. Assert saved metadata and event sequence through Bridge while measuring
@@ -573,7 +591,9 @@ not every slice. Website E2E is needed only if website/shared infrastructure cha
 
 ## Evidence tiers and promotion
 
-Current status is **specified** only. Static evidence is source/contract inspection and proposal
+The scoped cut is locally verified; individual evidence tiers and remaining broader product gates
+remain in the conformance matrix.
+Static evidence is source/contract inspection and plan
 structure/link checking. Isolated evidence will be solver, schema, state-model and type tests.
 Composed evidence will be real browser geometry plus independent Nexus/Bridge observations.
 Capacity evidence will be the bounded-stream and lifecycle probes above. Live evidence here means
@@ -587,13 +607,15 @@ measurement or restoration assertion.
 
 ## Explicit gaps and deferred work
 
-- This planning change adds no production implementation, running Resize Lab, or passing resize
-  tests. The accepted no-user-resize and current full-record contracts remain current until the
-  explicit revision slice. No server or browser was started to claim live evidence.
-- New public prop names and supported bound-expression grammar are proposals. Version-2 Panel
-  document signaling must be settled in slice 0; automatic layout migration is deliberately absent.
+- The sizing/event foundation, Panel controls, and configurable Resize Lab pass owning package
+  gates, all 18 Lab tests, the Lab production build, and a bounded native development-browser
+  profile. Current evidence and performance limits are recorded in the conformance matrix; no
+  cross-browser, production-performance, deployment, or remote-delivery claim follows.
+- Exact public names and the supported bound-expression grammar are reconciled in the target
+  references. Version-2 Panel records reject unsupported document payloads and use explicit
+  obsolete-prototype recovery; automatic layout migration is deliberately absent.
   Universal intrinsic measurements for arbitrary children are impossible; explicit metrics are
-  part of the proposed solution, not a deferred promise.
+  part of the accepted solution, not a deferred promise.
 - Existing Panel movement/actions and one List reorder consumer receive event parity in this cut.
   Recording every child-control DOM interaction, raw hardware motion samples, persistent event
   history, and a general event replay/automation command system are not implied.

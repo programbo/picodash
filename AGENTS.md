@@ -13,7 +13,9 @@ them. Re-read the routes when the task expands into another package.
 - Nexus implementation or contracts: [`docs/agents/nexus.md`](docs/agents/nexus.md),
   [`docs/reference/nexus-contract-decisions.md`](docs/reference/nexus-contract-decisions.md),
   [`docs/reference/nexus.md`](docs/reference/nexus.md), and
-  [`docs/adr/0005-picodash-nexus-name-and-public-identity.md`](docs/adr/0005-picodash-nexus-name-and-public-identity.md).
+  [`docs/adr/0005-picodash-nexus-name-and-public-identity.md`](docs/adr/0005-picodash-nexus-name-and-public-identity.md),
+  plus [`docs/adr/0007-panel-manual-sizing-and-interaction-events.md`](docs/adr/0007-panel-manual-sizing-and-interaction-events.md)
+  for Panel metadata or interaction events.
 - Dev Bridge or agent-facing inspection: [`docs/agents/dev-bridge.md`](docs/agents/dev-bridge.md),
   [`docs/development/agent-dev-bridge.md`](docs/development/agent-dev-bridge.md), and
   [`packages/dev-bridge/README.md`](packages/dev-bridge/README.md).
@@ -23,7 +25,8 @@ them. Re-read the routes when the task expands into another package.
 - DashPanel behavior or docs: [`docs/agents/dashpanel.md`](docs/agents/dashpanel.md),
   [`docs/reference/dashpanel-contract-decisions.md`](docs/reference/dashpanel-contract-decisions.md),
   [`docs/reference/dashpanel.md`](docs/reference/dashpanel.md), and
-  [`docs/adr/0004-dashpanel-launcher-item-identity.md`](docs/adr/0004-dashpanel-launcher-item-identity.md).
+  [`docs/adr/0004-dashpanel-launcher-item-identity.md`](docs/adr/0004-dashpanel-launcher-item-identity.md),
+  plus [`docs/adr/0007-panel-manual-sizing-and-interaction-events.md`](docs/adr/0007-panel-manual-sizing-and-interaction-events.md).
 - DashList or Dashlet behavior or docs: [`docs/agents/dashlist.md`](docs/agents/dashlist.md),
   [`docs/reference/dashlist.md`](docs/reference/dashlist.md), and
   [`docs/adr/0006-dashlist-responsive-measurement.md`](docs/adr/0006-dashlist-responsive-measurement.md).
@@ -94,7 +97,7 @@ Nexus, Panel, List, Dashlet, placement, ordering, or persistence behavior.
 
 ### `@picodash/dashpanel`
 
-DashPanel is a standalone React panel shell for adding movable, dockable, dismissible arbitrary UI
+DashPanel is a standalone React panel shell for adding movable, resizable, dockable, dismissible arbitrary UI
 without rebuilding window management, boundaries, portals, accessible actions, adaptive modal
 presentation, and durable placement. Its decisions should make application-owned tools, previews,
 and readouts reliable wherever they are placed—not assume that their content is a DashList.
@@ -194,8 +197,9 @@ implementation or duplicate lower-layer tests.
 - Keep canonical values and persisted payloads strict JSON data.
 - Validate complete candidate batches before canonical mutation.
 - Keep high-frequency pointer and visual state outside persisted Nexus snapshots.
-- Persist settled overrides, not declared defaults, previews, visibility, focus, activation, or
-  z-order.
+- Persist settled placement, manual-size, and ordering overrides, not declared defaults, previews,
+  resolved geometry, visibility, focus, activation, or z-order. Observe interactions through the
+  separate public Nexus event contract.
 - Preserve pointer and keyboard outcome parity for reordering and placement.
 - Use semantic `--picodash-*` tokens and public variants instead of internal classes.
 - Preserve Provider portal, z-index, theme, focus, and accessible overlay contracts.

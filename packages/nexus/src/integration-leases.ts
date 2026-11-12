@@ -1,3 +1,4 @@
+import type { NexusInteractionEvent, NexusInteractionInput } from './interactions.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type {
   CoreTransactionResult,
@@ -443,6 +444,7 @@ export function acquireEntityLease<
       root: controller.root,
       scopeId,
       entityKind: parsed.kind,
+      generation: controller.nextEntityGeneration(),
       host,
       lease: undefined as unknown as object,
       active: true,
@@ -585,4 +587,37 @@ export function acquireRelationshipLease(
   parentController!.relationshipHandles.set(lease, record)
   registerRuntimeHandle(lease, parentController!)
   return lease
+}
+
+/** Publish through one currently active entity generation without granting mutation authority. */
+export function publishNexusInteraction(
+  lease: EntityLease,
+  input: NexusInteractionInput,
+): NexusInteractionEvent {
+  const controller =
+    lease && typeof lease === 'object' ? runtimeControllerForHandle(lease) : undefined
+  const record = controller?.handles.get(lease)
+  if (!controller || !record || record.kind !== 'entity')
+    throw new PicodashContractError('invalid-interaction-publisher', { reason: 'wrong-kind' })
+  if (controller.lifecycle !== 'active') throw new PicodashContractError('use-after-destroy')
+  if (!record.active)
+    throw new PicodashContractError('invalid-interaction-publisher', { reason: 'released' })
+  if (!controller.interactionHub)
+    throw new PicodashContractError('invalid-interaction-publisher', { reason: 'unavailable' })
+  try {
+    const event = controller.interactionHub.publish(
+      { scopeId: record.scopeId, kind: record.entityKind, generation: record.generation },
+      input,
+    )
+    controller.reportInteractionFailure?.(record.scopeId)
+    return event
+  } catch (error) {
+    if (
+      error instanceof PicodashContractError &&
+      error.code === 'invalid-interaction-event' &&
+      (error.context?.reason === 'payload-size' || error.context?.reason === 'dispatch-capacity')
+    )
+      controller.reportInteractionFailure?.(record.scopeId, error.context.reason)
+    throw error
+  }
 }

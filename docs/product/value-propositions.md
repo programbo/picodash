@@ -55,7 +55,7 @@ state; they do not sandbox plugins or restrict field access.
 
 ### Proposition
 
-DashPanel is a standalone React panel shell for adding movable, dockable, dismissible UI without
+DashPanel is a standalone React panel shell for adding movable, resizable, dockable, dismissible UI without
 building window management, portal coordination, accessible actions, and layout persistence from
 scratch.
 
@@ -68,11 +68,11 @@ visibility controls, portal layering, themes, responsive containment, and restor
 
 ### Concrete value
 
-- Render arbitrary React content in a Panel that can float, snap, dock, collapse, hide, and reopen.
+- Render arbitrary React content in a Panel that can float, snap, dock, resize, collapse, hide, and reopen.
 - Choose the dock positions a host permits and distribute same-edge Panels through predictable
   occupancy and allocation rules.
-- Persist settled placement as a Nexus scope override while keeping visibility and drag previews
-  transient.
+- Persist settled placement and per-axis manual sizes as independent Nexus scope overrides while
+  keeping resolved geometry, visibility, and drag previews transient.
 - Resolve viewport or element boundaries, insets, portals, themes, and action menus through one
   Provider contract.
 - Preserve pointer, keyboard, focus, and overlay behavior across complex host applications.

@@ -1,4 +1,8 @@
-import type { PicodashDiagnostic, PicodashJsonValue } from '@picodash/nexus'
+import {
+  NEXUS_INTERACTION_TYPES,
+  type PicodashDiagnostic,
+  type PicodashJsonValue,
+} from '@picodash/nexus'
 import type { PicodashDevBridgeDisclosure, PicodashDevBridgeSnapshot, NexusLike } from './types.js'
 
 const isJson = (value: unknown): value is PicodashJsonValue => {
@@ -34,16 +38,25 @@ export function validateDisclosure(
   const fieldKeys = Object.keys(nexus.fields).sort()
   const values = [...(disclosure.valueFields ?? [])]
   const scopeIds = [...(disclosure.scopeIds ?? [])]
+  const eventScopeIds = [...(disclosure.eventScopeIds ?? [])]
+  const eventTypes = [...(disclosure.eventTypes ?? [])]
   const unique = (items: readonly string[]) => [...new Set(items)]
   if (!values.every((key) => typeof key === 'string' && fieldKeys.includes(key)))
     throw new Error('invalid disclosure field')
   if (!scopeIds.every((id) => typeof id === 'string')) throw new Error('invalid disclosure scope')
+  if (eventScopeIds.length > 256 || !eventScopeIds.every((id) => typeof id === 'string'))
+    throw new Error('invalid disclosure event scope')
   for (const scopeId of scopeIds) nexus.scope(scopeId)
+  for (const scopeId of eventScopeIds) nexus.scope(scopeId)
+  if (!eventTypes.every((type) => NEXUS_INTERACTION_TYPES.includes(type)))
+    throw new Error('invalid disclosure event type')
   return {
     fieldKeys,
     valueFields: unique(values),
     scopeIds: unique(scopeIds),
     diagnostics: disclosure.diagnostics === true,
+    eventScopeIds: unique(eventScopeIds),
+    eventTypes: [...new Set(eventTypes)],
   }
 }
 

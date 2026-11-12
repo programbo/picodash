@@ -22,7 +22,7 @@ are disabled until the contribution workflow reopens.
 | Package               | What it provides                                                                  |
 | --------------------- | --------------------------------------------------------------------------------- |
 | `@picodash/nexus`     | Typed state, valid changes, saved UI preferences, persistence, and import/export. |
-| `@picodash/dashpanel` | A movable Panel shell with configurable docking and durable layout.               |
+| `@picodash/dashpanel` | A movable, resizable Panel shell with docking and durable layout.                 |
 | `@picodash/dashlist`  | Ordered, groupable Dashlet composition with typed bindings and durable ordering.  |
 | `@picodash/picodash`  | The integrated facade for applications that need DashPanel and DashList together. |
 | `@picodash/ui`        | Shared theme, density, tokens, and generic accessible UI primitives.              |
@@ -40,7 +40,8 @@ Picodash integration follows after all three products are stable.
 - [Nexus target API](docs/reference/nexus.md)
 - [Shared UI target reference](docs/reference/ui.md)
 - [DashPanel target reference](docs/reference/dashpanel.md)
-- [DashPanel resizing and Resize Lab proposal](docs/internal/dashpanel-resizing-plan.md) (Draft)
+- [DashPanel resizing and Resize Lab plan](docs/internal/dashpanel-resizing-plan.md) (Accepted; locally verified)
+- [Manual sizing and interaction-event decision](docs/adr/0007-panel-manual-sizing-and-interaction-events.md)
 - [DashList target reference](docs/reference/dashlist.md)
 - [Picodash target reference](docs/reference/picodash.md)
 - [Component catalog target reference](docs/reference/catalog.md)

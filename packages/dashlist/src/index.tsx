@@ -62,6 +62,13 @@ import {
   useDashletPrimaryFocusCoordinator,
 } from './primary-focus.js'
 import { createReorderPresentation, reorderLayoutRect } from './reorder-presentation.js'
+import {
+  DashListInteractionBoundary,
+  reorderPointerSource,
+  useReorderHandleEvents,
+  useReorderInteraction,
+  type ReorderPublisherRef,
+} from './reorder-events.js'
 import { Dialog, DialogTrigger } from 'react-aria-components'
 import {
   createNodeRegistry,
@@ -492,6 +499,7 @@ type PointerLike = {
   readonly handle?: HTMLElement
   readonly pointerId?: number
   readonly clientY?: number
+  readonly pointerType?: string
   readonly setPointerCapture?: (pointerId: number) => void
   readonly releasePointerCapture?: (pointerId: number) => void
   readonly rowBounds?: () => readonly OrderingRowBounds[]
@@ -535,6 +543,7 @@ function useOrderingController({
   visible,
   sessionFence,
   announce,
+  interactionPublisher,
 }: {
   readonly nexus: ScopedNexus<PicodashFieldDefinitions>
   readonly declarations: readonly OrderingNode[]
@@ -544,7 +553,13 @@ function useOrderingController({
   readonly visible?: boolean
   readonly sessionFence?: string
   readonly announce?: (message: string) => void
+  readonly interactionPublisher?: ReorderPublisherRef
 }): OrderingController {
+  const interaction = useReorderInteraction(interactionPublisher)
+  const startingInteraction = useRef<{
+    readonly input: 'mouse' | 'touch' | 'pen' | 'keyboard'
+    readonly handle?: HTMLElement
+  }>({ input: 'keyboard' })
   const contextPublish = useContext(DashListAnnouncementContext)
   const publish = announce ?? contextPublish
   const inheritedCoordinator = useContext(DashListOrderingCoordinatorContext)
@@ -604,6 +619,7 @@ function useOrderingController({
   useEffect(() => () => presentation.current?.finish(), [])
   useEffect(() => {
     if (reconciled.effect.kind === 'stale-cancel') {
+      interaction.cancel('list_changed')
       releasePointerCapture()
       pointerRef.current = null
       coordinator.active.current = false
@@ -614,7 +630,7 @@ function useOrderingController({
       effectiveState.session !== state.session
     )
       setState(effectiveState)
-  }, [coordinator, effectiveState, publish, reconciled.effect, state])
+  }, [coordinator, effectiveState, interaction, publish, reconciled.effect, state])
 
   const stateRef = useRef(effectiveState)
   stateRef.current = effectiveState
@@ -629,9 +645,14 @@ function useOrderingController({
       stateRef.current = transition.state
       setState(transition.state)
     }
-    if (event.type === 'start' && transition.state.session) {
+    if (event.type === 'start' && transition.state.session && !previous.session) {
       coordinator.active.current = true
       const session = transition.state.session
+      interaction.start(
+        session.nodeId,
+        startingInteraction.current.input,
+        startingInteraction.current.handle,
+      )
       const node = inputRef.current.declarations.find((item) => item.id === session.nodeId)
       const bandOrder = session.candidateOrder.filter((id) =>
         transition.state.ordering.visibleBands[session.band].includes(id),
@@ -643,6 +664,7 @@ function useOrderingController({
     if (event.type === 'move' && stateRef.current.session) {
       const current = stateRef.current.session
       const candidateIndex = current.candidateOrder.indexOf(current.nodeId)
+      if (candidateIndex !== previousCandidateIndex) interaction.update()
       const node = inputRef.current.declarations.find((item) => item.id === current.nodeId)
       const bandOrder = current.candidateOrder.filter((id) =>
         stateRef.current.ordering.visibleBands[current.band].includes(id),
@@ -657,22 +679,26 @@ function useOrderingController({
       }
     }
     if (event.type === 'cancel') {
+      interaction.cancel('cancelled')
       coordinator.active.current = false
       publish('Reorder cancelled.')
     }
     if (event.type === 'commit') {
       coordinator.active.current = false
       const session = previous.session
+      let outcome: 'accepted' | 'unchanged' | 'rejected' = 'unchanged'
       if (transition.effect.kind === 'write-order') {
         const result = groupId
           ? nexus.setDashListGroupOrder(groupId, transition.effect.order)
           : nexus.setDashListRootOrder(transition.effect.order)
         if (!result.ok) {
+          outcome = 'rejected'
           const reset = safeOrderingState(inputRef.current)
           stateRef.current = reset
           setState(reset)
           publish('Reorder was rejected.')
         } else if (session) {
+          outcome = 'accepted'
           const node = inputRef.current.declarations.find((item) => item.id === session.nodeId)
           const bandOrder = transition.state.ordering.order.filter((id) =>
             transition.state.ordering.visibleBands[session.band].includes(id),
@@ -690,8 +716,10 @@ function useOrderingController({
           `Reorder complete: ${node?.name ?? session.nodeId}, position ${bandOrder.indexOf(session.nodeId) + 1} of ${bandOrder.length}.`,
         )
       }
+      interaction.end(outcome)
     }
     if (event.type === 'reset') {
+      interaction.cancel('reset')
       coordinator.active.current = false
       if (transition.effect.kind === 'remove-order') {
         if (groupId) nexus.removeDashListGroupOrder(groupId)
@@ -699,8 +727,13 @@ function useOrderingController({
       }
     }
   }
-  const start = (id: string, handle?: HTMLElement) => {
+  const start = (
+    id: string,
+    handle?: HTMLElement,
+    input: 'mouse' | 'touch' | 'pen' | 'keyboard' = 'keyboard',
+  ) => {
     if (coordinator.active.current && !stateRef.current.session) return
+    startingInteraction.current = { input, ...(handle ? { handle } : {}) }
     dispatch({ type: 'start', nodeId: id })
     const session = stateRef.current.session
     if (session && handle)
@@ -717,7 +750,10 @@ function useOrderingController({
       (activeSession.nodeId !== id || pointerRef.current === null || pointerRef.current.id !== id)
     )
       return false
-    if (!activeSession) start(id)
+    if (!activeSession) {
+      const source = reorderPointerSource(event.pointerType)
+      start(id, event.handle, source === 'pen' || source === 'touch' ? source : 'mouse')
+    }
     const startedSession = stateRef.current.session
     if (startedSession?.nodeId === id) {
       if (event.pointerId !== undefined) event.setPointerCapture?.(event.pointerId)
@@ -757,6 +793,7 @@ function useOrderingController({
       return
     if (pointer.clientY === undefined || event.clientY === undefined) return
     presentation.current?.move(event.clientY)
+    interaction.update()
     const delta = event.clientY - pointer.clientY
     const travel = delta === 0 ? pointer.direction : delta > 0 ? 'down' : 'up'
     pointerRef.current = { ...pointer, clientY: event.clientY, direction: travel }
@@ -883,12 +920,14 @@ function useOrderingController({
 }
 
 function useOrderingHandle(id: string, label: string): ReactElement | null {
+  const interactionEvents = useReorderHandleEvents(id)
   const controller = useContext(DashListOrderingContext)
   const instructionsId = useContext(DashListReorderInstructionsContext)
   if (!controller || !controller.canHandle(id)) return null
   return createElement(
     'button',
     {
+      ...interactionEvents,
       type: 'button',
       'aria-label': `Reorder ${label}`,
       'aria-describedby': instructionsId,
@@ -924,11 +963,15 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
           else controller.start(id, event.currentTarget)
         }
       },
-      onBlur: () => controller.blur(id),
+      onBlur: () => {
+        interactionEvents.onBlur()
+        controller.blur(id)
+      },
       onPointerDown: (event: {
         button?: number
         pointerId?: number
         clientY?: number
+        pointerType?: string
         preventDefault?: () => void
         setPointerCapture?: (pointerId: number) => void
         releasePointerCapture?: (pointerId: number) => void
@@ -961,6 +1004,7 @@ function useOrderingHandle(id: string, label: string): ReactElement | null {
           handle: pointerTarget,
           pointerId: event.pointerId,
           clientY: event.clientY,
+          pointerType: event.pointerType,
           setPointerCapture:
             event.setPointerCapture ??
             event.currentTarget?.setPointerCapture?.bind(event.currentTarget),
@@ -1595,6 +1639,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     resolved.nexus,
     (state) => state.scope?.dashList?.rootOrder,
   )
+  const interactionPublisher = useRef<ReorderPublisherRef['current']>(null)
   const rootCollapseFence = useMemo(
     () =>
       JSON.stringify(
@@ -1620,6 +1665,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
     reorderable,
     sessionFence: rootCollapseFence,
     announce: actionRegistry.announce,
+    interactionPublisher,
   })
   const declarationById = useMemo(
     () =>
@@ -1725,85 +1771,91 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
         kind="dashList"
         allowStandalone={resolved.standalone}
       >
-        <DashListAnnouncementContext.Provider value={actionRegistry.announce}>
-          <DashListOrderingCoordinatorContext.Provider value={rootOrdering.coordinator}>
-            <DashListReorderInstructionsContext.Provider value={reorderInstructionsId}>
-              <DashListOrderingContext.Provider value={rootOrdering}>
-                <DashListActionRegistryContext.Provider value={actionRegistry}>
-                  <DashListCompactContext.Provider value={compact}>
-                    <DashListNodeRegistryProvider registry={registry}>
-                      <DashListNodeValidation>
-                        <div
-                          {...props}
-                          ref={setRootRef}
-                          className={classNames('picodash-dashlist', className)}
-                          data-picodash-dashlist
-                          data-picodash-dashlist-compact={compact || undefined}
-                        >
-                          {title !== undefined ? (
-                            <DashHeader
-                              slots={{
-                                title: createElement(`h${headingLevel}`, { id: headingId }, title),
-                              }}
-                            />
-                          ) : null}
+        <DashListInteractionBoundary publisherRef={interactionPublisher}>
+          <DashListAnnouncementContext.Provider value={actionRegistry.announce}>
+            <DashListOrderingCoordinatorContext.Provider value={rootOrdering.coordinator}>
+              <DashListReorderInstructionsContext.Provider value={reorderInstructionsId}>
+                <DashListOrderingContext.Provider value={rootOrdering}>
+                  <DashListActionRegistryContext.Provider value={actionRegistry}>
+                    <DashListCompactContext.Provider value={compact}>
+                      <DashListNodeRegistryProvider registry={registry}>
+                        <DashListNodeValidation>
                           <div
-                            role="list"
-                            aria-label={ariaLabel}
-                            aria-labelledby={listName}
-                            data-picodash-dashlist-list
+                            {...props}
+                            ref={setRootRef}
+                            className={classNames('picodash-dashlist', className)}
+                            data-picodash-dashlist
                             data-picodash-dashlist-compact={compact || undefined}
                           >
-                            {(['start', 'automatic', 'end'] as const).map((band) => (
-                              <div
-                                key={band}
-                                role="presentation"
-                                data-picodash-dashlist-band={band}
-                                data-picodash-scroll-fade={band === 'automatic' || undefined}
-                              >
-                                {declarationsByBand[band].map((declaration, index) =>
-                                  createElement(
-                                    Fragment,
-                                    {
-                                      key:
-                                        declaration.key ??
-                                        declarationIdentity(
-                                          declaration,
-                                          `${resolved.scopeId}-${band}-${index}`,
-                                        ),
-                                    },
-                                    wrapDeclaration(
-                                      declaration,
-                                      'list',
-                                      `${resolved.scopeId}-${band}-${index}`,
-                                    ),
+                            {title !== undefined ? (
+                              <DashHeader
+                                slots={{
+                                  title: createElement(
+                                    `h${headingLevel}`,
+                                    { id: headingId },
+                                    title,
                                   ),
-                                )}
-                              </div>
-                            ))}
+                                }}
+                              />
+                            ) : null}
+                            <div
+                              role="list"
+                              aria-label={ariaLabel}
+                              aria-labelledby={listName}
+                              data-picodash-dashlist-list
+                              data-picodash-dashlist-compact={compact || undefined}
+                            >
+                              {(['start', 'automatic', 'end'] as const).map((band) => (
+                                <div
+                                  key={band}
+                                  role="presentation"
+                                  data-picodash-dashlist-band={band}
+                                  data-picodash-scroll-fade={band === 'automatic' || undefined}
+                                >
+                                  {declarationsByBand[band].map((declaration, index) =>
+                                    createElement(
+                                      Fragment,
+                                      {
+                                        key:
+                                          declaration.key ??
+                                          declarationIdentity(
+                                            declaration,
+                                            `${resolved.scopeId}-${band}-${index}`,
+                                          ),
+                                      },
+                                      wrapDeclaration(
+                                        declaration,
+                                        'list',
+                                        `${resolved.scopeId}-${band}-${index}`,
+                                      ),
+                                    ),
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                            <div
+                              key={actionSnapshot.announcementSequence}
+                              id={statusId}
+                              role="status"
+                              aria-live="polite"
+                              aria-atomic="true"
+                            >
+                              {actionSnapshot.announcement}
+                            </div>
+                            <span id={reorderInstructionsId} data-picodash-reorder-instructions>
+                              Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
+                              Press Space or Enter to commit, or Escape to cancel.
+                            </span>
                           </div>
-                          <div
-                            key={actionSnapshot.announcementSequence}
-                            id={statusId}
-                            role="status"
-                            aria-live="polite"
-                            aria-atomic="true"
-                          >
-                            {actionSnapshot.announcement}
-                          </div>
-                          <span id={reorderInstructionsId} data-picodash-reorder-instructions>
-                            Press Space or Enter to pick up. Use Arrow keys, Home, or End to move.
-                            Press Space or Enter to commit, or Escape to cancel.
-                          </span>
-                        </div>
-                      </DashListNodeValidation>
-                    </DashListNodeRegistryProvider>
-                  </DashListCompactContext.Provider>
-                </DashListActionRegistryContext.Provider>
-              </DashListOrderingContext.Provider>
-            </DashListReorderInstructionsContext.Provider>
-          </DashListOrderingCoordinatorContext.Provider>
-        </DashListAnnouncementContext.Provider>
+                        </DashListNodeValidation>
+                      </DashListNodeRegistryProvider>
+                    </DashListCompactContext.Provider>
+                  </DashListActionRegistryContext.Provider>
+                </DashListOrderingContext.Provider>
+              </DashListReorderInstructionsContext.Provider>
+            </DashListOrderingCoordinatorContext.Provider>
+          </DashListAnnouncementContext.Provider>
+        </DashListInteractionBoundary>
       </PicodashNexusEntityBoundary>
     </PicodashThemeProvider>
   )

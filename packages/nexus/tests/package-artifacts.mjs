@@ -114,6 +114,8 @@ if (import.meta.main) {
     'acquireEntityLease',
     'acquireProviderLease',
     'acquireRelationshipLease',
+    'publishNexusInteraction',
+    'useNexusInteractionPublisher',
   ])
   assert.equal('acquireProviderLease' in reactModule, false)
   assert.equal('acquireEntityLease' in reactModule, false)
@@ -178,6 +180,7 @@ if (import.meta.main) {
   assert.doesNotMatch(scopedSection, /destroy\(options\?: DestroyRootOptions\)/)
   assert.match(scopedSection, /readonly diagnostics: PicodashDiagnostics/)
   assert.deepEqual(Object.keys(rootModule).sort(), [
+    'NEXUS_INTERACTION_TYPES',
     'PicodashContractError',
     'PicodashDocumentError',
     'PicodashDocumentOptionsError',
@@ -189,6 +192,7 @@ if (import.meta.main) {
     'documentToSchemaMigrationPayload',
     'encodePicodashDocument',
     'migratePicodashDocument',
+    'normalizeNexusInteractionEvent',
     'normalizePicodashDocument',
     'normalizePicodashExportExecutionOptions',
     'normalizePicodashExportOptions',
@@ -204,6 +208,8 @@ if (import.meta.main) {
     'acquireProviderLease',
     'acquireEntityLease',
     'acquireRelationshipLease',
+    'publishNexusInteraction',
+    'useNexusInteractionPublisher',
   ]) {
     assert.equal(integrationExport in rootModule, false)
   }

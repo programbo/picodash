@@ -5,6 +5,22 @@ import { describe, expect, it } from 'vite-plus/test'
 const stylesheetPath = fileURLToPath(new URL('../src/style.css', import.meta.url))
 
 describe('DashPanel stylesheet contract', () => {
+  it('offers coarse-pointer 44px size controls without widening precision borders over content', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    expect(css).toMatch(/--picodash-panel-resize-hit-size:\s*10px/)
+    for (const selector of [
+      '\\[data-picodash-panel-resize-button\\]',
+      '\\[data-picodash-panel-size-editor\\] input',
+      "\\[data-picodash-panel-size-editor\\] \\[data-slot='button'\\]",
+    ]) {
+      expect(css).toMatch(
+        new RegExp(
+          `@media\\s*\\(pointer:\\s*coarse\\)[\\s\\S]*${selector}\\s*\\{[^}]*min-inline-size:\\s*44px;[^}]*min-block-size:\\s*44px;`,
+        ),
+      )
+    }
+  })
+
   it('restores the original dense Panel surface recipe through shared tokens', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
     const panelRule = css.match(/\.picodash-dashpanel\s*\{([^}]*)\}/s)?.[1]

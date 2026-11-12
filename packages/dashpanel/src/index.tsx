@@ -23,6 +23,7 @@ import type { PicodashFieldDefinitions, RootNexus } from '@picodash/nexus'
 import {
   PicodashNexusEntityBoundary,
   PicodashNexusProviderBoundary,
+  useNexusInteractionPublisher,
 } from '@picodash/nexus/integration'
 import { usePicodashRootNexus, usePicodashNexusSelector } from '@picodash/nexus/react'
 import {
@@ -32,6 +33,9 @@ import {
   ActionSubmenu,
   DashHeader,
   Button,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
   PicodashOverlayProvider,
   PicodashThemeProvider,
   usePicodashOverlayDefaults,
@@ -119,6 +123,36 @@ import {
   resolveDashPanelDockedMinimizePresentation,
   type DashPanelDockArrowDirection,
 } from './placement/docked-minimize.ts'
+import { measurePanelSizing, type PanelSizingPolicy } from './runtime/panel-size-measurement.ts'
+import { cn } from './runtime/class-name.ts'
+import { usePanelInteractions } from './runtime/use-panel-interactions.ts'
+import { usePanelResize } from './runtime/use-panel-resize.ts'
+import { PanelSizeEditor } from './runtime/panel-size-editor.tsx'
+import {
+  normalizeDashPanelContentConstraints,
+  normalizeDashPanelContentMetrics,
+  resolveDashPanelDimension,
+  type DashPanelContentConstraints,
+  type DashPanelContentMetrics,
+  type DashPanelDimension,
+  type DashPanelHeight,
+  type DashPanelResize,
+  type DashPanelSizingState,
+} from './sizing/index.ts'
+
+export type {
+  DashPanelDimension,
+  DashPanelHeight,
+  DashPanelResize,
+  DashPanelResizeOptions,
+  DashPanelResizeTarget,
+  DashPanelContentConstraints,
+  DashPanelContentMetrics,
+  DashPanelManualSize,
+  DashPanelSizingState,
+  DashPanelSizingConstraint,
+} from './sizing/index.ts'
+export type { DashPanelSizeRequest, DashPanelRestoreSizeOptions } from './runtime/panel-runtime.ts'
 
 export type {
   DashPanelDefaultLayout,
@@ -137,6 +171,7 @@ export {
   DashPanelActionItems,
   DashPanelPlacementSubmenu,
   DashPanelResetLayoutItem,
+  DashPanelRestoreSizeItem,
   DashPanelRequestRemoveItem,
 } from './actions.tsx'
 export type { DashPanelRemoveRequest } from './actions.tsx'
@@ -152,6 +187,9 @@ export type DashPanelStyle = Omit<
   | 'minInlineSize'
   | 'minWidth'
   | 'width'
+  | 'height'
+  | 'maxWidth'
+  | 'maxHeight'
 >
 
 export interface DashPanelProviderProps<
@@ -179,6 +217,15 @@ export interface DashPanelProps<CustomTheme extends string = never> extends Omit
   children?: ReactNode
   style?: DashPanelStyle
   width?: CSSProperties['width']
+  height?: DashPanelHeight
+  minWidth?: DashPanelDimension
+  maxWidth?: DashPanelDimension
+  minHeight?: DashPanelDimension
+  maxHeight?: DashPanelDimension
+  resize?: DashPanelResize
+  contentConstraints?: DashPanelContentConstraints
+  contentMetrics?: DashPanelContentMetrics
+  moveHandle?: 'header' | 'grip' | 'both'
   boundary?: DashPanelBoundary | null
   boundaryInset?: DashPanelBoundaryInset
   dockPositions?: readonly DashPanelDockPosition[]
@@ -369,6 +416,9 @@ function assertPanelStyle(style: DashPanelStyle | undefined): void {
   if (!style) return
   for (const property of [
     'width',
+    'height',
+    'maxWidth',
+    'maxHeight',
     'inlineSize',
     'maxInlineSize',
     'blockSize',
@@ -389,12 +439,17 @@ function assertPanelStyle(style: DashPanelStyle | undefined): void {
 function panelStyle(
   style: DashPanelStyle | undefined,
   width: CSSProperties['width'],
+  height?: DashPanelHeight,
 ): CSSProperties | undefined {
-  if (style === undefined && width === undefined) return undefined
+  if (style === undefined && width === undefined && height === undefined) return undefined
   const resolved = { ...style } as CSSProperties & {
     '--picodash-panel-width'?: CSSProperties['width']
+    '--picodash-panel-height'?: string
   }
-  if (width !== undefined) resolved['--picodash-panel-width'] = width
+  if (width !== undefined)
+    resolved['--picodash-panel-width'] = typeof width === 'number' ? `${width}px` : width
+  if (height !== undefined)
+    resolved['--picodash-panel-height'] = typeof height === 'number' ? `${height}px` : height
   return resolved
 }
 
@@ -403,6 +458,7 @@ interface PanelGeometryState {
   readonly minimumHeight: number
   readonly size: DashPanelSize
   readonly rect: DashPanelRect
+  readonly sizing: DashPanelSizingState
 }
 
 type PanelHeightTransitionState =
@@ -567,11 +623,18 @@ function measurePreferredPanelRect(element: HTMLElement): DOMRect {
   }
 }
 
-function measureMinimumPanelHeight(element: HTMLElement, preferredHeight: number): number {
+function measureMinimumPanelHeight(
+  element: HTMLElement,
+  preferredHeight: number,
+  preferredWidth: number,
+): number {
+  const inlineSize = element.style.getPropertyValue('inline-size')
+  const inlineSizePriority = element.style.getPropertyPriority('inline-size')
   const blockSize = element.style.getPropertyValue('block-size')
   const blockSizePriority = element.style.getPropertyPriority('block-size')
   const maxBlockSize = element.style.getPropertyValue('max-block-size')
   const maxBlockSizePriority = element.style.getPropertyPriority('max-block-size')
+  element.style.setProperty('inline-size', `${preferredWidth}px`)
   element.style.setProperty('block-size', 'min-content')
   element.style.removeProperty('max-block-size')
   try {
@@ -582,6 +645,8 @@ function measureMinimumPanelHeight(element: HTMLElement, preferredHeight: number
       return measured
     return Math.min(preferredHeight, headerHeight)
   } finally {
+    if (inlineSize) element.style.setProperty('inline-size', inlineSize, inlineSizePriority)
+    else element.style.removeProperty('inline-size')
     if (blockSize) element.style.setProperty('block-size', blockSize, blockSizePriority)
     else element.style.removeProperty('block-size')
     if (maxBlockSize)
@@ -720,6 +785,15 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     children,
     style,
     width,
+    height,
+    minWidth,
+    maxWidth,
+    minHeight,
+    maxHeight,
+    resize,
+    contentConstraints,
+    contentMetrics,
+    moveHandle = 'header',
     boundary,
     boundaryInset,
     dockPositions,
@@ -744,6 +818,19 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   ref,
 ) {
   assertPanelStyle(style)
+  if (height !== undefined && height !== 'auto')
+    resolveDashPanelDimension(height, { available: 1000, rootFontSize: 16 })
+  for (const bound of [minWidth, maxWidth, minHeight, maxHeight])
+    if (bound !== undefined) resolveDashPanelDimension(bound, { available: 1000, rootFontSize: 16 })
+  if (typeof minWidth === 'number' && typeof maxWidth === 'number' && minWidth > maxWidth)
+    throw new TypeError('DashPanel minWidth cannot exceed maxWidth.')
+  if (typeof minHeight === 'number' && typeof maxHeight === 'number' && minHeight > maxHeight)
+    throw new TypeError('DashPanel minHeight cannot exceed maxHeight.')
+  if (!['header', 'grip', 'both'].includes(moveHandle))
+    throw new TypeError('Invalid DashPanel moveHandle.')
+  normalizeDashPanelContentConstraints(contentConstraints)
+  normalizeDashPanelContentMetrics(contentMetrics)
+  const publishInteraction = useNexusInteractionPublisher()
   const root = usePicodashRootNexus()
   const runtime = useDashPanelRuntime()
   const providerPolicy = useDashPanelProviderPolicy()
@@ -784,7 +871,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     [boundaryInset, providerPolicy.boundaryInset],
   )
   const resolvedPlacement =
-    durableLayout &&
+    durableLayout?.placement &&
     classifyDashPanelPlacement(durableLayout.placement, resolvedDockPositions).status ===
       'available'
       ? (durableLayout.placement as DashPanelPlacement)
@@ -796,6 +883,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const moveInstructionsId = `picodash-panel-move-instructions-${useId()}`
   const asideRef = useRef<HTMLElement | null>(null)
   const registration = useRef<PanelRuntimeRegistration | null>(null)
+  const interactions = usePanelInteractions(asideRef, publishInteraction)
   const previewPositionRef = useRef<DashPanelPoint | null>(null)
   const snapIntentRef = useRef<DashPanelSnapDragIntent | null>(null)
   const dockIntentRef = useRef<DashPanelHybridDockIntent | null>(null)
@@ -826,6 +914,57 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     announcementSequence.current += 1
     setActionAnnouncement({ sequence: announcementSequence.current, message })
   }, [])
+  const [sizeEditorOpen, setSizeEditorOpen] = useState(false)
+  const sizingPolicy = useMemo<PanelSizingPolicy>(
+    () => ({
+      height,
+      minWidth,
+      maxWidth,
+      minHeight,
+      maxHeight,
+      contentConstraints,
+      contentMetrics,
+    }),
+    [height, minWidth, maxWidth, minHeight, maxHeight, contentConstraints, contentMetrics],
+  )
+  const resizeInteraction = usePanelResize({
+    element: asideRef,
+    boundary: geometry?.boundary,
+    sizing: geometry?.sizing,
+    placement: effectivePlacement,
+    resize,
+    available:
+      (runtimeState?.visible ?? defaultVisible ?? true) &&
+      !(runtimeState?.collapsed ?? defaultCollapsed ?? false),
+    moving: moveMode !== null,
+    fingerprint: JSON.stringify([durableLayout, sizingPolicy]),
+    preferredPosition:
+      durableLayout?.preferredPosition ?? resolvedPolicyDefaultLayout.preferredPosition,
+    publish: publishInteraction,
+    getCanonicalLayout: () => scoped.getState().scope?.dashPanel,
+    subscribeCanonical: (listener) => scoped.subscribe(listener),
+    commit: (size, position) => runtime.commitResize(id, size, position),
+    announce: announceAction,
+    beforeStart: () => {
+      cancelPanelHeightTransition()
+      cancelPanelMagneticMotion()
+    },
+  })
+  const resizePreviewRef = useRef(resizeInteraction.preview)
+  resizePreviewRef.current = resizeInteraction.preview
+  const onRuntimeCommand = useCallback(
+    (command: string, outcome: 'accepted' | 'unchanged' | 'rejected', reason?: string) => {
+      publishInteraction({
+        type: 'command',
+        target: 'panel',
+        input: 'programmatic',
+        command,
+        outcome,
+        ...(reason ? { reason } : {}),
+      })
+    },
+    [publishInteraction],
+  )
   const registerMoveHandle = useCallback((element: HTMLButtonElement | null) => {
     // React Aria's Button currently filters this valid global ARIA attribute.
     // Preserve the shared primitive while ensuring the native control exposes it.
@@ -846,8 +985,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     readonly dockDetached: boolean
     readonly activeSnapTarget?: DashPanelSnapPosition | undefined
     readonly moved: boolean
+    readonly sourceFingerprint: string
   } | null>(null)
   const cancelObservedMoveRef = useRef<() => void>(() => undefined)
+  const cancelResizeRef = useRef<(reason: string) => void>(() => undefined)
+  cancelResizeRef.current = resizeInteraction.cancel
   const revalidateLayoutObservationRef = useRef<() => boolean>(() => true)
   const cancelPanelHeightTransition = useCallback((settledHeight?: number) => {
     const state = panelHeightTransitionRef.current
@@ -884,6 +1026,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const settledPreferredPosition =
     durableLayout?.preferredPosition ?? resolvedPolicyDefaultLayout.preferredPosition
   const settledLayoutFingerprint = JSON.stringify([
+    durableLayout?.manualSize ?? null,
     durableLayout?.placement ?? null,
     resolvedPlacement,
     settledPreferredPosition ?? null,
@@ -933,7 +1076,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       try {
         if (layoutMotion) element.style.setProperty('transform', 'none', 'important')
         panelRect = measurePreferredPanelRect(element)
-        minimumHeight = measureMinimumPanelHeight(element, panelRect.height)
+        minimumHeight = measureMinimumPanelHeight(element, panelRect.height, panelRect.width)
       } finally {
         if (layoutMotion) {
           if (transform) element.style.setProperty('transform', transform, transformPriority)
@@ -943,16 +1086,70 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
       const boundaryRect = target?.getBoundingClientRect?.() ?? viewportRect(element.ownerDocument)
       const insetBoundary = insetDashPanelRect(boundaryRect, resolvedBoundaryInset)
+      const preview = resizePreviewRef.current
+      const previewWidth = preview?.axes.includes('width')
+        ? preview.rect.width
+        : durableLayout?.manualSize?.width
+      const previewHeight = preview?.axes.includes('height')
+        ? preview.rect.height
+        : durableLayout?.manualSize?.height
+      const manual =
+        previewWidth !== undefined
+          ? {
+              width: previewWidth,
+              ...(previewHeight !== undefined ? { height: previewHeight } : {}),
+            }
+          : previewHeight !== undefined
+            ? { height: previewHeight }
+            : undefined
+      const position =
+        effectivePlacement.disposition.kind === 'docked'
+          ? effectivePlacement.disposition.position
+          : undefined
+      const targetAllocation = position
+        ? runtime.resolveDockTarget({ kind: 'settled', scopeId: id, available: insetBoundary })
+        : undefined
+      const measured = measurePanelSizing(
+        element,
+        insetBoundary,
+        sizingPolicy,
+        manual,
+        minimumHeight,
+        targetAllocation
+          ? {
+              ...(targetAllocation.allocation !== undefined
+                ? { height: targetAllocation.allocation }
+                : {}),
+              ...(targetAllocation.inlineAllocation !== undefined
+                ? { width: targetAllocation.inlineAllocation }
+                : {}),
+            }
+          : undefined,
+        position === 'full-top' || position === 'full-bottom'
+          ? (targetAllocation?.inlineAllocation ?? insetBoundary.width)
+          : undefined,
+      )
+      const sizing = measured.sizing
       const next = {
         boundary: insetBoundary,
-        minimumHeight,
-        size: { width: Math.max(0, panelRect.width), height: Math.max(0, panelRect.height) },
+        minimumHeight: Math.min(minimumHeight, sizing.resolved.height),
+        size: measured.unallocatedSize,
         rect: panelRect,
+        sizing,
       }
       geometryRef.current = next
       return next
     },
-    [boundary, providerPolicy.boundary, resolvedBoundaryInset],
+    [
+      boundary,
+      providerPolicy.boundary,
+      resolvedBoundaryInset,
+      durableLayout?.manualSize,
+      effectivePlacement,
+      sizingPolicy,
+      id,
+      runtime,
+    ],
   )
   const refreshGeometry = useMemo(
     () => () => {
@@ -991,7 +1188,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         sameMeasuredLength(current.rect.left, next.rect.left) &&
         sameMeasuredLength(current.rect.top, next.rect.top) &&
         sameMeasuredLength(current.rect.right, next.rect.right) &&
-        sameMeasuredLength(current.rect.bottom, next.rect.bottom)
+        sameMeasuredLength(current.rect.bottom, next.rect.bottom) &&
+        JSON.stringify(current.sizing) === JSON.stringify(next.sizing)
           ? current
           : next,
       )
@@ -1000,7 +1198,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   )
   useLayoutEffect(() => {
     refreshGeometry()
-  }, [effectivePlacement, panelPortal, refreshGeometry])
+  }, [effectivePlacement, panelPortal, refreshGeometry, resizeInteraction.preview])
   const observedBoundary = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
   const configuredBoundary = boundary === undefined ? providerPolicy.boundary : boundary
   const tracksBoundaryReference =
@@ -1016,9 +1214,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         ? new ResizeObserver((entries) => {
             const panelChanged = entries.some((entry) => entry.target === panel)
             const boundaryChanged =
-              entries.length === 0 || entries.some((entry) => entry.target !== panel)
+              entries.length === 0 || entries.some((entry) => entry.target === observedBoundary)
             if (boundaryChanged) {
-              cancelPanelHeightTransition(panel.getBoundingClientRect().height)
+              if (!panel.hasAttribute('data-picodash-resizing'))
+                cancelPanelHeightTransition(panel.getBoundingClientRect().height)
               refreshGeometry()
             } else if (panelChanged && panelHeightTransitionRef.current.kind === 'idle') {
               panelHeightTransitionRef.current = {
@@ -1026,17 +1225,33 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 settledHeight: panel.getBoundingClientRect().height,
               }
               refreshGeometry()
-            }
+            } else if (entries.some((entry) => entry.target !== panel)) refreshGeometry()
             if (panelChanged && panelHeightTransitionRef.current.kind === 'idle')
               runtime.notifyElementResize(id)
           })
         : undefined
     observer?.observe(panel)
+    const naturalContent = panel.querySelector<HTMLElement>('[data-picodash-panel-content]')
+    if (naturalContent) {
+      observer?.observe(naturalContent)
+      for (const child of naturalContent.children) observer?.observe(child)
+    }
     if (observedBoundary) observer?.observe(observedBoundary)
     const panelBody = panel.querySelector<HTMLElement>(':scope > [data-picodash-panel-body]')
+    const contentBoundsActive = Object.values(contentConstraints ?? {}).some(Boolean)
+    const refreshLoadedContent = () => {
+      if (contentBoundsActive) cancelResizeRef.current('content_constraints_changed')
+      refreshGeometry()
+    }
+    panelBody?.addEventListener('load', refreshLoadedContent, true)
+    panelBody?.addEventListener('error', refreshLoadedContent, true)
+    panel.ownerDocument.fonts?.addEventListener('loadingdone', refreshLoadedContent)
+    panel.ownerDocument.fonts?.addEventListener('loadingerror', refreshLoadedContent)
     const contentObserver =
       panelBody && typeof MutationObserver === 'function'
         ? new MutationObserver(() => {
+            if (contentBoundsActive) cancelResizeRef.current('content_constraints_changed')
+            for (const child of naturalContent?.children ?? []) observer?.observe(child)
             const state = panelHeightTransitionRef.current
             const renderedHeight = panel.getBoundingClientRect().height
             const fromHeight =
@@ -1046,7 +1261,11 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                   ? state.fromHeight
                   : (state.settledHeight ?? renderedHeight)
             cancelPanelHeightTransition()
-            if (panel.hidden || panel.hasAttribute('data-picodash-dragging')) {
+            if (
+              panel.hidden ||
+              panel.hasAttribute('data-picodash-dragging') ||
+              panel.hasAttribute('data-picodash-resizing')
+            ) {
               panelHeightTransitionRef.current = { kind: 'idle', settledHeight: renderedHeight }
               refreshGeometry()
               return
@@ -1225,7 +1444,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             const panelChanged = records.some((record) => {
               const target = record.target
               const targetElement =
-                target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement
+                target.nodeType === 1 ? (target as Element) : target.parentElement
               return (
                 targetElement === panel || (targetElement !== null && panel.contains(targetElement))
               )
@@ -1233,7 +1452,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
             const panelAncestorChanged = records.some((record) => {
               const target = record.target
               const targetElement =
-                target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement
+                target.nodeType === 1 ? (target as Element) : target.parentElement
               return targetElement !== null && targetElement.contains(panel)
             })
             const inheritedContextChanged = records.some((record) =>
@@ -1296,7 +1515,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
               records.every((record) => {
                 const target = record.target
                 const targetElement =
-                  target.nodeType === Node.ELEMENT_NODE ? (target as Element) : target.parentElement
+                  target.nodeType === 1 ? (target as Element) : target.parentElement
                 return targetElement?.closest('[data-picodash-panel]') !== null
               })
             )
@@ -1409,6 +1628,10 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         revalidateLayoutObservationRef.current = () => true
       observer?.disconnect()
       contentObserver?.disconnect()
+      panelBody?.removeEventListener('load', refreshLoadedContent, true)
+      panelBody?.removeEventListener('error', refreshLoadedContent, true)
+      panel.ownerDocument.fonts?.removeEventListener('loadingdone', refreshLoadedContent)
+      panel.ownerDocument.fonts?.removeEventListener('loadingerror', refreshLoadedContent)
       mutationObserver?.disconnect()
       cancelPanelHeightTransition()
       removeLayoutEventListeners()
@@ -1424,6 +1647,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   }, [
     boundary,
     cancelPanelHeightTransition,
+    contentConstraints,
     id,
     observedBoundary,
     panelPortal,
@@ -1477,8 +1701,21 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         ? { activeSnapTarget: effectivePlacement.disposition.position }
         : {}),
       moved: false,
+      sourceFingerprint: JSON.stringify(scoped.getState().scope?.dashPanel ?? null),
     } as const
     moveSession.current = session
+    const actual = asideRef.current?.getBoundingClientRect()
+    interactions.beginMove(
+      actual,
+      initialGeometry?.boundary,
+      mode === 'keyboard'
+        ? 'keyboard'
+        : event?.pointerType === 'touch'
+          ? 'touch'
+          : event?.pointerType === 'pen'
+            ? 'pen'
+            : 'mouse',
+    )
     previewPositionRef.current = current
     const initialSnapIntent: DashPanelSnapDragIntent =
       effectivePlacement.disposition.kind === 'snapped'
@@ -1496,7 +1733,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     setMoveMode(mode)
   }
 
-  const cancelMove = () => {
+  const cancelMove = (reason = 'cancelled') => {
+    interactions.cancelMove(reason)
     cancelPanelMagneticMotion()
     runtime.setDockAllocationPreview(id, null)
     asideRef.current?.removeAttribute('data-picodash-dragging')
@@ -1521,7 +1759,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (!session) return
     if (!revalidateLayoutObservationRef.current())
       return { status: 'not_executed' as const, reason: 'unavailable' as const }
+    if (session.sourceFingerprint !== JSON.stringify(scoped.getState().scope?.dashPanel ?? null)) {
+      cancelMove('metadata_changed')
+      return { status: 'not_executed' as const, reason: 'unavailable' as const }
+    }
     if (!session.moved) {
+      interactions.endMove('unchanged')
       cancelMove()
       return { status: 'executed' as const }
     }
@@ -1592,19 +1835,29 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       pendingDockReleaseRectRef.current = null
       panel?.removeAttribute('data-picodash-dock-allocation-motion')
     }
+    interactions.endMove(
+      result.status === 'executed' && result.transaction.ok ? 'accepted' : 'rejected',
+    )
     announceDashPanelLayoutFailure('Panel movement', result, announceAction)
     cancelMove()
     return result
   }
 
   const onMovePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
-    if (requestedPlacementMode === 'fixed' || event.button !== 0 || moveSession.current) return
+    if (
+      requestedPlacementMode === 'fixed' ||
+      event.button !== 0 ||
+      moveSession.current ||
+      resizeInteraction.active
+    )
+      return
     event.preventDefault()
     event.currentTarget.setPointerCapture?.(event.pointerId)
     beginMove('pointer', event)
   }
 
   const onHeaderPointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    if (moveHandle === 'grip') return
     const ownerWindow = event.currentTarget.ownerDocument.defaultView
     if (
       ownerWindow &&
@@ -1719,6 +1972,20 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         : { activeSnapTarget: nextSnapIntent.target }),
       moved,
     }
+    interactions.updateMove(
+      rectFromDashPanelPosition(
+        {
+          x: currentGeometry.boundary.left + nextSnapIntent.position.x,
+          y: currentGeometry.boundary.top + nextSnapIntent.position.y,
+        },
+        currentGeometry.size,
+      ),
+      currentGeometry.boundary,
+      rectFromDashPanelPosition(
+        { x: currentGeometry.boundary.left + next.x, y: currentGeometry.boundary.top + next.y },
+        currentGeometry.size,
+      ),
+    )
     previewPositionRef.current = nextSnapIntent.position
     snapIntentRef.current = nextSnapIntent
     dockIntentRef.current = nextDockIntent ?? null
@@ -1730,16 +1997,16 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const onMovePointerUp = (event: ReactPointerEvent<HTMLElement>) => {
     const session = moveSession.current
     if (!session || session.mode !== 'pointer' || session.pointerId !== event.pointerId) return
-    session.captureTarget?.releasePointerCapture?.(event.pointerId)
     commitMove()
+    session.captureTarget?.releasePointerCapture?.(event.pointerId)
   }
 
   const onMovePointerCancel = (event?: ReactPointerEvent<HTMLElement>) => {
     const session = moveSession.current
     if (!session || session.mode !== 'pointer') return
     if (event && session.pointerId !== event.pointerId) return
+    cancelMove('pointercancel')
     if (event) session.captureTarget?.releasePointerCapture?.(event.pointerId)
-    cancelMove()
   }
 
   const nativeMoveHandlersRef = useRef({
@@ -1800,7 +2067,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     if (session.mode !== 'keyboard') return
     if (event.key === 'Escape') {
       event.preventDefault()
-      cancelMove()
+      cancelMove('escape')
       return
     }
     if (event.key === 'Enter') {
@@ -1871,6 +2138,20 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         : { activeSnapTarget: nextSnapIntent.target }),
       moved,
     }
+    interactions.updateMove(
+      rectFromDashPanelPosition(
+        {
+          x: currentGeometry.boundary.left + nextSnapIntent.position.x,
+          y: currentGeometry.boundary.top + nextSnapIntent.position.y,
+        },
+        currentGeometry.size,
+      ),
+      currentGeometry.boundary,
+      rectFromDashPanelPosition(
+        { x: currentGeometry.boundary.left + next.x, y: currentGeometry.boundary.top + next.y },
+        currentGeometry.size,
+      ),
+    )
     previewPositionRef.current = nextSnapIntent.position
     snapIntentRef.current = nextSnapIntent
     setPreviewPosition(nextSnapIntent.position)
@@ -1929,6 +2210,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       dockPositions: resolvedDockPositions,
       presentation: resolvedPresentation,
       nexus: scoped,
+      layout: durableLayout,
+      onCommand: onRuntimeCommand,
       currentPosition,
       freeMovePosition,
       preferredPosition: settledPreferredPosition,
@@ -1953,6 +2236,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       dockPositions: resolvedDockPositions,
       presentation: resolvedPresentation,
       nexus: scoped,
+      layout: durableLayout,
+      onCommand: onRuntimeCommand,
       currentPosition,
       freeMovePosition,
       preferredPosition: settledPreferredPosition,
@@ -1971,6 +2256,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     freeMovePosition,
     settledPreferredPosition,
     resolveDockArena,
+    durableLayout,
+    onRuntimeCommand,
   ])
 
   const collapsed = runtimeState?.collapsed ?? initial.defaultCollapsed
@@ -1995,7 +2282,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     )
   useImperativeHandle(ref, () => asideRef.current as HTMLElement)
 
-  const resolvedStyle = panelStyle(style, width)
+  const resolvedStyle = panelStyle(style, width, height)
   const preferredPosition =
     previewPosition ??
     durableLayout?.preferredPosition ??
@@ -2027,7 +2314,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           available: geometry.boundary,
         })
       : undefined
-  const renderedRect = geometry
+  const settledRenderedRect = geometry
     ? placementRect(
         renderedPlacement,
         geometry.boundary,
@@ -2038,6 +2325,110 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
         dockTarget,
       )
     : null
+  const resizePreview = resizeInteraction.preview
+  const renderedRect =
+    resizePreview && settledRenderedRect
+      ? {
+          ...settledRenderedRect,
+          left: resizePreview.rect.left,
+          top: resizePreview.rect.top,
+          width: resizePreview.rect.width,
+          height: resizePreview.axes.includes('height')
+            ? resizePreview.rect.height
+            : settledRenderedRect.height,
+          right: resizePreview.rect.left + resizePreview.rect.width,
+          bottom:
+            resizePreview.rect.top +
+            (resizePreview.axes.includes('height')
+              ? resizePreview.rect.height
+              : settledRenderedRect.height),
+        }
+      : settledRenderedRect
+  const renderedSizing = useMemo<DashPanelSizingState | undefined>(() => {
+    if (!geometry || !renderedRect) return undefined
+    const constraints = [...geometry.sizing.constraints]
+    for (const axis of ['width', 'height'] as const) {
+      const code = renderedDockPosition ? 'allocation' : 'boundary'
+      if (
+        Math.abs(renderedRect[axis] - geometry.sizing.resolved[axis]) >= 0.5 &&
+        !constraints.some((reason) => reason.axis === axis && reason.code === code)
+      )
+        constraints.push({ axis, code, limit: renderedRect[axis] })
+    }
+    return {
+      ...geometry.sizing,
+      resolved: { width: renderedRect.width, height: renderedRect.height },
+      constraints,
+    }
+  }, [geometry?.sizing, renderedRect?.width, renderedRect?.height])
+  useLayoutEffect(() => {
+    registration.current?.update({ sizing: renderedSizing })
+  }, [renderedSizing])
+  const previousLayoutEvent = useRef<{
+    rect: DashPanelRect
+    boundary: DashPanelRect
+    fingerprint: string
+  } | null>(null)
+  useLayoutEffect(() => {
+    if (!renderedRect || !geometry || moveMode || resizeInteraction.active) return
+    const previous = previousLayoutEvent.current
+    previousLayoutEvent.current = {
+      rect: renderedRect,
+      boundary: geometry.boundary,
+      fingerprint: settledLayoutFingerprint,
+    }
+    if (!previous || sameMeasuredRect(previous.rect as DOMRect, renderedRect as DOMRect)) return
+    const current = {
+      x: renderedRect.left - geometry.boundary.left,
+      y: renderedRect.top - geometry.boundary.top,
+      width: renderedRect.width,
+      height: renderedRect.height,
+    }
+    const initial = {
+      x: previous.rect.left - previous.boundary.left,
+      y: previous.rect.top - previous.boundary.top,
+      width: previous.rect.width,
+      height: previous.rect.height,
+    }
+    const diff = {
+      x: current.x - initial.x,
+      y: current.y - initial.y,
+      width: current.width - initial.width,
+      height: current.height - initial.height,
+    }
+    publishInteraction({
+      type: 'layout',
+      target: 'panel',
+      input: 'automatic',
+      reason:
+        previous.fingerprint !== settledLayoutFingerprint
+          ? 'policy'
+          : JSON.stringify(previous.boundary) !== JSON.stringify(geometry.boundary)
+            ? 'boundary'
+            : 'content',
+      geometry: {
+        initial,
+        requested: {
+          ...current,
+          width: geometry.sizing.desired.width,
+          height: geometry.sizing.desired.height,
+        },
+        applied: current,
+        delta: diff,
+        stepDelta: diff,
+        constraints: geometry.sizing.constraints.map((reason) => `${reason.axis}:${reason.code}`),
+      },
+    })
+  }, [
+    renderedRect?.left,
+    renderedRect?.top,
+    renderedRect?.width,
+    renderedRect?.height,
+    moveMode,
+    resizeInteraction.active,
+    publishInteraction,
+    settledLayoutFingerprint,
+  ])
   const renderedBoundaryContactEdges =
     renderedDockPosition && renderedRect && geometry
       ? resolveDashPanelBoundaryContact(renderedRect, geometry.boundary)
@@ -2311,12 +2702,23 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                 transform: `translate3d(${renderedMapped.left - moveOriginMapped.left}px, ${renderedMapped.top - moveOriginMapped.top}px, 0)`,
               }
             : {}),
-          ...(renderedDockPosition === 'full-top' || renderedDockPosition === 'full-bottom'
+          ...(durableLayout?.manualSize?.width !== undefined ||
+          resizePreview?.axes.includes('width') ||
+          renderedDockPosition === 'full-top' ||
+          renderedDockPosition === 'full-bottom' ||
+          (geometry && geometry.sizing.resolved.width > geometry.sizing.preferred.width + 0.5)
             ? { inlineSize: `${renderedRect.width}px` }
             : renderedRect.width > 0
               ? { maxInlineSize: `${renderedRect.width}px` }
               : {}),
-          ...(renderedDockPosition === 'full-left' || renderedDockPosition === 'full-right'
+          ...((!collapsed &&
+            (durableLayout?.manualSize?.height !== undefined ||
+              (height !== undefined && height !== 'auto') ||
+              resizePreview?.axes.includes('height') ||
+              (geometry &&
+                geometry.sizing.resolved.height > geometry.sizing.preferred.height + 0.5))) ||
+          renderedDockPosition === 'full-left' ||
+          renderedDockPosition === 'full-right'
             ? { blockSize: `${renderedRect.height}px` }
             : renderedRect.height > 0
               ? { maxBlockSize: `${renderedRect.height}px` }
@@ -2343,6 +2745,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       motion === undefined ||
       panel.hidden ||
       panel.hasAttribute('data-picodash-dragging') ||
+      panel.hasAttribute('data-picodash-resizing') ||
       Math.abs(state.fromHeight - targetHeight) < 0.5
     ) {
       panelHeightTransitionRef.current = { kind: 'idle', settledHeight: targetHeight }
@@ -2536,6 +2939,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const collapseButtonRef = useRef<HTMLButtonElement | null>(null)
   const revealButtonRef = useRef<HTMLButtonElement | null>(null)
   const pendingCollapseFocus = useRef<'minimize' | 'reveal' | null>(null)
+  const pendingRestoreFocus = useRef(false)
+  useLayoutEffect(() => {
+    if (!pendingRestoreFocus.current || durableLayout?.manualSize) return
+    pendingRestoreFocus.current = false
+    focusPanel(runtime, id)
+  }, [durableLayout?.manualSize, id, runtime])
   useLayoutEffect(() => {
     if (pendingCollapseFocus.current === 'reveal' && dockedMinimized) {
       revealButtonRef.current?.focus()
@@ -2559,219 +2968,388 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
           scopeId={id}
           onRequestRemove={onRequestRemove}
           announce={announceAction}
+          onResize={resize === false ? undefined : () => setSizeEditorOpen(true)}
         >
-          <PicodashNexusEntityBoundary nexus={scoped} kind="dashPanel">
-            <PicodashThemeProvider<string> theme={theme} density={density}>
-              {dockPreviewStyle ? (
-                <div
-                  ref={dockPreviewElementRef}
-                  aria-hidden="true"
-                  data-picodash-panel-dock-preview
-                  data-picodash-dock-position={dockIntent?.position}
-                  data-picodash-boundary-contact={dockPreviewBoundaryContact || undefined}
-                  style={dockPreviewStyle}
-                />
-              ) : null}
-              {dockedMinimizePresentation && revealStyle ? (
-                <div
-                  data-picodash-panel-reveal
-                  data-picodash-boundary-contact={revealBoundaryContact || undefined}
-                  data-visible={dockedMinimized ? 'true' : 'false'}
-                  style={revealStyle}
-                  inert={!dockedMinimized || undefined}
-                  aria-hidden={!dockedMinimized || undefined}
-                >
-                  <Button
-                    ref={revealButtonRef}
-                    aria-label={`Reveal panel ${panelName}`}
-                    aria-expanded={false}
-                    aria-controls={bodyId}
-                    isDisabled={!dockedMinimized}
-                    iconOnly
-                    variant="ghost"
-                    size="sm"
-                    onPress={() => {
-                      pendingCollapseFocus.current = 'minimize'
-                      runtime.expand(id)
-                    }}
-                  >
-                    <DockArrowIcon
-                      direction={
-                        dockedMinimized
-                          ? dockedMinimizePresentation.revealDirection
-                          : dockedMinimizePresentation.minimizeDirection
-                      }
-                    />
-                  </Button>
-                </div>
-              ) : null}
-              <aside
-                {...asideProps}
-                {...labelledProps}
-                ref={setAsideElement}
-                className={className ? `picodash-dashpanel ${className}` : 'picodash-dashpanel'}
-                style={combinedStyle}
-                data-picodash-panel
-                data-picodash-placement={
-                  moveMode
-                    ? `${renderedPlacement.mode}-free-preview`
-                    : `${effectivePlacement.mode}-${effectivePlacement.disposition.kind}`
-                }
-                data-visible={visible ? 'true' : 'false'}
-                data-active={activeVisiblePanelId === id ? 'true' : undefined}
-                data-picodash-magnetic={
-                  moveMode === 'pointer' && snapIntent?.kind !== 'free'
-                    ? snapIntent?.kind
-                    : undefined
-                }
-                data-picodash-dragging={moveMode ? 'true' : undefined}
-                data-picodash-dock-intent={
-                  dockIntent?.kind === 'available' ? dockIntent.position : undefined
-                }
-                data-picodash-dock-position={renderedDockPosition}
-                data-picodash-boundary-contact={renderedBoundaryContact || undefined}
-                data-picodash-docked-minimized={dockedMinimized ? 'true' : undefined}
-                hidden={!visible}
-                inert={!visible || dockedMinimized || undefined}
-                aria-hidden={!visible || dockedMinimized || undefined}
-                onFocusCapture={(event) => {
-                  asideProps.onFocusCapture?.(event)
-                  runtime.activate(id)
-                  const related = event.relatedTarget
-                  if (
-                    typeof Node !== 'undefined' &&
-                    related instanceof Node &&
-                    event.currentTarget.contains(related)
-                  )
-                    return
-                  recordPanelInteraction(runtime, id, related)
-                }}
-                onPointerDownCapture={(event) => {
-                  asideProps.onPointerDownCapture?.(event)
-                  runtime.activate(id)
-                }}
-                onPointerMove={onMovePointerMove}
-                onPointerUp={(event) => {
-                  asideProps.onPointerUp?.(event)
-                  onMovePointerUp(event)
-                }}
-                onPointerCancel={onMovePointerCancel}
-                data-collapsed={collapsed ? 'true' : 'false'}
+          <PicodashThemeProvider<string> theme={theme} density={density}>
+            {dockPreviewStyle ? (
+              <div
+                ref={dockPreviewElementRef}
+                aria-hidden="true"
+                data-picodash-panel-dock-preview
+                data-picodash-dock-position={dockIntent?.position}
+                data-picodash-boundary-contact={dockPreviewBoundaryContact || undefined}
+                style={dockPreviewStyle}
+              />
+            ) : null}
+            {dockedMinimizePresentation && revealStyle ? (
+              <div
+                data-picodash-panel-reveal
+                data-picodash-boundary-contact={revealBoundaryContact || undefined}
+                data-visible={dockedMinimized ? 'true' : 'false'}
+                style={revealStyle}
+                inert={!dockedMinimized || undefined}
+                aria-hidden={!dockedMinimized || undefined}
               >
-                <DashHeader
-                  data-picodash-panel-drag-surface
-                  data-disabled={requestedPlacementMode === 'fixed' ? 'true' : undefined}
-                  onPointerDown={onHeaderPointerDown}
-                  slots={{
-                    leading: currentCollapsible ? (
+                <Button
+                  ref={revealButtonRef}
+                  aria-label={`Reveal panel ${panelName}`}
+                  aria-expanded={false}
+                  aria-controls={bodyId}
+                  isDisabled={!dockedMinimized}
+                  iconOnly
+                  variant="ghost"
+                  size="sm"
+                  onPress={() => {
+                    pendingCollapseFocus.current = 'minimize'
+                    runtime.expand(id)
+                  }}
+                >
+                  <DockArrowIcon
+                    direction={
+                      dockedMinimized
+                        ? dockedMinimizePresentation.revealDirection
+                        : dockedMinimizePresentation.minimizeDirection
+                    }
+                  />
+                </Button>
+              </div>
+            ) : null}
+            <aside
+              {...asideProps}
+              {...labelledProps}
+              ref={setAsideElement}
+              className={cn('picodash-dashpanel', className)}
+              style={combinedStyle}
+              data-picodash-panel
+              data-picodash-manually-sized={durableLayout?.manualSize ? 'true' : undefined}
+              data-picodash-resize-handles={resizeInteraction.handles}
+              data-picodash-resizing={resizeInteraction.activeTarget ?? undefined}
+              data-picodash-move-handle-mode={moveHandle}
+              data-picodash-size-constrained={
+                renderedSizing?.constraints.length ? 'true' : undefined
+              }
+              data-picodash-placement={
+                moveMode
+                  ? `${renderedPlacement.mode}-free-preview`
+                  : `${effectivePlacement.mode}-${effectivePlacement.disposition.kind}`
+              }
+              data-visible={visible ? 'true' : 'false'}
+              data-active={activeVisiblePanelId === id ? 'true' : undefined}
+              data-picodash-magnetic={
+                moveMode === 'pointer' && snapIntent?.kind !== 'free' ? snapIntent?.kind : undefined
+              }
+              data-picodash-dragging={moveMode ? 'true' : undefined}
+              data-picodash-dock-intent={
+                dockIntent?.kind === 'available' ? dockIntent.position : undefined
+              }
+              data-picodash-dock-position={renderedDockPosition}
+              data-picodash-boundary-contact={renderedBoundaryContact || undefined}
+              data-picodash-docked-minimized={dockedMinimized ? 'true' : undefined}
+              hidden={!visible}
+              inert={!visible || dockedMinimized || undefined}
+              aria-hidden={!visible || dockedMinimized || undefined}
+              onPointerOver={(event) => {
+                asideProps.onPointerOver?.(event)
+                interactions.hover('enter', event)
+              }}
+              onPointerOut={(event) => {
+                asideProps.onPointerOut?.(event)
+                interactions.hover('leave', event)
+              }}
+              onBlurCapture={(event) => {
+                asideProps.onBlurCapture?.(event)
+                interactions.focus('leave', event)
+              }}
+              onClickCapture={(event) => {
+                asideProps.onClickCapture?.(event)
+                interactions.pointer('click', event)
+              }}
+              onFocusCapture={(event) => {
+                interactions.focus('enter', event)
+                asideProps.onFocusCapture?.(event)
+                runtime.activate(id)
+                const related = event.relatedTarget
+                if (
+                  typeof Node !== 'undefined' &&
+                  related instanceof Node &&
+                  event.currentTarget.contains(related)
+                )
+                  return
+                recordPanelInteraction(runtime, id, related)
+              }}
+              onPointerDownCapture={(event) => {
+                interactions.pointer('down', event)
+                asideProps.onPointerDownCapture?.(event)
+                runtime.activate(id)
+              }}
+              onPointerMoveCapture={(event) => {
+                asideProps.onPointerMoveCapture?.(event)
+                interactions.pointer('move', event)
+              }}
+              onPointerUpCapture={(event) => {
+                asideProps.onPointerUpCapture?.(event)
+                interactions.pointer('up', event)
+              }}
+              onPointerCancelCapture={(event) => {
+                asideProps.onPointerCancelCapture?.(event)
+                interactions.pointer('cancel', event)
+              }}
+              onPointerMove={(event) => {
+                asideProps.onPointerMove?.(event)
+                onMovePointerMove(event)
+              }}
+              onPointerUp={(event) => {
+                asideProps.onPointerUp?.(event)
+                onMovePointerUp(event)
+              }}
+              onPointerCancel={(event) => {
+                asideProps.onPointerCancel?.(event)
+                onMovePointerCancel(event)
+              }}
+              onLostPointerCapture={(event) => {
+                asideProps.onLostPointerCapture?.(event)
+                const session = moveSession.current
+                if (session?.mode === 'pointer' && session.pointerId === event.pointerId)
+                  cancelMove('capture_lost')
+              }}
+              data-collapsed={collapsed ? 'true' : 'false'}
+            >
+              <DashHeader
+                data-picodash-panel-drag-surface
+                data-disabled={requestedPlacementMode === 'fixed' ? 'true' : undefined}
+                onPointerDown={onHeaderPointerDown}
+                slots={{
+                  leading: currentCollapsible ? (
+                    <Button
+                      ref={collapseButtonRef}
+                      aria-label={collapseLabel}
+                      aria-expanded={!collapsed}
+                      aria-controls={bodyId}
+                      iconOnly
+                      variant="ghost"
+                      size="sm"
+                      onPress={() => {
+                        if (dockedMinimizePresentation) pendingCollapseFocus.current = 'reveal'
+                        runtime.toggleCollapsed(id)
+                      }}
+                    >
+                      {dockedMinimizePresentation ? (
+                        <DockArrowIcon
+                          direction={
+                            dockedMinimized
+                              ? dockedMinimizePresentation.revealDirection
+                              : dockedMinimizePresentation.minimizeDirection
+                          }
+                        />
+                      ) : (
+                        <CollapseIcon collapsed={collapsed} />
+                      )}
+                    </Button>
+                  ) : undefined,
+                  title: (
+                    <div data-picodash-panel-title-drag-surface>
+                      <h2 id={headingId}>{title}</h2>
                       <Button
-                        ref={collapseButtonRef}
-                        aria-label={collapseLabel}
-                        aria-expanded={!collapsed}
-                        aria-controls={bodyId}
-                        iconOnly
+                        ref={registerMoveHandle}
+                        data-picodash-panel-move-handle
+                        aria-label={`Move panel ${panelName}`}
+                        aria-pressed={moveMode !== null}
+                        aria-describedby={moveInstructionsId}
+                        isDisabled={requestedPlacementMode === 'fixed'}
                         variant="ghost"
-                        size="sm"
-                        onPress={() => {
-                          if (dockedMinimizePresentation) pendingCollapseFocus.current = 'reveal'
-                          runtime.toggleCollapsed(id)
+                        onPointerDown={onMovePointerDown}
+                        onPointerMoveCapture={onMovePointerMove}
+                        onPointerUpCapture={onMovePointerUp}
+                        onPointerCancelCapture={onMovePointerCancel}
+                        onKeyDown={onMoveKeyDown}
+                        data-visible-grip={moveHandle !== 'header' ? 'true' : undefined}
+                        onBlur={() => {
+                          if (moveSession.current?.mode === 'keyboard') cancelMove()
                         }}
                       >
-                        {dockedMinimizePresentation ? (
-                          <DockArrowIcon
-                            direction={
-                              dockedMinimized
-                                ? dockedMinimizePresentation.revealDirection
-                                : dockedMinimizePresentation.minimizeDirection
-                            }
-                          />
-                        ) : (
-                          <CollapseIcon collapsed={collapsed} />
-                        )}
+                        {moveHandle !== 'header' ? (
+                          <svg viewBox="0 0 16 16" aria-hidden="true">
+                            <path
+                              d="M5 3h1m4 0h1M5 8h1m4 0h1M5 13h1m4 0h1"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                            />
+                          </svg>
+                        ) : null}
                       </Button>
-                    ) : undefined,
-                    title: (
-                      <div data-picodash-panel-title-drag-surface>
-                        <h2 id={headingId}>{title}</h2>
-                        <Button
-                          ref={registerMoveHandle}
-                          data-picodash-panel-move-handle
-                          aria-label={`Move panel ${panelName}`}
-                          aria-pressed={moveMode !== null}
-                          aria-describedby={moveInstructionsId}
-                          isDisabled={requestedPlacementMode === 'fixed'}
-                          variant="ghost"
-                          onPointerDown={onMovePointerDown}
-                          onPointerMoveCapture={onMovePointerMove}
-                          onPointerUpCapture={onMovePointerUp}
-                          onPointerCancelCapture={onMovePointerCancel}
-                          onKeyDown={onMoveKeyDown}
-                          onBlur={() => {
-                            if (moveSession.current?.mode === 'keyboard') cancelMove()
-                          }}
-                        />
-                      </div>
-                    ),
-                    actions: renderActionMenu ? (
-                      <ActionMenu label={`Actions for ${panelName}`}>
-                        {actionMenuChildren}
-                      </ActionMenu>
-                    ) : undefined,
-                    trailing: showCloseButton ? (
+                    </div>
+                  ),
+                  actions: renderActionMenu ? (
+                    <ActionMenu label={`Actions for ${panelName}`}>{actionMenuChildren}</ActionMenu>
+                  ) : undefined,
+                  trailing:
+                    showCloseButton ||
+                    durableLayout?.manualSize ||
+                    renderedSizing?.constraints.length ||
+                    resize !== false ? (
                       <div data-picodash-panel-actions>
-                        <Button
-                          aria-label={`Close panel ${panelName}`}
-                          iconOnly
-                          variant="ghost"
-                          size="sm"
-                          onPress={() => {
-                            const wasVisible = runtime.getSnapshot().panels[id]?.visible ?? false
-                            try {
-                              runtime.hide(id)
-                            } finally {
-                              const isVisible = runtime.getSnapshot().panels[id]?.visible ?? false
-                              if (wasVisible && !isVisible)
-                                restorePanelFocus(
-                                  runtime,
-                                  id,
-                                  providerPolicy.boundary,
-                                  overlayDefaults.portalContainer,
-                                )
-                            }
-                          }}
-                        >
-                          <CloseIcon />
-                        </Button>
+                        {resize !== false ? (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Button
+                                aria-label={`Resize panel ${panelName}`}
+                                data-picodash-panel-resize-button
+                                iconOnly
+                                variant="ghost"
+                                size="sm"
+                                isDisabled={collapsed}
+                                onPress={() => setSizeEditorOpen(true)}
+                              >
+                                <svg viewBox="0 0 16 16" aria-hidden="true">
+                                  <path
+                                    d="M3 7V3h4m2 10h4V9M3 3l4 4m6 6L9 9"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Resize panel</TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                        {durableLayout?.manualSize ? (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Button
+                                aria-label="Restore preferred size"
+                                data-picodash-panel-restore-size
+                                iconOnly
+                                variant="ghost"
+                                size="sm"
+                                onPress={() => {
+                                  pendingRestoreFocus.current = true
+                                  const result = runtime.restorePreferredSize(id)
+                                  if (result.status !== 'executed' || !result.transaction.ok)
+                                    pendingRestoreFocus.current = false
+                                }}
+                              >
+                                <svg viewBox="0 0 16 16" aria-hidden="true">
+                                  <path
+                                    d="M3 6a5 5 0 1 1 0 5M3 2v4h4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="1.5"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                </svg>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Restore preferred size</TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                        {renderedSizing?.constraints.length ? (
+                          <span
+                            data-picodash-panel-size-limit
+                            role="img"
+                            aria-label="Panel size is constrained"
+                            title={renderedSizing.constraints
+                              .map((reason) => `${reason.axis}: ${reason.code}`)
+                              .join(', ')}
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true">
+                              <path
+                                d="M3 2v12M13 2v12M5 8h6M7 6 5 8l2 2m2-4 2 2-2 2"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                              />
+                            </svg>
+                          </span>
+                        ) : null}
+                        {showCloseButton ? (
+                          <Button
+                            aria-label={`Close panel ${panelName}`}
+                            iconOnly
+                            variant="ghost"
+                            size="sm"
+                            onPress={() => {
+                              const wasVisible = runtime.getSnapshot().panels[id]?.visible ?? false
+                              try {
+                                runtime.hide(id)
+                              } finally {
+                                const isVisible = runtime.getSnapshot().panels[id]?.visible ?? false
+                                if (wasVisible && !isVisible)
+                                  restorePanelFocus(
+                                    runtime,
+                                    id,
+                                    providerPolicy.boundary,
+                                    overlayDefaults.portalContainer,
+                                  )
+                              }
+                            }}
+                          >
+                            <CloseIcon />
+                          </Button>
+                        ) : null}
                       </div>
                     ) : undefined,
+                }}
+              />
+              <div
+                id={bodyId}
+                data-picodash-panel-body
+                data-picodash-scroll-fade
+                hidden={collapsed && !dockedMinimized}
+                inert={collapsed || undefined}
+                aria-hidden={collapsed || undefined}
+              >
+                <div data-picodash-panel-content>{children}</div>
+              </div>
+              {sizeEditorOpen ? (
+                <PanelSizeEditor
+                  name={panelName}
+                  onClose={() => {
+                    setSizeEditorOpen(false)
+                    asideRef.current
+                      ?.querySelector<HTMLButtonElement>('[data-slot="dash-header-actions"] button')
+                      ?.focus()
                   }}
                 />
-                <div
-                  id={bodyId}
-                  data-picodash-panel-body
-                  data-picodash-scroll-fade
-                  hidden={collapsed && !dockedMinimized}
-                  inert={collapsed || undefined}
-                  aria-hidden={collapsed || undefined}
+              ) : null}
+              {resizeInteraction.targets.map((target) => (
+                <button
+                  key={target}
+                  type="button"
+                  data-picodash-panel-resize-target={target}
+                  aria-label={`Resize panel ${panelName} from ${target}`}
+                  aria-pressed={resizeInteraction.activeTarget === target}
+                  title={`Resize ${target}`}
+                  onPointerDown={(event) => resizeInteraction.onPointerDown(target, event)}
+                  onLostPointerCapture={resizeInteraction.onLostPointerCapture}
+                  onBlur={() => {
+                    if (resizeInteraction.activeTarget === target)
+                      resizeInteraction.cancel('focus_left')
+                  }}
+                  onKeyDown={(event) => resizeInteraction.onKeyDown(target, event)}
                 >
-                  {children}
-                </div>
-                <div
-                  key={actionAnnouncement.sequence}
-                  role="status"
-                  aria-live="polite"
-                  aria-atomic="true"
-                  data-picodash-panel-status
-                >
-                  {actionAnnouncement.message}
-                </div>
-                <span id={moveInstructionsId} data-picodash-panel-move-instructions>
-                  Press Space or Enter to pick up. Use the arrow keys to move; hold Shift for larger
-                  steps. Press Enter to commit, or Escape to cancel.
-                </span>
-              </aside>
-            </PicodashThemeProvider>
-          </PicodashNexusEntityBoundary>
+                  <span aria-hidden="true" />
+                </button>
+              ))}
+              <div
+                key={actionAnnouncement.sequence}
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                data-picodash-panel-status
+              >
+                {actionAnnouncement.message}
+              </div>
+              <span id={moveInstructionsId} data-picodash-panel-move-instructions>
+                Press Space or Enter to pick up. Use the arrow keys to move; hold Shift for larger
+                steps. Press Enter to commit, or Escape to cancel.
+              </span>
+            </aside>
+          </PicodashThemeProvider>
         </DashPanelActionProvider>
       </DashPanelIdentityProvider>
     </DashPanelPolicyProvider>
@@ -2779,7 +3357,16 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   return panelPortal ? createPortal(panelRoot, panelPortal) : panelRoot
 })
 
-export const DashPanel = DashPanelImpl
+export const DashPanel = forwardRef<HTMLElement, DashPanelProps<string>>(
+  function DashPanel(props, ref) {
+    const root = usePicodashRootNexus()
+    return (
+      <PicodashNexusEntityBoundary nexus={root.scope(props.id)} kind="dashPanel">
+        <DashPanelImpl {...props} ref={ref} />
+      </PicodashNexusEntityBoundary>
+    )
+  },
+)
 
 export function DashPanelTrigger({
   panelId,

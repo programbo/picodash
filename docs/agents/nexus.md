@@ -6,6 +6,8 @@ Read this file before changing Nexus implementation or contracts. Then read
 [`../adr/0002-provider-level-nexus-and-scoped-views.md`](../adr/0002-provider-level-nexus-and-scoped-views.md),
 and [`../adr/0005-picodash-nexus-name-and-public-identity.md`](../adr/0005-picodash-nexus-name-and-public-identity.md).
 ADR 0005 defines the product name and external-store terminology boundary.
+For Panel metadata or interaction events, also read
+[`../adr/0007-panel-manual-sizing-and-interaction-events.md`](../adr/0007-panel-manual-sizing-and-interaction-events.md).
 
 ## Decision lens
 
@@ -29,6 +31,9 @@ not add consumer-specific backdoors or make Nexus depend on UI packages or Dev B
   types in their owning UI packages.
 - Persist settled overrides only. Drafts, input issues, focus, hover, visibility, activation,
   z-order, drag previews, and other interaction state are ephemeral.
+- Keep version-2 Panel placement, position, and manual-size overrides independent. Events use their
+  own typed subscription channel; they never notify snapshot subscribers or advance persistence.
+  Publish only through live integration leases, with Nexus-derived generation and scope identity.
 - Preserve structured issues, atomic transaction results, plan freshness, and explicit document
   disclosure. Do not normalize contract errors into ordinary rejection results.
 - Public advanced consumption belongs in `@picodash/nexus/integration`; never require private

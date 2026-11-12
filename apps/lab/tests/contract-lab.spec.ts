@@ -1169,8 +1169,8 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   await expect(portalTarget.locator('[data-contract-lab-focused-placement-panel]')).toHaveCount(1)
   const placementBoundary = page.locator('[data-contract-lab-focused-boundary]')
   const placementState = page.getByRole('status', { name: 'Current panel placement' })
-  const boundaryBox = (await placementBoundary.boundingBox())!
   const assertPlacementGeometry = async () => {
+    const boundaryBox = (await placementBoundary.boundingBox())!
     const panelBox = (await focusedPanel.boundingBox())!
     expect(panelBox.x).toBeGreaterThanOrEqual(boundaryBox.x)
     expect(panelBox.y).toBeGreaterThanOrEqual(boundaryBox.y)
@@ -1209,7 +1209,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   await placementSubmenu.press('Escape')
   await placementSubmenuTrigger.press('Escape')
   const headerBox = (await header.boundingBox())!
-  for (const button of await header.locator('[data-slot="button"][data-icon-only]').all()) {
+  for (const button of await header.locator('[data-slot="button"][data-icon-only]:visible').all()) {
     const buttonBox = (await button.boundingBox())!
     expect(
       Math.abs(buttonBox.y + buttonBox.height / 2 - (headerBox.y + headerBox.height / 2)),
@@ -1262,12 +1262,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   const afterPointer = (await focusedPanel.boundingBox())!
   expect(afterPointer.x).toBeGreaterThan(beforePointer.x)
   expect(afterPointer.y).toBeGreaterThan(beforePointer.y)
-  expect(afterPointer.x).toBeGreaterThanOrEqual(boundaryBox.x)
-  expect(afterPointer.y).toBeGreaterThanOrEqual(boundaryBox.y)
-  expect(afterPointer.x + afterPointer.width).toBeLessThanOrEqual(boundaryBox.x + boundaryBox.width)
-  expect(afterPointer.y + afterPointer.height).toBeLessThanOrEqual(
-    boundaryBox.y + boundaryBox.height,
-  )
+  await assertPlacementGeometry()
 
   await portalTarget.evaluate((target) => document.body.append(target))
   await page.evaluate(
@@ -1437,6 +1432,25 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     expect(coarsePanelBox.y + coarsePanelBox.height).toBeLessThanOrEqual(
       coarseBoundaryBox.y + coarseBoundaryBox.height,
     )
+    const resizeAction = coarsePanel.getByRole('button', {
+      name: 'Resize panel Placement Panel',
+      exact: true,
+    })
+    await resizeAction.scrollIntoViewIfNeeded()
+    const resizeActionBox = (await resizeAction.boundingBox())!
+    expect(resizeActionBox.width).toBeGreaterThanOrEqual(44)
+    expect(resizeActionBox.height).toBeGreaterThanOrEqual(44)
+    await resizeAction.tap()
+    const sizeEditor = coarsePanel.getByRole('form', {
+      name: 'Resize panel Placement Panel',
+      exact: true,
+    })
+    await expect(sizeEditor.getByLabel('Width (px)')).toBeFocused()
+    for (const input of await sizeEditor.getByRole('spinbutton').all()) {
+      expect((await input.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+    }
+    await sizeEditor.getByRole('button', { name: 'Cancel', exact: true }).tap()
+    await expect(sizeEditor).toHaveCount(0)
     await coarsePage.addStyleTag({ content: ':root { font-size: 12px; }' })
     await expect
       .poll(() => coarsePage.evaluate(() => getComputedStyle(document.documentElement).fontSize))
@@ -2282,6 +2296,7 @@ test('persists, restores, resets, and safely recovers settled DashPanel layout',
       ?.metadata,
   ).toEqual({
     dashPanel: {
+      version: 2,
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 34, y: 34 },
     },
@@ -2311,6 +2326,7 @@ test('persists, restores, resets, and safely recovers settled DashPanel layout',
       ?.metadata,
   ).toEqual({
     dashPanel: {
+      version: 2,
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 34, y: 34 },
     },
@@ -2344,7 +2360,7 @@ test('persists, restores, resets, and safely recovers settled DashPanel layout',
       await page.getByRole('button', { name: 'Reset lab', exact: true }).click()
     else await page.evaluate(() => window.__PICODASH_LAB__?.reset())
     await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
-    expect(await panel.count()).toBe(1)
+    await expect(panel).toHaveCount(1)
     await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
     await page.reload()
     await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
@@ -2372,7 +2388,7 @@ test('persists, restores, resets, and safely recovers settled DashPanel layout',
     })
     await page.reload()
     await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
-    expect(await panel.count()).toBe(1)
+    await expect(panel).toHaveCount(1)
     await expect.poll(readPreferredOffset).toEqual({ x: 24, y: 24 })
   }
 
@@ -2470,14 +2486,50 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     await readFile(resolve(process.cwd(), '../../.picodash/dev-bridge.json'), 'utf8'),
   ) as { url: string; token: string }
   const client = createPicodashDevBridgeClient({ baseUrl: credential.url, token: credential.token })
+  async function inspectWhenSynchronized(
+    select: (
+      sessions: Awaited<ReturnType<typeof client.listSessions>>,
+    ) => Awaited<ReturnType<typeof client.listSessions>>[number] | undefined,
+  ) {
+    let inspected: Awaited<ReturnType<typeof client.inspect>> | undefined
+    await expect
+      .poll(async () => {
+        const session = select(await client.listSessions())
+        if (!session) return false
+        try {
+          inspected = await client.inspect(session)
+          return true
+        } catch (error) {
+          if (
+            typeof error === 'object' &&
+            error !== null &&
+            'type' in error &&
+            error.type === 'bridge_error' &&
+            'error' in error
+          ) {
+            const detail = error.error
+            if (
+              typeof detail === 'object' &&
+              detail !== null &&
+              'code' in detail &&
+              detail.code === 'session_unsynchronized'
+            )
+              return false
+          }
+          throw error
+        }
+      })
+      .toBe(true)
+    if (!inspected) throw new Error('Bridge snapshot was not synchronized.')
+    return inspected
+  }
   const matches = (items: Awaited<ReturnType<typeof client.listSessions>>) =>
     items.find(
       (item) =>
         item.registrationId === 'contract-lab-specimen' && item.browserTabId === browserTabId,
     )
-  await expect.poll(async () => matches(await client.listSessions())).toBeTruthy()
-  const initial = matches(await client.listSessions())!
-  const initialSnapshot = await client.inspect(initial)
+  const initialSnapshot = await inspectWhenSynchronized(matches)
+  const initial = initialSnapshot.session
   expect(initialSnapshot.snapshot.values?.specimenMetric).toBe(24)
   expect(initialSnapshot.snapshot.values?.specimenUnit).toBe('requests/minute')
   expect(initialSnapshot.snapshot.diagnostics).toEqual(
@@ -2707,14 +2759,13 @@ test('connects the real browser specimen through the dev bridge and rejects the 
     items.find(
       (item) => item.registrationId === 'dashlet-style-lab' && item.browserTabId === browserTabId,
     )
-  await expect.poll(async () => styleMatches(await client.listSessions())).toBeTruthy()
-  const styleInitial = styleMatches(await client.listSessions())!
+  const styleInitialSnapshot = await inspectWhenSynchronized(styleMatches)
+  const styleInitial = styleInitialSnapshot.session
   expect(styleInitial.label).toBe('Contract Lab Style Lab')
   expect(styleInitial.disclosedValueFields).toEqual(['switchValue', 'number'])
   expect(styleInitial.disclosedScopeIds).toEqual([])
   expect(styleInitial.diagnosticsDisclosed).toBe(false)
   expect(styleInitial.writableFields).toEqual(['number'])
-  const styleInitialSnapshot = await client.inspect(styleInitial)
   expect(styleInitialSnapshot.snapshot.values?.switchValue).toBe(true)
   expect(styleInitialSnapshot.snapshot.values?.number).toBe(1.234567)
 

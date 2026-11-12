@@ -52,6 +52,7 @@ async function main() {
     'DashPanelProvider',
     'DashPanelRequestRemoveItem',
     'DashPanelResetLayoutItem',
+    'DashPanelRestoreSizeItem',
     'DashPanelTrigger',
     'useDashPanel',
   ])
@@ -74,6 +75,17 @@ async function main() {
     'DashPanelLauncherItem',
     'DashPanelLauncherProps',
     'DashPanelStyle',
+    'DashPanelDimension',
+    'DashPanelHeight',
+    'DashPanelResize',
+    'DashPanelResizeOptions',
+    'DashPanelResizeTarget',
+    'DashPanelContentConstraints',
+    'DashPanelContentMetrics',
+    'DashPanelSizingState',
+    'DashPanelManualSize',
+    'DashPanelRestoreSizeOptions',
+    'DashPanelSizeRequest',
     'DashPanelBoundary',
     'DashPanelBoundaryInset',
     'DashPanelSnapPosition',
@@ -100,6 +112,7 @@ async function main() {
     'DashPanelRemoveRequest',
     'DashPanelRequestRemoveItem',
     'DashPanelResetLayoutItem',
+    'DashPanelRestoreSizeItem',
   ])
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
   const integrationDeclarations = await readFile(
@@ -117,7 +130,8 @@ async function main() {
     assert.doesNotMatch(declarations, new RegExp(`\\b${retired}\\b`))
 
   const css = await readFile(path.join(packageRoot, 'dist/style.css'), 'utf8')
-  assert.match(css, /--picodash-panel-width/)
+  for (const token of ['width', 'height', 'resize-hit-size', 'resize-grip-size'])
+    assert.match(css, new RegExp(`--picodash-panel-${token}`))
   assert.match(css, /picodash-dashpanel/)
   assert.match(css, /data-active/)
   assert.doesNotMatch(css, /@picodash\/dashpanel\/src/)

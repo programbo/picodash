@@ -435,6 +435,7 @@ describe('Nexus declarative integration leases', () => {
     const edge = acquireRelationshipLease(parent, child)
     const secondEdge = acquireRelationshipLease(parent, child)
     nexus.setDashPanelLayout('parent', {
+      version: 2 as const,
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 1, y: 2 },
     })
@@ -449,6 +450,7 @@ describe('Nexus declarative integration leases', () => {
     expect(nexus.getState().scopes.size).toBe(0)
     edge.release()
     nexus.setDashPanelLayout('parent', {
+      version: 2 as const,
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 3, y: 4 },
     })
@@ -460,6 +462,7 @@ describe('Nexus declarative integration leases', () => {
     })
     secondEdge.release()
     nexus.setDashPanelLayout('parent', {
+      version: 2 as const,
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 5, y: 6 },
     })

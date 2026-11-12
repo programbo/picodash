@@ -2,8 +2,13 @@
 
 The Agent Dev Bridge is a local development adapter for the public `@picodash/nexus` API. It gives
 an agent a narrow, authenticated view of explicitly disclosed Contract Lab state: discover a
-session, inspect values/scopes/diagnostics, set allowlisted values, and wait for a value or sequence
-change. It does not expose an arbitrary Nexus debugger and must never run in production.
+session, inspect values/scopes/diagnostics, set allowlisted values, wait for a value or sequence
+change, and read explicitly disclosed interaction events. It does not expose an arbitrary Nexus
+debugger and must never run in production.
+
+> Contract: Revised for read-only event observation and protocol v3
+> Implementation: Verified for the protocol-v3 event extension; existing inspect/write/wait evidence is tracked
+> separately in the [conformance matrix](../reference/contract-conformance.md#agent-dev-bridge).
 
 ## Quickstart with Contract Lab
 
@@ -43,9 +48,16 @@ node packages/dev-bridge/dist/cli.mjs sessions
 ```
 
 The JSON output includes `sessionId`, `generation`, `sequence`, disclosure/write allowlists, and
-the capabilities `inspect`, `set_values`, and `wait`. Select a current session and keep both its
+the capabilities `inspect`, `set_values`, `wait`, and `read_events`. Event disclosure is listed
+separately as `disclosedEventScopeIds`, `disclosedEventTypes`, and `eventSequence`. Select a current
+session and keep both its
 `sessionId` and `generation` together. A browser reload keeps the session ID but increments its
 generation; rediscover before retrying and do not mutate with a stale reference.
+
+Discovery confirms registration, not snapshot readiness. `inspect` may return
+`session_unsynchronized` until the first disclosed snapshot or a resynchronization completes.
+Consumers requiring state wait for a successful `inspect`, rather than treating registration
+existence as readiness; other error codes retain their normal failure meaning.
 
 ### Inspect disclosed state
 
@@ -81,15 +93,71 @@ printf '%s\n' '{"timeoutMs":1000,"condition":{"type":"value_equals","field":"spe
 The other condition is `{"type":"sequence_after","sequence":7}`. A wait returns
 `outcome: "satisfied"` or `"timed_out"`; Ctrl-C aborts it.
 
+### Read disclosed interaction events
+
+Protocol v3 uses the `picodash.dev-bridge.v3` WebSocket subprotocol. This is a clean pre-v1
+cutover; version-2 peers cannot silently accept the changed registration and command contract.
+Event observation adds no mutation or publication authority.
+
+Browser registration independently opts in with `disclosure.eventScopeIds` and
+`disclosure.eventTypes`. Both default to empty arrays. An event must match both lists; disclosing a
+metadata `scopeId` does not disclose its events, and disclosing events does not reveal its values
+or metadata. Use the Nexus event `type` names, for example `hover`, `pointer`, `drag.start`,
+`drag.update`, `drag.end`, `drag.cancel`, `command`, and `layout`.
+
+Establish a current baseline before performing the UI interaction:
+
+```bash
+printf '%s\n' '{}' |
+  node packages/dev-bridge/dist/cli.mjs events \
+    --session-id SESSION_ID --generation 1
+```
+
+An omitted cursor returns no historical events and supplies the current cursor. Retain that exact
+`{ sessionId, generation, sequence }` cursor, perform the public UI action, then pass it back in the
+next request. This sequence is a relay-owned event ordinal, distinct from the snapshot sequence and
+the root Nexus event sequence inside each event:
+
+```json
+{
+  "cursor": { "sessionId": "SESSION_ID", "generation": 1, "sequence": 7 },
+  "limit": 256,
+  "timeoutMs": 1000
+}
+```
+
+Send the JSON on stdin to the same `events` command. `limit` is 1–256 and defaults to 256;
+`timeoutMs` is 0–30000 and defaults to 0. A positive timeout waits for events newer than a supplied
+cursor; establishing a baseline is immediate. A zero-timeout read may return an empty `available`
+result.
+Responses distinguish `available`, `timed_out`, and `history_gap`, return entries shaped
+`{ sequence, event: NexusInteractionEvent }`, and include the next cursor and
+`earliestAvailableSequence`. Advance to the last returned cursor; do not infer contiguity from root
+Nexus event sequence gaps because disclosure deliberately filters events.
+
+The typed client exposes `readEvents(session, command, { signal? })`, where `command.type` is
+`read_events` and the command includes a `requestId` plus the same cursor/limit/timeout fields.
+Abort a pending read through its signal or Ctrl-C in the CLI.
+
+The relay retains at most 256 disclosed events or 1 MiB per session; each validated event is at
+most 4 KiB. Motion updates may coalesce for slower consumers. Lifecycle boundaries must not be
+silently lost: an expired cursor reports `history_gap` with empty events and a current cursor rather
+than pretending the remaining history is complete. Explicitly accept that new cursor or establish
+a new baseline after handling the gap. At most 32 event waits may be pending per session. Invalid,
+out-of-order, or undisclosed browser events fail closed; transport overflow closes the owned
+connection and unsubscribes instead of retaining an unbounded queue. Reload increments
+the session generation and invalidates old cursors. Rediscover and establish a fresh baseline;
+do not replay a stale generation. The Lab timeline is only a separate bounded local display.
+
 ## Exit meanings
 
 - `0`: command completed; a wait was satisfied and a set-values transaction was accepted.
 - `2`: usage, credential configuration, or stdin JSON/schema error.
 - `3`: transport, protocol, or local internal failure.
 - `4`: bridge error such as unauthorized, unavailable session, stale generation, unsynchronized
-  browser, or denied capability.
+  browser, denied capability, or an event history gap.
 - `5`: Nexus set-values contract error or rejected transaction.
-- `6`: wait timed out.
+- `6`: value/sequence wait or event read timed out.
 - `130`: wait interrupted with Ctrl-C.
 
 JSON responses are written to stdout; local CLI errors are redacted and written to stderr.
@@ -114,6 +182,10 @@ Stop the Lab with Ctrl-C so the host can close the broker/relay and remove owned
 the Lab is already stopped, a new start performs stale-lock recovery as described above.
 
 ## Scope and roadmap
+
+Protocol-v3 event observation passes package/protocol/CLI/artifact checks and real Panel/List
+browser-consumer proof within the complete 18-test Lab gate. See the event rows in the conformance
+matrix rather than treating the earlier snapshot journey below as event verification.
 
 Implemented baseline: Nexus relay, browser connector, typed HTTP client, CLI, and Contract Lab
 dogfood (discover, inspect, set, wait, and reload-generation rejection). The same journey now proves

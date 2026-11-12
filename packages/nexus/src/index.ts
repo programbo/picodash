@@ -174,3 +174,16 @@ export type {
   PicodashExportFreshnessInput,
   PicodashImportFreshnessInput,
 } from './documents.js'
+
+export { normalizeNexusInteractionEvent, NEXUS_INTERACTION_TYPES } from './interactions.js'
+export type {
+  NexusInteractionSource,
+  NexusInteractionRect,
+  NexusInteractionGeometry,
+  NexusInteractionInput,
+  NexusInteractionEvent,
+  NexusInteractionFilter,
+  NexusInteractionEvents,
+  NexusInteractionPublisher,
+} from './interactions.js'
+export type { DashPanelManualSizeRecord } from './kernel/index.js'

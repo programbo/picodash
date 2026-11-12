@@ -234,6 +234,7 @@ describe('manual external Nexus adapter', () => {
     if (!blocked.ok) expect(blocked.error.issues[0]).toMatchObject({ code: 'adapter_unhealthy' })
     expect(
       nexus.setDashPanelLayout('scope', {
+        version: 2 as const,
         placement: { mode: 'floating', disposition: { kind: 'free' } },
         preferredPosition: { x: 0, y: 0 },
       }).ok,

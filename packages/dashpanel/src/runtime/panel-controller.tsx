@@ -3,7 +3,10 @@ import type {
   DashPanelCommandResult,
   DashPanelLayoutCommandResult,
   PanelRuntime,
+  DashPanelSizeRequest,
+  DashPanelRestoreSizeOptions,
 } from './panel-runtime.ts'
+import type { DashPanelManualSize, DashPanelSizingState } from '../sizing/index.ts'
 import { useDashPanelRuntime, useDashPanelRuntimeState } from './panel-runtime-context.tsx'
 import {
   normalizeDashPanelPlacement,
@@ -11,7 +14,12 @@ import {
   type DashPanelPresentation,
 } from '../placement/placement.ts'
 
-export type { DashPanelCommandResult, DashPanelLayoutCommandResult }
+export type {
+  DashPanelCommandResult,
+  DashPanelLayoutCommandResult,
+  DashPanelSizeRequest,
+  DashPanelRestoreSizeOptions,
+}
 
 export interface DashPanelControllerCommands {
   show(): DashPanelCommandResult
@@ -23,6 +31,8 @@ export interface DashPanelControllerCommands {
   toggleCollapsed(): DashPanelCommandResult
   setPlacement(placement: DashPanelPlacement): DashPanelLayoutCommandResult
   resetLayout(): DashPanelLayoutCommandResult
+  setSize(size: DashPanelSizeRequest): DashPanelLayoutCommandResult
+  restorePreferredSize(options?: DashPanelRestoreSizeOptions): DashPanelLayoutCommandResult
 }
 
 export type DashPanelController =
@@ -38,6 +48,9 @@ export type DashPanelController =
       readonly collapsible: boolean
       readonly placement: DashPanelPlacement
       readonly presentation: DashPanelPresentation
+      readonly manualSize?: DashPanelManualSize
+      readonly manuallySized: boolean
+      readonly sizing?: DashPanelSizingState
     })
 
 const PanelIdentityContext = createContext<string | undefined>(undefined)
@@ -82,6 +95,8 @@ function unavailableController(runtime: PanelRuntime, scopeId: string): DashPane
     toggleCollapsed: unavailable,
     setPlacement: unavailableLayout,
     resetLayout: unavailableLayout,
+    setSize: unavailableLayout,
+    restorePreferredSize: unavailableLayout,
   }) as DashPanelController
   controllers.set(scopeId, controller)
   return controller
@@ -105,6 +120,9 @@ export function useDashPanel(panelId?: string): DashPanelController {
       collapsible: state.collapsible,
       placement: state.placement,
       presentation: config.presentation,
+      manualSize: config.manualSize,
+      manuallySized: config.manualSize !== undefined,
+      sizing: config.sizing,
       show: () => runtime.show(scopeId),
       hide: () => runtime.hide(scopeId),
       toggleVisibility: () => runtime.toggleVisibility(scopeId),
@@ -115,6 +133,9 @@ export function useDashPanel(panelId?: string): DashPanelController {
       setPlacement: (placement: DashPanelPlacement) =>
         runtime.setPlacement(scopeId, normalizeDashPanelPlacement(placement)),
       resetLayout: () => runtime.resetLayout(scopeId),
+      setSize: (size: DashPanelSizeRequest) => runtime.setSize(scopeId, size),
+      restorePreferredSize: (options?: DashPanelRestoreSizeOptions) =>
+        runtime.restorePreferredSize(scopeId, options),
     }) as DashPanelController
   }, [config, runtime, scopeId, state])
 }

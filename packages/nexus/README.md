@@ -22,11 +22,12 @@ dogfooding. Broader runtime inspection and later product-owned UX remain unfinis
 ## Target package surfaces
 
 - `@picodash/nexus`: root/scoped Nexuses, nominal fields and their type-only value views,
-  transactions, persistence, documents, diagnostics, and the manual external-value adapter
+  transactions, persistence, documents, diagnostics, typed ephemeral interaction events, and the manual external-value adapter
   contract.
 - `@picodash/nexus/react`: explicit Nexus selector subscriptions and `shallowEqual`.
 - `@picodash/nexus/integration`: supported advanced context and declarative lease protocol for
-  DashPanel, DashList, and other declarative product integrations.
+  DashPanel, DashList, and other declarative product integrations, including lease-bound interaction
+  publication and the declarative publisher hook.
 
 The root entry is framework-independent and must load without React. React is required only for the
 React-facing entries.
@@ -44,6 +45,12 @@ Read the [Nexus target reference](../../docs/reference/nexus.md),
 [ADR 0002](../../docs/adr/0002-provider-level-nexus-and-scoped-views.md) before changing the
 prototype. The [Nexus naming ADR](../../docs/adr/0005-picodash-nexus-name-and-public-identity.md)
 defines the public vocabulary and preserves “store” for external application state authorities.
+
+Manual Panel size is a versioned per-axis metadata override, distinct from declared preferred size
+and temporary rendered geometry. Interaction events use `nexus.events.subscribe(...)` independently
+of value/metadata snapshots and persistence. These revised contracts and their evidence boundaries
+are defined in [ADR 0007](../../docs/adr/0007-panel-manual-sizing-and-interaction-events.md) and the
+[Nexus target reference](../../docs/reference/nexus.md#interaction-events).
 
 ## Verification
 

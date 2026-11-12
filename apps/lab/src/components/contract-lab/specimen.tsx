@@ -130,6 +130,7 @@ const focusedPlacementModes = [
 const contractLabPersistenceStorageKey = 'picodash-contract-lab-web-storage-probe-v1'
 const contractLabPersistenceScopeId = 'contract-lab-persistence-probe'
 const contractLabPersistenceLayout: DashPanelLayoutRecord = {
+  version: 2,
   placement: { mode: 'floating', disposition: { kind: 'free' } },
   preferredPosition: { x: 16, y: 16 },
 }
@@ -148,6 +149,7 @@ const migratedSpecimenEnvelope = {
       'contract-lab-specimen-panel',
       {
         dashPanel: {
+          version: 2,
           placement: { mode: 'floating', disposition: { kind: 'free' } },
           preferredPosition: { x: 24, y: 24 },
         },

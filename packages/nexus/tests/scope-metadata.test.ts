@@ -8,6 +8,7 @@ import {
 } from '../src/integration.ts'
 
 const panel = {
+  version: 2 as const,
   placement: { mode: 'floating', disposition: { kind: 'free' } },
   preferredPosition: { x: 4, y: 8 },
 } as const

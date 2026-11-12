@@ -283,6 +283,9 @@ type PopoverProps = Omit<ReactAriaPopoverProps, 'UNSTABLE_portalContainer'> &
 - `portalContainer` and `layerBase` use the standard explicit-over-inherited overlay rules. The
   upstream unstable portal prop is reserved so one Picodash portal vocabulary remains public.
 - The root repeats resolved theme and density attributes without decorating the portal host.
+- The interactive Popover root restores `pointer-events: auto` when a portal host intentionally
+  passes pointer events through. It does not mutate the host. A caller's explicit Popover
+  `style.pointerEvents` still takes precedence, including an intentional `none` value.
 - The semantic popover token, explicit or inherited layer base, and active parent-overlay layer
   form minimums. A nested Popover resolves above its opener and privately supplies its resolved
   layer to descendants.
@@ -576,6 +579,10 @@ type ActionMenuSeparatorProps = Omit<ReactAriaSeparatorProps, 'orientation'>
   after activation; an item requiring confirmation closes the menu before opening AlertDialog.
 - Portal and layer defaults come from `PicodashOverlayProvider`. Explicit root portal/layer props
   override that context; nested submenus inherit the root overlay and do not portal independently.
+- ActionMenu and submenu interactive overlay roots restore `pointer-events: auto` inside a
+  pass-through portal host without changing the host's pointer policy. An inherited `none` must
+  not make a visible menu untouchable. This is an interactive-root CSS rule, not a global pointer
+  override or a change to modal-backdrop behavior.
 - Root menus and nested submenu menus use the same themed menu surface, including background,
   border, shadow, blur, and density treatment.
 - `ActionMenuItem` accepts a string `label`, decorative `icon?: ReactNode`, `onAction`,

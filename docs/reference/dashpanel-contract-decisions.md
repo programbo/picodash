@@ -5,7 +5,7 @@ identity and ownership model exists; this page states the exact public behavior 
 
 ## Status
 
-> Contract: Accepted
+> Contract: Revised for manual sizing, sparse layout overrides, and interaction observation
 > Implementation: Partial
 > Evidence: `packages/dashpanel/tests/dashpanel.test.tsx` and the DashPanel rows in the conformance
 > matrix cover the implemented launcher identity subset.
@@ -146,8 +146,112 @@ Theme-defined Panel entry and exit keyframes remain deferred. Exit motion needs 
 visibility lifecycle that preserves `hidden`, inertness, focus restoration, and reduced-motion
 behavior; a theme cannot independently delay those semantics.
 
+## 3. Manual sizing and restoration
+
+### 3.1 Sizing intent (PANEL-SIZING-1)
+
+DashPanel supports user resizing in its ordinary `panel` presentation. This revises the initial
+no-user-resize decision following real application use and owner approval on 2026-11-12; see
+[ADR 0007](../adr/0007-panel-manual-sizing-and-interaction-events.md).
+
+Declared preferred size, per-axis manual overrides, and resolved geometry are separate. Missing
+manual axes follow current preferred inputs, including automatic content height. Content growth
+after manual height selection scrolls; it does not rewrite the override. Explicitly enabled
+content constraints may temporarily project the rendered size. Boundary contraction never saves a
+new preferred position or manual size. Expansion restores the retained inputs.
+
+One completed changed gesture commits one atomic Nexus metadata candidate. No-op and cancelled
+gestures commit nothing. The version-2 sparse Panel record independently holds placement,
+preferredPosition, and manualSize overrides, so changing size never freezes unrelated declarations.
+
+Each command reads authoritative public scoped metadata when executed, not a render/effect cache.
+Merge only requested axes/placement into that current record. Gestures mark external changes stale
+synchronously and recheck immediately before commit, including when an external write and Enter
+occur in one stack before React effects. A removed record cannot be resurrected from cached overrides.
+
+### 3.2 Bounds and measurement (PANEL-SIZING-2)
+
+Preferred `width` retains the accepted CSS/intrinsic syntax. Preferred `height` defaults to `auto`.
+Numeric dimensions use outer border-box CSS pixels. New min/max dimensions support finite
+non-negative numbers and `px`, `rem`, or percentage lengths; percentages resolve against the
+definite effective boundary. Unsupported or invalid configuration fails at the boundary instead of
+silently swapping limits.
+
+Resolve width before natural height at that width. Explicit dimensions, enabled content-derived
+bounds, measured shell minimum, effective boundary/insets, and dock allocation constrain the result.
+Observe natural content separately from a capped shell. Use explicit finite content metrics when
+DOM layout cannot represent canvas, virtualized, or absolutely positioned content. Pending or
+unavailable measurements are explicit, never fabricated zeroes. Avoid duplicate React mounts,
+inline containment on DashList, and animation transforms as measurement inputs.
+
+When dynamic limits conflict, containment/allocation caps win, followed by explicit maxima,
+content maxima, and satisfiable minima. Report the temporarily unsatisfied minimum/content bound;
+retain the original intent and restore it when feasible. A Panel cannot promise a minimum larger
+than its container while also remaining contained. Ordinary content uses the Panel body scrollport;
+a root DashList retains its automatic-band scroll owner and pinned-band minimum.
+
+### 3.3 Target availability and anchoring (PANEL-RESIZE-1)
+
+Free Panels offer four edges and four corners. West/north resize changes position and size in one
+transaction while holding the opposite rendered edge fixed. A snapped/docked Panel retains its
+anchor and offers only compatible targets: corner placements offer inward edges and their shared
+corner; center placements resize symmetrically on their centered axis. Full side docks own height
+and expose only their inward horizontal edge; full top/bottom docks own width and expose only their
+inward vertical edge. Resizing never detaches, claims a new slot, or persists peer allocations.
+
+Filter targets by configured axes, equal min/max limits, collapsed/minimized/hidden state, and
+presentation. Modal drawers/sheets remain unavailable for resize. Their ordinary manual overrides
+remain dormant. Opposite edges never cross or produce negative sizes.
+
+A gesture starts from the rendered rectangle. Save only deliberately manipulated axes and changed
+coordinates; retain untouched manual axes and preferred coordinates through temporary projection.
+Numeric/programmatic size selection expresses a desired size and can retain a larger value than
+the current boundary, with the projected result reported separately.
+
+### 3.4 Controls and feedback (PANEL-RESIZE-A11Y-1)
+
+Resize is enabled by default on eligible axes; `resize={false}` retains the old interaction policy.
+Equal preferred/min/max values lock that axis, not every other axis. Optional grips use
+`auto | always | hidden` visibility policy without removing hit targets, directional cursors,
+focus feedback, or non-drag controls. Coarse-pointer grips stay discoverable and actionable without
+covering content, scrollbars, or header buttons. Corners take precedence over edges.
+
+The supplementary border targets remain compact precision controls, with 20px corners and the
+fine-edge hit token's 10px default. They do not claim 44px squares at every border position. On
+coarse pointers, an always-visible 44×44px “Resize panel” header action opens the numeric/tap editor
+with 44px inputs/actions. This equivalent control preserves the complete function where eight
+large border targets would overlap chrome/content. Standard coarse header actions remain 44px.
+
+The header's “Restore preferred size” action appears when manual overrides exist and clears only
+size. The marker's presence/shape, not color alone, indicates manual sizing. Temporary boundary or
+content limitation has separate feedback. A reusable action and controller command support custom
+controls. Header restoration is independent of `showCloseButton`. Full layout reset also clears
+placement and position overrides.
+
+The numeric “Resize panel…” control provides a keyboard and single-pointer non-drag alternative.
+Keyboard resize supports 1px arrows, Shift-10px arrows, Enter commit, and Escape cancellation with
+the same limits and outcomes. Announce meaningful lifecycle/limit changes without announcing every
+pointer frame. Preserve focus and reduced-motion behavior. Optional move-grip policy stays
+Panel-owned and shares the existing move operation.
+
+### 3.5 Interaction lifecycle and observation (PANEL-INTERACTION-EVENTS-1)
+
+Movement and resizing share one explicit operation owner. Entry/capture, drag threshold, preview,
+commit, cancellation, and effect cleanup are explicit states/transitions. Self-induced resize
+observations do not cancel the gesture. Boundary/coordinate/policy changes, external metadata
+writes, enabled-content-bound invalidation, hide/collapse, capture loss, cancellation, or teardown
+discard stale previews and write nothing. Leaving a target while captured does not cancel.
+
+Report Panel-owned hover/focus/pointer interactions, move/resize lifecycle and geometry differences,
+commands, and automatic projection through public Nexus events. Motion updates coalesce; a final
+update precedes exactly one end/cancel event. The result distinguishes accepted, unchanged, and
+rejected commits and preserves pending-persistence status. No interaction frame is canonical or
+persisted state. Dev Bridge observes only disclosed scopes/event types through its read-only event
+cursor protocol.
+
 ## Related decisions
 
 - [ADR 0004: DashPanel launcher item identity](../adr/0004-dashpanel-launcher-item-identity.md)
 - [DashPanel target reference](dashpanel.md)
 - [Nexus contract decisions](nexus-contract-decisions.md)
+- [ADR 0007: Panel sizing and interaction events](../adr/0007-panel-manual-sizing-and-interaction-events.md)

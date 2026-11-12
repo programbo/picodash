@@ -6,14 +6,18 @@ import type {
   RootNexus,
   PicodashFieldDefinitions,
   TransactionIssue,
+  NexusInteractionEvent,
+  NexusInteractionInput,
 } from '@picodash/nexus'
 
-export const PICODASH_DEV_BRIDGE_PROTOCOL_VERSION = 2 as const
-export const PICODASH_DEV_BRIDGE_SUBPROTOCOL = 'picodash.dev-bridge.v2' as const
+export const PICODASH_DEV_BRIDGE_PROTOCOL_VERSION = 3 as const
+export const PICODASH_DEV_BRIDGE_SUBPROTOCOL = 'picodash.dev-bridge.v3' as const
 export type PicodashDevBridgeDisclosure = Readonly<{
   valueFields: readonly string[]
   scopeIds: readonly string[]
   diagnostics: boolean
+  eventScopeIds?: readonly string[]
+  eventTypes?: readonly NexusInteractionInput['type'][]
 }>
 export type PicodashDevBridgePermissions = Readonly<{ writableFields: readonly string[] }>
 export type PicodashDevBridgeSnapshotScope = Readonly<{ id: string; metadata?: PicodashJsonValue }>
@@ -47,8 +51,36 @@ export type PicodashDevBridgeSessionDescriptor = PicodashDevBridgeSessionRef &
     writableFields: readonly string[]
     disclosedScopeIds: readonly string[]
     diagnosticsDisclosed: boolean
-    capabilities: readonly ['inspect', 'set_values', 'wait']
+    disclosedEventScopeIds: readonly string[]
+    disclosedEventTypes: readonly NexusInteractionInput['type'][]
+    eventSequence: number
+    capabilities: readonly ['inspect', 'set_values', 'wait', 'read_events']
   }>
+export type PicodashDevBridgeEventCursor = Readonly<{
+  sessionId: string
+  generation: number
+  sequence: number
+}>
+export type PicodashDevBridgeReadEventsCommand = Readonly<{
+  type: 'read_events'
+  requestId: string
+  cursor?: PicodashDevBridgeEventCursor
+  limit?: number
+  timeoutMs?: number
+}>
+export type PicodashDevBridgeEventEntry = Readonly<{
+  sequence: number
+  event: NexusInteractionEvent
+}>
+export type PicodashDevBridgeEventsResult = Readonly<{
+  type: 'events_result'
+  requestId: string
+  outcome: 'available' | 'timed_out' | 'history_gap'
+  session: PicodashDevBridgeSessionRef
+  cursor: PicodashDevBridgeEventCursor
+  earliestAvailableSequence: number
+  events: readonly PicodashDevBridgeEventEntry[]
+}>
 export type PicodashDevBridgeNexusOutcome<
   Result extends CoreTransactionResult | PersistentTransactionResult =
     | CoreTransactionResult
@@ -156,7 +188,7 @@ export type PicodashDevBridgeBrowserConnection = Readonly<{
 }>
 export type PicodashDevBridgeRegistration = Readonly<{
   type: 'register'
-  protocolVersion: 2
+  protocolVersion: 3
   token: string
   registration: {
     registrationId: string
@@ -182,6 +214,17 @@ export type PicodashDevBridgeWireFrame =
       command: PicodashDevBridgeCommand
     }>
   | PicodashDevBridgeCommandResult
+  | Readonly<{
+      type: 'interaction_event'
+      session: PicodashDevBridgeSessionRef
+      eventSequence: number
+      event: NexusInteractionEvent
+    }>
+  | Readonly<{
+      type: 'event_gap'
+      session: PicodashDevBridgeSessionRef
+      eventSequence: number
+    }>
   | Readonly<{
       type: 'resync_request'
       sessionId: string

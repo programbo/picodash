@@ -37,6 +37,10 @@ class BrowserWebSocket extends EventTarget {
     return this.inner.readyState
   }
 
+  get bufferedAmount() {
+    return this.inner.bufferedAmount
+  }
+
   send(value: string) {
     this.inner.send(value)
   }
@@ -82,7 +86,10 @@ const mockDescriptor = (overrides: Record<string, unknown> = {}) => ({
   writableFields: ['count'],
   disclosedScopeIds: [],
   diagnosticsDisclosed: false,
-  capabilities: ['inspect', 'set_values', 'wait'],
+  disclosedEventScopeIds: [],
+  disclosedEventTypes: [],
+  eventSequence: 0,
+  capabilities: ['inspect', 'set_values', 'wait', 'read_events'],
   ...overrides,
 })
 
@@ -132,6 +139,66 @@ afterEach(async () => {
 })
 
 describe('dev bridge CLI', () => {
+  test('reads event cursors and reports history gaps/timeouts with explicit exit codes', async () => {
+    let outcome: 'available' | 'history_gap' | 'timed_out' = 'available'
+    const mock = await mockRelay((requestPath, request, response) => {
+      response.setHeader('content-type', 'application/json')
+      if (requestPath === '/v1/sessions') {
+        response.end(
+          JSON.stringify({
+            type: 'sessions',
+            sessions: [
+              mockDescriptor({ disclosedEventScopeIds: ['panel'], disclosedEventTypes: ['hover'] }),
+            ],
+          }),
+        )
+        return
+      }
+      let body = ''
+      request.on('data', (value) => {
+        body += String(value)
+      })
+      request.on('end', () => {
+        const command = JSON.parse(body)
+        response.end(
+          JSON.stringify({
+            type: 'events_result',
+            requestId: command.requestId,
+            outcome,
+            session: { sessionId: 'session', generation: 1, sequence: 0 },
+            cursor: { sessionId: 'session', generation: 1, sequence: 0 },
+            earliestAvailableSequence: 1,
+            events: [],
+          }),
+        )
+      })
+    })
+    const env = { PICODASH_DEV_BRIDGE_URL: mock.url, PICODASH_DEV_BRIDGE_TOKEN: 'A'.repeat(43) }
+    try {
+      const args = ['events', '--session-id', 'session', '--generation', '1']
+      for (const [resultOutcome, code] of [
+        ['available', 0],
+        ['history_gap', 4],
+        ['timed_out', 6],
+      ] as const) {
+        outcome = resultOutcome
+        const result = await run(args, env, '{}')
+        expect(result.code).toBe(code)
+        expect(result.stderr).toBe('')
+        expect(JSON.parse(result.stdout)).toMatchObject({
+          type: 'events_result',
+          outcome: resultOutcome,
+          cursor: { sequence: 0 },
+        })
+      }
+      const invalid = await run(args, env, '{"limit":257}')
+      expect(invalid.code).toBe(2)
+      expect(JSON.parse(invalid.stderr)).toMatchObject({ error: { code: 'input_error' } })
+    } finally {
+      await mock.close()
+    }
+  })
+
   test('rejects argv before credentials, stdin, or network access', async () => {
     await access(cli)
     const result = await run(['sessions', '--token', 'secret'], {})

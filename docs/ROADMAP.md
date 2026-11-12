@@ -144,10 +144,12 @@ evidence, has exercised the contracts most likely to change.
 
 ## Phase 3: Foundational product stability
 
-The [DashPanel resizing and Resize Lab proposal](internal/dashpanel-resizing-plan.md) is a Draft
-extension for this phase. It proposes manual sizing, restored preferences, Nexus interaction events,
-and a configurable Placement scenario. Its contract revisions and evidence gates are not yet accepted
-or implemented.
+The [DashPanel resizing and Resize Lab plan](internal/dashpanel-resizing-plan.md) was accepted on
+2026-11-12. [ADR 0007](adr/0007-panel-manual-sizing-and-interaction-events.md) records the explicit
+revision for manual sizing, per-axis restoration, sparse Nexus metadata, ephemeral interaction
+events, and a configurable scenario within Placement. This scoped cut is locally verified; the
+[conformance matrix](reference/contract-conformance.md#dashpanel-resizing-and-interaction-observation)
+tracks deterministic, browser, and Bridge evidence separately.
 
 Nexus, DashPanel, and DashList each earn their own maturity based on their own release gates:
 

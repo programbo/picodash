@@ -406,6 +406,12 @@ active-layer machinery.
 Product-specific DashList controls retain their owning package surfaces even when Picodash
 reexports them separately.
 
+Manual sizing remains DashPanel-owned. The facade explicitly reexports the accepted sizing types,
+controller, and `DashPanelRestoreSizeItem` as the same foundation identities, with no wrapper,
+alternate persistence channel, or facade-specific resize lifecycle. Interaction subscriptions
+remain Nexus-owned. The [resize conformance rows](contract-conformance.md#dashpanel-resizing-and-interaction-observation)
+separate foundation evidence from the facade smoke check.
+
 There is no initial `@picodash/picodash/advanced` or `@picodash/picodash/dashlet` entrypoint.
 Advanced Nexus inspection remains Nexus-owned, DashList anatomy remains DashList-owned, and
 Picodash does not publish convenience aliases that obscure either owner.

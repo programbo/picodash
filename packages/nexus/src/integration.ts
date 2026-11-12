@@ -1,5 +1,6 @@
 export {
   acquireBindingLease,
+  publishNexusInteraction,
   acquireEntityLease,
   acquireProviderLease,
   acquireRelationshipLease,
@@ -34,6 +35,7 @@ export type {
 
 export {
   PicodashNexusEntityBoundary,
+  useNexusInteractionPublisher,
   PicodashNexusProviderBoundary,
 } from './integration-boundaries.js'
 
@@ -41,3 +43,5 @@ export type {
   PicodashNexusEntityBoundaryProps,
   PicodashNexusProviderBoundaryProps,
 } from './integration-boundaries.js'
+
+export type { NexusInteractionPublisher } from './interactions.js'

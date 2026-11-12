@@ -66,6 +66,15 @@ describe('@picodash/dashpanel public types', () => {
       'aria-label': 'Inspector',
       style: { opacity: 0.8, '--consumer-token': 'ok' } as DashPanelStyle,
       width: '24rem',
+      height: 'auto',
+      minWidth: 160,
+      maxWidth: '90%',
+      minHeight: '8rem',
+      maxHeight: '640px',
+      resize: { handles: 'always', targets: ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw'] },
+      contentConstraints: { minWidth: true, maxHeight: true },
+      contentMetrics: { minWidth: 220, maxHeight: 720 },
+      moveHandle: 'both',
       defaultCollapsed: true,
       defaultVisible: false,
       collapsible: true,
@@ -84,6 +93,15 @@ describe('@picodash/dashpanel public types', () => {
       placementOptions: { snapOffset: 8, snapProximity: 16, detachDistance: 40 },
       presentation: { kind: 'panel' },
     }
+    // @ts-expect-error bound expressions intentionally exclude arbitrary CSS math.
+    const unsupportedBounds: DashPanelProps = { ...panelProps, minWidth: 'calc(100% - 2rem)' }
+    void unsupportedBounds
+    // @ts-expect-error geometry owns physical height styles.
+    const styledHeight: DashPanelProps = { ...panelProps, style: { height: 200 } }
+    void styledHeight
+    // @ts-expect-error only the eight physical targets are accepted.
+    const badTarget: DashPanelProps = { ...panelProps, resize: { targets: ['center'] } }
+    void badTarget
     const customThemePanelProps: DashPanelProps<'operator'> = {
       id: 'operator-inspector',
       title: 'Operator inspector',

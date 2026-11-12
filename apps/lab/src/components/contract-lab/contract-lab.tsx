@@ -16,6 +16,7 @@ import { ContractLabConsole } from './console'
 import { ContractLabSpecimenHost, type ContractLabPrimaryPanelState } from './specimen-host'
 import { ContractLabStatusStrip } from './status-strip'
 import { clearFocusedPlacementPersistence } from './specimen'
+import { clearResizeLabPersistence } from './resize-lab-model'
 
 const sessionPresetKey = 'picodash:contract-lab:preset'
 
@@ -145,6 +146,7 @@ export function ContractLab() {
 
 function clearLabPersistence() {
   clearFocusedPlacementPersistence()
+  clearResizeLabPersistence()
   try {
     clearValueBindingPersistence()
   } catch {

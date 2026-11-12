@@ -6,7 +6,7 @@ not claim that the prototype currently exports every API shown here.
 
 ## Status
 
-> Contract: Accepted target API
+> Contract: Revised for sparse version-2 Panel metadata and ephemeral interaction events
 > Implementation: Partial
 > Evidence: Nexus beta is verified for consumer dogfooding; see the [conformance matrix](contract-conformance.md).
 
@@ -462,8 +462,10 @@ type DashPanelPlacementRecord =
     }
 
 type DashPanelLayoutRecord = {
-  placement: DashPanelPlacementRecord
-  preferredPosition: { x: number; y: number }
+  version: 2
+  placement?: DashPanelPlacementRecord
+  preferredPosition?: { x: number; y: number }
+  manualSize?: { width?: number; height?: number }
 }
 
 type DurableScopeMetadata = {
@@ -472,23 +474,121 @@ type DurableScopeMetadata = {
 }
 ```
 
-| Record                    | Contract | Implementation | Notes                                            |
-| ------------------------- | -------- | -------------- | ------------------------------------------------ |
-| DashList order/collapse   | Accepted | Partial        | Overrides only; containment remains declarative. |
-| DashPanel layout override | Accepted | Partial        | Settled placement plus preferred free position.  |
+| Record                    | Contract | Implementation | Notes                                                                 |
+| ------------------------- | -------- | -------------- | --------------------------------------------------------------------- |
+| DashList order/collapse   | Accepted | Partial        | Overrides only; containment remains declarative.                      |
+| DashPanel layout override | Revised  | Partial        | Independent version-2 placement, position, and manual-size overrides. |
 
 Empty product records are omitted. The Nexus metadata codec validates complete records atomically,
 detaches and freezes nested values, and translates maps through duplicate-checked entry arrays.
 Focused evidence lives in [packages/nexus/tests/metadata.test.ts](../../packages/nexus/tests/metadata.test.ts).
+The Panel record must contain at least one override in addition to `version`. `manualSize` must
+contain at least one positive finite CSS-pixel axis. Missing placement, position, or size axes
+follow current declarations. A size-only record therefore does not override declared placement.
 `preferredPosition` contains finite CSS-pixel offsets from the effective boundary's top-left after
-inset and before snap offset. Nexus validates the complete record atomically and does not import UI
-package types.
+inset and before snap offset. Nexus validates the complete record atomically and imports no UI
+package types. The simple shape above documents fields; the public type also requires a nonempty
+override and nonempty `manualSize`.
 
-A Panel record with an unknown position, invalid mode/disposition combination, or non-finite
-coordinate enters the configured Nexus recovery path. A valid dock target that current Provider or
+Hydration recognizes the exact valid obsolete unversioned shape `{ placement, preferredPosition }`,
+discards that Panel preference, retains independently valid same-scope List metadata, and emits the
+scoped `panel_layout_obsolete` warning. This is default recovery without migration. Other unknown
+or malformed Panel payloads retain the existing whole-scope quarantine policy. Setters and document
+imports require strict v2; unsupported documents are rejected. Canonical values are unaffected.
+Panel `version: 2` signals the cutover within envelope/document `formatVersion: 1`, without changing
+application `schemaVersion`; older strict readers fail validation. A valid dock target that current Provider or
 Panel policy disables remains durable and dormant; UI policy is not a Nexus codec error. Occupancy,
 allocation, resolved size, enabled positions, projection, fallback layout, visibility, and other
 Provider runtime never enter this record.
+
+## Interaction events
+
+> Contract: Accepted through [ADR 0007](../adr/0007-panel-manual-sizing-and-interaction-events.md)
+> Implementation: Verified for this scoped event contract
+> Evidence: Nexus package/event/lease checks and real Panel/List Bridge consumer proof pass;
+> exact owning tests and local evidence limits are recorded in the conformance matrix.
+
+Every root and scoped Nexus has a readonly `events` namespace:
+
+```ts
+interface NexusInteractionEvents {
+  subscribe(
+    listener: (event: NexusInteractionEvent) => void,
+    filter?: NexusInteractionFilter,
+  ): () => void
+  getSequence(): number
+}
+
+type NexusInteractionFilter = Readonly<{
+  scopeIds?: readonly string[]
+  kinds?: readonly ('dashPanel' | 'dashList')[]
+  types?: readonly NexusInteractionInput['type'][]
+}>
+
+type NexusInteractionEvent = Readonly<{
+  sequence: number
+  timestamp: number
+  source: Readonly<{
+    scopeId: string
+    kind: 'dashPanel' | 'dashList'
+    generation: number
+  }>
+  event: NexusInteractionInput
+}>
+```
+
+Scoped subscriptions additionally restrict observation to that scope. `getSequence()` reads the
+same root-local sequence through either view. The namespace contains no mutation or replay command,
+and publication does not notify root/scoped snapshot subscribers, change canonical values, or
+advance persistence. The default channel stores no event history.
+
+All inputs have a nonempty `target` and input source
+`mouse | touch | pen | keyboard | programmatic | automatic`:
+
+| `type`                      | Additional contract                                                |
+| --------------------------- | ------------------------------------------------------------------ |
+| `hover`, `focus`            | `phase: enter                                                      | leave`    |
+| `pointer`                   | `phase: down                                                       | up        | cancel                        | move | click`; optional position, button/buttons and modifier flags |
+| `drag.start`, `drag.update` | `interactionId`, `operation: move                                  | resize    | reorder`, optional geometry   |
+| `drag.end`                  | Drag identity/geometry plus `outcome: accepted                     | unchanged | rejected` and optional reason |
+| `drag.cancel`               | Drag identity/geometry plus a required cancellation reason         |
+| `command`                   | Command name, accepted/unchanged/rejected outcome, optional reason |
+| `layout`                    | `reason: content                                                   | boundary  | policy` and required geometry |
+
+`NexusInteractionGeometry` contains `initial`, `requested`, `applied`, `delta`, and `stepDelta`
+rectangles shaped `{ x, y, width, height }`, with optional `pointerDelta` and constraint-code list.
+Rectangles use physical CSS pixels relative to the product's owning geometry origin: DashPanel's
+effective boundary or the containing DashList root. Deltas describe applied movement from the start
+and previous published sample respectively. Pointer positions use viewport client coordinates;
+pointer deltas are displacement in that same CSS-pixel space, separate from applied geometry.
+Dimensions on real rectangles are
+non-negative; delta dimensions may be negative. Event data is validated, detached, immutable strict
+JSON and at most 4 KiB, with no DOM nodes, native events, arbitrary content, or exception causes.
+
+Public integration publication uses `publishNexusInteraction(lease, input)`. Nexus derives source
+identity from the live entity lease and rejects invalid/released generations.
+`useNexusInteractionPublisher()` returns a stable publisher for the nearest declarative entity;
+while the entity is inactive it returns no event and acquires no duplicate entity. Its callable
+type is `NexusInteractionPublisher`. The root entry exports the event/input/filter/geometry types,
+`NEXUS_INTERACTION_TYPES`, and `normalizeNexusInteractionEvent(unknown)` for wire validation;
+normalization grants no publication authority.
+
+Event identity fields follow the ordinary Nexus lexical rules, without a separate short-ID cap.
+The complete 4 KiB event bound still applies. A normalized pointer `button` may be `-1` when no
+button changed; `buttons` remains a non-negative safe integer. Capacity-limited declarative
+publication returns no event instead of breaking the product gesture and records the scoped
+`interaction_delivery_limited` warning with reason `payload-size | dispatch-capacity`. A later
+successful event recovers that condition. Consumers must treat that warning as incomplete
+observation; it is not a successful delivery claim. Direct publication/normalization still throws
+the structured invalid-event error for invalid or over-capacity data.
+
+Publication is synchronous, ordered, and separate from snapshot mutation. Subscriber exceptions
+cannot undo a commit or interrupt later listeners. Reentrant publications use bounded dispatch;
+the channel refuses capacity overflow rather than recursing indefinitely. Products coalesce
+motion updates to one latest sample per frame, flush the final update, and deliver start/end/cancel
+boundaries once. Root destruction clears subscribers and the normal use-after-destroy rule applies.
+Applications own any durable logging. Bridge event disclosure and cursor history are separate
+[development adapter contracts](../development/agent-dev-bridge.md#read-disclosed-interaction-events).
 
 ## Core diagnostics namespace
 
@@ -1856,7 +1956,7 @@ persistence authority. Nexus inspects live generations before releasing adapter 
 persistence subscriptions, or persistence ownership. This sequencing changes no public alpha API.
 
 After success, every property access and method call on an existing root/scoped Nexus, diagnostics
-namespace, or capability handle throws `use-after-destroy`; calling `destroy()` again does likewise.
+namespace, event namespace, or capability handle throws `use-after-destroy`; calling `destroy()` again does likewise.
 Previously returned unsubscribe functions remain idempotent no-ops. Previously captured immutable
 snapshots remain readable detached data. Field handles remain inspectable, but no destroyed Nexus
 can use them.

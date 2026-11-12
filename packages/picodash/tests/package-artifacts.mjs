@@ -63,6 +63,7 @@ assert.deepEqual(
     'DashHeader',
     'DashList',
     'DashPanel',
+    'DashPanelRestoreSizeItem',
     'Dashlet',
     'CheckboxDashlet',
     'CheckboxGroupDashlet',
@@ -88,6 +89,7 @@ assert.deepEqual(
     'TimeDashlet',
     'PicodashProvider',
     'createPicodashNexus',
+    'useDashPanel',
     'usePicodashNexusSelector',
   ].sort(),
 )

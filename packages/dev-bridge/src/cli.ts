@@ -4,6 +4,7 @@ import { realpathSync } from 'node:fs'
 import { stdin, stdout, stderr } from 'node:process'
 import { fileURLToPath } from 'node:url'
 import type { PicodashJsonValue } from '@picodash/nexus'
+import { parseEventResponse } from './event-response.js'
 import { createPicodashDevBridgeClient } from './client.js'
 import type { PicodashDevBridgeClient } from './client.js'
 import type {
@@ -14,6 +15,9 @@ import type {
   PicodashDevBridgeWaitCondition,
   PicodashDevBridgeSnapshot,
   PicodashDevBridgeWaitResult,
+  PicodashDevBridgeEventCursor,
+  PicodashDevBridgeEventsResult,
+  PicodashDevBridgeReadEventsCommand,
 } from './types.js'
 
 const MAX_STDIN_BYTES = 1_000_000
@@ -41,7 +45,7 @@ const LOCAL_ERRORS = {
 } as const
 
 type LocalErrorCode = keyof typeof LOCAL_ERRORS
-type CommandName = 'sessions' | 'inspect' | 'set-values' | 'wait'
+type CommandName = 'sessions' | 'inspect' | 'set-values' | 'wait' | 'events'
 type Parsed =
   | { command: 'sessions' }
   | { command: Exclude<CommandName, 'sessions'>; sessionId: string; generation: number }
@@ -116,6 +120,30 @@ export async function runPicodashDevBridgeCli(argv = process.argv.slice(2)): Pro
     const onInterrupt = () => abort.abort()
     process.once('SIGINT', onInterrupt)
     try {
+      if (parsed.command === 'events') {
+        const input = parseEventsInput(await readStdin(abort.signal))
+        const requestId = `cli-${randomUUID().toLowerCase()}`
+        activeRequestId = requestId
+        const session = await resolveSession(
+          client,
+          parsed.sessionId,
+          parsed.generation,
+          requestId,
+          abort.signal,
+        )
+        const result = await client.readEvents(
+          session,
+          { type: 'read_events', requestId, ...input },
+          { signal: abort.signal },
+        )
+        if (!isEventsResponse(result, requestId)) throw new CliFailure('protocol_error', 3)
+        writeStdout(result)
+        return result.type === 'bridge_error' || result.outcome === 'history_gap'
+          ? 4
+          : result.outcome === 'timed_out'
+            ? 6
+            : 0
+      }
       const input = await readInput('wait', abort.signal)
       const requestId = `cli-${randomUUID().toLowerCase()}`
       activeRequestId = requestId
@@ -164,7 +192,12 @@ export async function runPicodashDevBridgeCli(argv = process.argv.slice(2)): Pro
 function parseArgs(argv: readonly string[]): Parsed {
   if (argv.length === 1 && argv[0] === 'sessions') return { command: 'sessions' }
   const command = argv[0]
-  if (command !== 'inspect' && command !== 'set-values' && command !== 'wait')
+  if (
+    command !== 'inspect' &&
+    command !== 'set-values' &&
+    command !== 'wait' &&
+    command !== 'events'
+  )
     throw new CliFailure('usage_error', 2)
   if (argv.length !== 5) throw new CliFailure('usage_error', 2)
   const values = new Map<string, string>()
@@ -378,6 +411,67 @@ function validCondition(value: unknown): value is Record<string, any> {
   )
 }
 
+function parseEventsInput(
+  input: string,
+): Omit<PicodashDevBridgeReadEventsCommand, 'type' | 'requestId'> {
+  let value: unknown
+  try {
+    value = JSON.parse(input)
+  } catch {
+    throw new CliFailure('input_error', 2)
+  }
+  if (
+    !isPlainObject(value) ||
+    !exactKeys(value, ['cursor', 'limit', 'timeoutMs'], ['cursor', 'limit', 'timeoutMs'])
+  )
+    throw new CliFailure('input_error', 2)
+  if (value.cursor !== undefined && !isEventCursor(value.cursor))
+    throw new CliFailure('input_error', 2)
+  if (
+    value.limit !== undefined &&
+    (typeof value.limit !== 'number' ||
+      !Number.isSafeInteger(value.limit) ||
+      value.limit < 1 ||
+      value.limit > 256)
+  )
+    throw new CliFailure('input_error', 2)
+  if (
+    value.timeoutMs !== undefined &&
+    (typeof value.timeoutMs !== 'number' ||
+      !Number.isSafeInteger(value.timeoutMs) ||
+      value.timeoutMs < 0 ||
+      value.timeoutMs > 30000)
+  )
+    throw new CliFailure('input_error', 2)
+  return {
+    ...(value.cursor === undefined ? {} : { cursor: value.cursor }),
+    ...(value.limit === undefined ? {} : { limit: value.limit }),
+    ...(value.timeoutMs === undefined ? {} : { timeoutMs: value.timeoutMs }),
+  }
+}
+
+function isEventCursor(value: unknown): value is PicodashDevBridgeEventCursor {
+  return (
+    isPlainObject(value) &&
+    exactKeys(value, ['sessionId', 'generation', 'sequence']) &&
+    typeof value.sessionId === 'string' &&
+    value.sessionId.length > 0 &&
+    value.sessionId.length <= 256 &&
+    !hasControl(value.sessionId) &&
+    Number.isSafeInteger(value.generation) &&
+    value.generation >= 1 &&
+    Number.isSafeInteger(value.sequence) &&
+    value.sequence >= 0
+  )
+}
+
+function isEventsResponse(
+  value: unknown,
+  requestId: string,
+): value is PicodashDevBridgeEventsResult | PicodashDevBridgeError {
+  return parseEventResponse(value, requestId) !== undefined
+}
+
 function validSequence(value: unknown) {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= -1
 }
@@ -561,6 +655,9 @@ function isSessionDescriptor(value: unknown): value is PicodashDevBridgeSessionD
         'writableFields',
         'disclosedScopeIds',
         'diagnosticsDisclosed',
+        'disclosedEventScopeIds',
+        'disclosedEventTypes',
+        'eventSequence',
         'capabilities',
       ],
       ['label'],
@@ -578,11 +675,16 @@ function isSessionDescriptor(value: unknown): value is PicodashDevBridgeSessionD
     stringArray(value.writableFields) &&
     stringArray(value.disclosedScopeIds) &&
     typeof value.diagnosticsDisclosed === 'boolean' &&
+    stringArray(value.disclosedEventScopeIds) &&
+    stringArray(value.disclosedEventTypes) &&
+    Number.isSafeInteger(value.eventSequence) &&
+    value.eventSequence >= 0 &&
     Array.isArray(value.capabilities) &&
-    value.capabilities.length === 3 &&
+    value.capabilities.length === 4 &&
     value.capabilities[0] === 'inspect' &&
     value.capabilities[1] === 'set_values' &&
-    value.capabilities[2] === 'wait'
+    value.capabilities[2] === 'wait' &&
+    value.capabilities[3] === 'read_events'
   )
 }
 

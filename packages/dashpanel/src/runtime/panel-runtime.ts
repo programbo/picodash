@@ -13,6 +13,12 @@ import {
   resolveDashPanelDockSideAllocation,
   resolveDashPanelDockSlot,
 } from '../placement/dock-arena.ts'
+import type { DashPanelManualSize, DashPanelSizingState } from '../sizing/index.ts'
+
+export interface DashPanelRestoreSizeOptions {
+  readonly axes?: 'both' | 'width' | 'height'
+}
+export type DashPanelSizeRequest = DashPanelManualSize
 
 export type DashPanelCommandResult =
   | { readonly status: 'executed' }
@@ -32,6 +38,9 @@ export type DashPanelLayoutCommandResult =
     }
 
 interface PanelLayoutNexus {
+  getState?(): Readonly<{
+    scope: Readonly<{ dashPanel?: DashPanelLayoutRecord }> | undefined
+  }>
   setDashPanelLayout(
     layout: DashPanelLayoutRecord,
   ): CoreTransactionResult | PersistentTransactionResult
@@ -44,6 +53,8 @@ type PanelRuntimePanelConfig = Readonly<{
   readonly requestedPlacement: DashPanelPlacement
   readonly dockPositions: readonly DashPanelDockPosition[]
   readonly presentation: DashPanelPresentation
+  readonly manualSize?: DashPanelManualSize
+  readonly sizing?: DashPanelSizingState
 }>
 
 export interface PanelRuntimeDockArena {
@@ -91,6 +102,13 @@ export interface PanelRuntimeConfig {
   readonly freeMovePosition?: () => Readonly<{ x: number; y: number }> | undefined
   readonly preferredPosition?: Readonly<{ x: number; y: number }>
   readonly resolveDockArena?: () => PanelRuntimeDockArena
+  readonly layout?: DashPanelLayoutRecord
+  readonly sizing?: DashPanelSizingState
+  readonly onCommand?: (
+    command: string,
+    outcome: 'accepted' | 'unchanged' | 'rejected',
+    reason?: string,
+  ) => void
 }
 
 export type PanelRuntimeUpdate = Pick<
@@ -107,6 +125,9 @@ export type PanelRuntimeUpdate = Pick<
   | 'freeMovePosition'
   | 'preferredPosition'
   | 'resolveDockArena'
+  | 'layout'
+  | 'sizing'
+  | 'onCommand'
 >
 
 export type PanelRuntimeCommandResult =
@@ -145,6 +166,16 @@ export interface PanelRuntime {
   toggleCollapsed(scopeId: string): PanelRuntimeCommandResult
   setPlacement(scopeId: string, placement: DashPanelPlacement): DashPanelLayoutCommandResult
   resetLayout(scopeId: string): DashPanelLayoutCommandResult
+  setSize(scopeId: string, size: DashPanelSizeRequest): DashPanelLayoutCommandResult
+  restorePreferredSize(
+    scopeId: string,
+    options?: DashPanelRestoreSizeOptions,
+  ): DashPanelLayoutCommandResult
+  commitResize(
+    scopeId: string,
+    size: DashPanelManualSize,
+    position?: Readonly<{ x: number; y: number }>,
+  ): DashPanelLayoutCommandResult
   getPanelConfig(scopeId: string): PanelRuntimePanelConfig | undefined
   isDockPositionOccupied(scopeId: string, position: DashPanelDockPosition): boolean
   setDockAllocationPreview(scopeId: string, preview: PanelRuntimeDockAllocationPreview | null): void
@@ -172,6 +203,9 @@ interface MutablePanel {
   freeMovePosition?: PanelRuntimeConfig['freeMovePosition']
   preferredPosition?: PanelRuntimeConfig['preferredPosition']
   resolveDockArena?: PanelRuntimeConfig['resolveDockArena']
+  layout?: DashPanelLayoutRecord
+  sizing?: DashPanelSizingState
+  onCommand?: PanelRuntimeConfig['onCommand']
   dockArena: PanelRuntimeDockArena
   configSnapshot?: PanelRuntimePanelConfig
   readonly generation: symbol
@@ -273,6 +307,12 @@ export function createPanelRuntime(): PanelRuntime {
   }
 
   const panelFor = (scopeId: string): MutablePanel | undefined => panels.get(scopeId)
+
+  // Declarative registration follows React effects, while public Nexus writes are synchronous.
+  // Read the canonical record at the command boundary so untouched overrides cannot be lost.
+  // Only legacy internal test stubs lack getState; an actual missing record must remain missing.
+  const currentLayout = (panel: MutablePanel): DashPanelLayoutRecord | undefined =>
+    panel.nexus?.getState ? panel.nexus.getState().scope?.dashPanel : panel.layout
 
   const dockArenaFor = (panel: MutablePanel): PanelRuntimeDockArena => panel.dockArena
 
@@ -456,6 +496,9 @@ export function createPanelRuntime(): PanelRuntime {
         preferredPosition: config.preferredPosition,
         resolveDockArena: config.resolveDockArena,
         dockArena: config.resolveDockArena?.() ?? DEFAULT_DOCK_ARENA,
+        layout: config.layout,
+        sizing: config.sizing,
+        onCommand: config.onCommand,
       }
       const materialized = materializePlacement(panel, requestedPlacement)
       panel.placement = materialized.placement
@@ -476,6 +519,20 @@ export function createPanelRuntime(): PanelRuntime {
           if (Object.prototype.hasOwnProperty.call(update, 'onCollapsedChange'))
             current.onCollapsedChange = update.onCollapsedChange
           let changed = false
+          if (Object.hasOwn(update, 'layout') && current.layout !== update.layout) {
+            current.layout = update.layout
+            current.configSnapshot = undefined
+            changed = true
+          }
+          if (
+            Object.hasOwn(update, 'sizing') &&
+            JSON.stringify(current.sizing) !== JSON.stringify(update.sizing)
+          ) {
+            current.sizing = update.sizing
+            current.configSnapshot = undefined
+            changed = true
+          }
+          if (Object.hasOwn(update, 'onCommand')) current.onCommand = update.onCommand
           let notifyExpandedAfterPublish = false
           if (update.collapsible !== undefined && current.collapsible !== update.collapsible) {
             current.collapsible = update.collapsible
@@ -632,22 +689,33 @@ export function createPanelRuntime(): PanelRuntime {
           : placement.mode === 'hybrid' && placement.disposition.kind === 'docked'
             ? placement.disposition.position
             : undefined
-      if (docked !== undefined && !panel.dockPositions.includes(docked))
+      if (docked !== undefined && !panel.dockPositions.includes(docked)) {
+        panel.onCommand?.('setPlacement', 'rejected', 'position_disabled')
         return { status: 'not_executed', reason: 'position_disabled' }
+      }
       const occupant = docked === undefined ? undefined : dockOccupant(panel, docked)
-      if (occupant) return { status: 'not_executed', reason: 'dock_occupied' }
+      if (occupant) {
+        panel.onCommand?.('setPlacement', 'rejected', 'dock_occupied')
+        return { status: 'not_executed', reason: 'dock_occupied' }
+      }
+      const previousLayout = currentLayout(panel)
       const preferred =
         (placement.disposition.kind === 'free' ? panel.freeMovePosition?.() : undefined) ??
-        panel.preferredPosition ??
+        previousLayout?.preferredPosition ??
+        (panel.nexus?.getState ? undefined : panel.preferredPosition) ??
         panel.defaultLayout.preferredPosition ??
         panel.currentPosition?.()
       if (!preferred) return { status: 'not_executed', reason: 'unavailable' }
-      const transaction = panel.nexus?.setDashPanelLayout({
+      const layout: DashPanelLayoutRecord = {
+        ...previousLayout,
+        version: 2,
         placement,
         preferredPosition: { x: preferred.x, y: preferred.y },
-      } as DashPanelLayoutRecord)
+      }
+      const transaction = panel.nexus?.setDashPanelLayout(layout)
       if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
       if (transaction.ok) {
+        panel.layout = layout
         panel.requestedPlacement = placement
         panel.placement = placement
         panel.placementFallbackReason = undefined
@@ -655,6 +723,7 @@ export function createPanelRuntime(): PanelRuntime {
         panel.configSnapshot = undefined
         publish()
       }
+      panel.onCommand?.('setPlacement', transaction.ok ? 'accepted' : 'rejected')
       return { status: 'executed', transaction }
     },
     resetLayout(scopeId) {
@@ -664,6 +733,7 @@ export function createPanelRuntime(): PanelRuntime {
       const transaction = panel.nexus?.resetDashPanelLayout()
       if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
       if (transaction.ok) {
+        panel.layout = undefined
         panel.requestedPlacement = panel.defaultLayout.placement
         const materialized = materializePlacement(panel, panel.defaultLayout.placement)
         panel.placement = materialized.placement
@@ -672,6 +742,114 @@ export function createPanelRuntime(): PanelRuntime {
         panel.configSnapshot = undefined
         publish()
       }
+      panel.onCommand?.(
+        'resetLayout',
+        transaction.ok
+          ? transaction.changedScopeIds.length
+            ? 'accepted'
+            : 'unchanged'
+          : 'rejected',
+      )
+      return { status: 'executed', transaction }
+    },
+    setSize(scopeId, size) {
+      return runtime.commitResize(scopeId, size)
+    },
+    commitResize(scopeId, size, position) {
+      const panel = panelFor(scopeId)
+      if (!panel) return { status: 'not_executed', reason: 'unavailable' }
+      if (panel.presentation.kind !== 'panel') return modalPresentation()
+      if (size === null || typeof size !== 'object' || Array.isArray(size))
+        throw new TypeError('Panel size must contain width or height.')
+      const prototype = Object.getPrototypeOf(size)
+      if (prototype !== Object.prototype && prototype !== null)
+        throw new TypeError('Panel size must be a plain record.')
+      const descriptors = Object.getOwnPropertyDescriptors(size)
+      const keys = Reflect.ownKeys(descriptors)
+      if (keys.length === 0 || keys.some((key) => key !== 'width' && key !== 'height'))
+        throw new TypeError('Panel size must contain only width or height.')
+      for (const descriptor of Object.values(descriptors))
+        if (
+          !('value' in descriptor) ||
+          !descriptor.enumerable ||
+          typeof descriptor.value !== 'number' ||
+          !Number.isFinite(descriptor.value) ||
+          descriptor.value <= 0
+        )
+          throw new TypeError('Panel size values must be positive finite CSS pixels.')
+      const previousLayout = currentLayout(panel)
+      const layout: DashPanelLayoutRecord = {
+        ...previousLayout,
+        version: 2,
+        manualSize: { ...previousLayout?.manualSize, ...size },
+        ...(position ? { preferredPosition: position } : {}),
+      }
+      const transaction = panel.nexus?.setDashPanelLayout(layout)
+      if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
+      if (transaction.ok) {
+        panel.layout = layout
+        if (position) panel.preferredPosition = position
+        panel.configSnapshot = undefined
+        publish()
+      }
+      panel.onCommand?.(
+        'setSize',
+        transaction.ok
+          ? transaction.changedScopeIds.length
+            ? 'accepted'
+            : 'unchanged'
+          : 'rejected',
+      )
+      return { status: 'executed', transaction }
+    },
+    restorePreferredSize(scopeId, options = {}) {
+      const panel = panelFor(scopeId)
+      if (!panel) return { status: 'not_executed', reason: 'unavailable' }
+      if (panel.presentation.kind !== 'panel') return modalPresentation()
+      const axes = options.axes ?? 'both'
+      if (axes !== 'both' && axes !== 'width' && axes !== 'height')
+        throw new TypeError('Invalid restore-size axes.')
+      const previousLayout = currentLayout(panel)
+      const previousSize = previousLayout?.manualSize
+      const width = axes === 'both' || axes === 'width' ? undefined : previousSize?.width
+      const height = axes === 'both' || axes === 'height' ? undefined : previousSize?.height
+      const manualSize =
+        width !== undefined
+          ? { width, ...(height !== undefined ? { height } : {}) }
+          : height !== undefined
+            ? { height }
+            : undefined
+      const placement = previousLayout?.placement
+      const preferredPosition = previousLayout?.preferredPosition
+      const layout: DashPanelLayoutRecord | undefined = placement
+        ? {
+            version: 2,
+            placement,
+            ...(preferredPosition ? { preferredPosition } : {}),
+            ...(manualSize ? { manualSize } : {}),
+          }
+        : preferredPosition
+          ? { version: 2, preferredPosition, ...(manualSize ? { manualSize } : {}) }
+          : manualSize
+            ? { version: 2, manualSize }
+            : undefined
+      const transaction = layout
+        ? panel.nexus?.setDashPanelLayout(layout)
+        : panel.nexus?.resetDashPanelLayout()
+      if (transaction === undefined) return { status: 'not_executed', reason: 'unavailable' }
+      if (transaction.ok) {
+        panel.layout = layout
+        panel.configSnapshot = undefined
+        publish()
+      }
+      panel.onCommand?.(
+        'restorePreferredSize',
+        transaction.ok
+          ? transaction.changedScopeIds.length
+            ? 'accepted'
+            : 'unchanged'
+          : 'rejected',
+      )
       return { status: 'executed', transaction }
     },
     getPanelConfig(scopeId) {
@@ -684,6 +862,8 @@ export function createPanelRuntime(): PanelRuntime {
         requestedPlacement: panel.requestedPlacement,
         dockPositions: Object.freeze([...panel.dockPositions]),
         presentation: panel.presentation,
+        manualSize: panel.layout?.manualSize,
+        sizing: panel.sizing,
       })
       return panel.configSnapshot
     },
@@ -778,6 +958,32 @@ export function createPanelRuntime(): PanelRuntime {
     getElement(scopeId) {
       return panelFor(scopeId)?.element ?? null
     },
+  }
+  for (const name of [
+    'show',
+    'hide',
+    'toggleVisibility',
+    'activate',
+    'expand',
+    'collapse',
+    'toggleCollapsed',
+  ] as const) {
+    const execute = runtime[name]
+    runtime[name] = (scopeId) => {
+      const before = snapshot
+      const result = execute(scopeId)
+      const panel = panelFor(scopeId)
+      panel?.onCommand?.(
+        name,
+        result.status === 'executed'
+          ? before === snapshot
+            ? 'unchanged'
+            : 'accepted'
+          : 'rejected',
+        result.status === 'not_executed' ? result.reason : undefined,
+      )
+      return result
+    }
   }
   return runtime
 }

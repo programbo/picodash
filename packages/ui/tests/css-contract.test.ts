@@ -260,6 +260,19 @@ describe('@picodash/ui stylesheet contract', () => {
     }
   })
 
+  it('reenables interactive overlay roots without changing a pass-through portal host', async () => {
+    const css = await readFile(stylesheetPath, 'utf8')
+    for (const selector of [
+      ":where([data-slot='popover'])",
+      ':where(.picodash-action-menu-popover)',
+      ':where(.picodash-action-submenu-popover)',
+    ]) {
+      const body = selectorBody(css, selector)
+      expect(body).toContain('pointer-events: auto;')
+      expect(body).not.toContain('!important')
+    }
+  })
+
   it('defines the Tooltip slot and decorative token-styled arrow', async () => {
     const css = await readFile(stylesheetPath, 'utf8')
     expect(css).toContain("[data-slot='tooltip']")

@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, test } from 'vite-plus/test'
 import WebSocket from 'ws'
 import { createPicodashNexus } from '@picodash/nexus'
+import {
+  acquireProviderLease,
+  acquireEntityLease,
+  publishNexusInteraction,
+} from '@picodash/nexus/integration'
 import { connectPicodashDevBridge } from '../src/browser.js'
 import { createPicodashDevBridgeClient } from '../src/client.js'
 import { startPicodashDevBridgeRelay } from '../src/relay.js'
@@ -31,6 +36,10 @@ class BrowserWebSocket extends EventTarget {
     return this.inner.readyState
   }
 
+  get bufferedAmount() {
+    return this.inner.bufferedAmount
+  }
+
   send(value: string) {
     this.inner.send(value)
   }
@@ -53,6 +62,111 @@ afterEach(async () => {
 })
 
 describe('browser connector', () => {
+  test('observes public Nexus events with long valid scope identities only within explicit disclosure without a snapshot write', async () => {
+    ;(globalThis as unknown as { WebSocket: unknown }).WebSocket = BrowserWebSocket
+    const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
+    stores.push(nexus)
+    const panelScopeId = 'panel'.repeat(60)
+    const host = acquireProviderLease(nexus)
+    const panel = acquireEntityLease(nexus.scope(panelScopeId), { kind: 'dashPanel', host })
+    const hidden = acquireEntityLease(nexus.scope('hidden'), { kind: 'dashPanel', host })
+    try {
+      const relay = await startPicodashDevBridgeRelay({
+        allowedBrowserOrigins: ['http://localhost'],
+      })
+      relays.push(relay)
+      const browser = await connectPicodashDevBridge({
+        nexus,
+        credential: relay.issueBrowserCredential('http://localhost'),
+        registrationId: 'events',
+        browserTabId: 'events-tab',
+        disclosure: { eventScopeIds: [panelScopeId], eventTypes: ['hover'] },
+      })
+      connections.push(browser)
+      const client = createPicodashDevBridgeClient(relay.agentCredential)
+      const initial = await client.readEvents(browser.session, {
+        type: 'read_events',
+        requestId: 'baseline',
+      })
+      if (initial.type !== 'events_result') throw new Error('baseline failed')
+      const before = nexus.getState()
+      publishNexusInteraction(hidden, {
+        type: 'hover',
+        input: 'mouse',
+        target: 'panel',
+        phase: 'enter',
+      })
+      publishNexusInteraction(panel, {
+        type: 'pointer',
+        input: 'mouse',
+        target: 'panel',
+        phase: 'down',
+      })
+      publishNexusInteraction(panel, {
+        type: 'hover',
+        input: 'mouse',
+        target: 'panel',
+        phase: 'enter',
+      })
+      const observed = await client.readEvents(browser.session, {
+        type: 'read_events',
+        requestId: 'observed',
+        cursor: initial.cursor,
+        timeoutMs: 1000,
+      })
+      expect(observed).toMatchObject({
+        type: 'events_result',
+        outcome: 'available',
+        cursor: { sequence: 1 },
+        events: [
+          {
+            sequence: 1,
+            event: { sequence: 3, source: { scopeId: panelScopeId }, event: { type: 'hover' } },
+          },
+        ],
+      })
+      expect(nexus.getState()).toBe(before)
+      expect(await client.inspect(browser.session)).toMatchObject({
+        snapshot: {},
+        session: {
+          sequence: 0,
+          eventSequence: 1,
+          disclosedScopeIds: [],
+          disclosedEventScopeIds: [panelScopeId],
+          disclosedEventTypes: ['hover'],
+        },
+      })
+      await browser.close()
+      expect(await client.listSessions()).toEqual([])
+      publishNexusInteraction(panel, {
+        type: 'hover',
+        input: 'mouse',
+        target: 'panel',
+        phase: 'leave',
+      })
+      const reloaded = await connectPicodashDevBridge({
+        nexus,
+        credential: relay.issueBrowserCredential('http://localhost'),
+        registrationId: 'events',
+        browserTabId: 'events-tab',
+        disclosure: { eventScopeIds: [panelScopeId], eventTypes: ['hover'] },
+      })
+      connections.push(reloaded)
+      expect(reloaded.session.generation).toBe(browser.session.generation + 1)
+      await expect(
+        client.readEvents(reloaded.session, {
+          type: 'read_events',
+          requestId: 'stale-cursor',
+          cursor: initial.cursor,
+        }),
+      ).resolves.toMatchObject({ type: 'bridge_error', error: { code: 'generation_mismatch' } })
+    } finally {
+      hidden.release()
+      panel.release()
+      host.release()
+    }
+  })
+
   test('cancels pending registration before root destruction and ignores late frames', async () => {
     let release: (() => void) | undefined
     class DelayedRegistrationSocket extends BrowserWebSocket {

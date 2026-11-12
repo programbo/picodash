@@ -1,3 +1,4 @@
+import type { NexusInteractionInput, NexusInteractionEvent } from './interactions.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import type {
   CoreTransactionResult,
@@ -8,6 +9,7 @@ import type {
 } from './kernel/index.js'
 import {
   acquireEntityLease,
+  publishNexusInteraction,
   acquireProviderLease,
   acquireRelationshipLease,
   type EntityLease,
@@ -44,6 +46,10 @@ export interface DeclarativeIntegrationHost<
   unmountProvider(): void
   mountEntity(input: DeclarativeEntityMount<Fields, Result>): void
   unmountEntity(token: DeclarativeEntityToken): void
+  publishInteraction(
+    token: DeclarativeEntityToken,
+    input: NexusInteractionInput,
+  ): NexusInteractionEvent | undefined
 }
 
 /** Internal host used by an opted-in standalone DashList boundary. */
@@ -243,6 +249,23 @@ function createDeclarativeHost<
           declarations.delete(input.token)
           throw error
         }
+      }
+    },
+
+    publishInteraction(token, input) {
+      const entry = active.get(token)
+      if (!entry) return undefined
+      try {
+        return publishNexusInteraction(entry.lease, input)
+      } catch (error) {
+        if (
+          error instanceof PicodashContractError &&
+          error.code === 'invalid-interaction-event' &&
+          (error.context?.reason === 'payload-size' ||
+            error.context?.reason === 'dispatch-capacity')
+        )
+          return undefined
+        throw error
       }
     },
 

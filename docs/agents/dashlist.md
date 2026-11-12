@@ -5,6 +5,9 @@ Read this file before changing DashList, Dashlets, actions, examples, or docs. T
 metadata behavior, the UI agent instructions for shared presentation, and
 [`../adr/0006-dashlist-responsive-measurement.md`](../adr/0006-dashlist-responsive-measurement.md)
 for the responsive layout constraint.
+For interaction-event publication, also read
+[`../adr/0007-panel-manual-sizing-and-interaction-events.md`](../adr/0007-panel-manual-sizing-and-interaction-events.md)
+and [Nexus events](../reference/nexus.md#interaction-events).
 
 ## Decision lens
 
@@ -39,6 +42,9 @@ peer and is excluded from the stable root inventory and component catalog.
   do not become hidden declarations.
 - Keep reorderability container-owned and pin bands declarative. Commit one changed order at the
   end of an interaction; write nothing for cancellation or no-op sessions.
+- Observe reorder lifecycles through the public lease-bound Nexus event publisher. Frame previews
+  remain local, final updates precede one terminal event, and event delivery never creates a
+  durable order or changes command authority.
 - Keep collapsed descendants mounted and registered. Repair focus before making content inert.
 - Keep disabled and read-only policies separate from authorization and from reorder/disclosure
   behavior.

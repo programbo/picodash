@@ -269,6 +269,7 @@ describe('private DashPanel runtime model', () => {
     registration.update({ freeMovePosition: () => ({ x: 20, y: 30 }) })
     runtime.setPlacement('panel', { mode: 'hybrid', disposition: { kind: 'free' } })
     expect(setDashPanelLayout).toHaveBeenLastCalledWith({
+      version: 2,
       placement: { mode: 'hybrid', disposition: { kind: 'free' } },
       preferredPosition: { x: 20, y: 30 },
     })
