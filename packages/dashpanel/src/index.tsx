@@ -1366,10 +1366,12 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
     const refreshForSettledLayout = (event: Event) => {
       const origin = event.composedPath()[0] ?? event.target
-      // Decorative fades cannot change geometry, including when reversed mid-transition.
+      // Decorative cue motion cannot change layout, including during reversals.
       if (
         'propertyName' in event &&
-        event.propertyName === 'opacity' &&
+        (event.propertyName === 'opacity' ||
+          event.propertyName === 'scale' ||
+          event.propertyName === 'translate') &&
         origin instanceof Element &&
         origin.matches(
           '[data-picodash-panel-scroll-indicator], [data-picodash-panel-resize-segment]',

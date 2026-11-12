@@ -127,8 +127,9 @@ and end content remain unfaded. The shared geometry-driven hook updates the mask
 content and the shell resize. For ordinary body overflow, DashPanel adds a floating triangle at each
 edge with hidden content. These decorative, pointer-transparent indicators sit outside the mask,
 disappear at their respective scroll ends, and remain absent when content fits or the body is
-collapsed. Their show/hide opacity transitions reverse smoothly from the current visual state,
-use shared theme timing, and become immediate with reduced motion. The mask remains geometry-driven
+collapsed. Their show/hide transitions fade, scale, and slide from the nearest top or bottom edge, reverse
+smoothly from the current visual state, use shared theme timing, and become immediate with reduced
+motion. The mask remains geometry-driven
 with constant depth. See [shared scroll feedback](ui.md#scroll-overflow-feedback).
 
 Settled intrinsic height changes, including Panel and DashGroup disclosure, use Motion with the
@@ -240,8 +241,9 @@ The primary span retains the single-line default; the secondary span defaults to
 Themes may reveal and independently size, translate, rotate, and align the two segments for
 parallel edges, perpendicular external corners, asymmetric parallel internal corners, or other
 one/two-stroke designs. Both segments retain the common visibility and interaction-color policy.
-Visibility changes use reversible opacity transitions with shared theme timing and no layout or
-hit-target changes. Reduced motion removes these transitions.
+Visibility changes use reversible opacity, scale, and translation transitions from the nearest
+edge or corner, with shared theme timing and no layout or hit-target changes. Individual `scale`
+and `translate` leave theme-owned stroke transforms intact. Reduced motion removes these transitions.
 Decoration does not add another control, operation, or durable state.
 
 The supplementary border targets remain compact precision controls, with 20px corners and the

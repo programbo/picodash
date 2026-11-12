@@ -323,11 +323,15 @@
   justify-content: center;
   inline-size: 32px;
   block-size: 24px;
-  transform: translateX(-50%);
   color: var(--picodash-color-text);
   filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.55));
   opacity: 0;
-  transition: opacity var(--picodash-duration-fast) var(--picodash-easing-out);
+  scale: 0.8;
+  translate: -50% var(--_picodash-scroll-enter-y, 0px);
+  transition:
+    opacity var(--picodash-duration-fast) var(--picodash-easing-out),
+    scale var(--picodash-duration-fast) var(--picodash-easing-out),
+    translate var(--picodash-duration-fast) var(--picodash-easing-out);
   pointer-events: none;
 }
 
@@ -338,6 +342,8 @@
 
 [data-picodash-panel-scroll-indicator='start'] {
   top: 6px;
+  --_picodash-scroll-enter-y: -6px;
+  transform-origin: center top;
 }
 
 [data-picodash-panel-scroll-indicator='start'] > svg {
@@ -346,6 +352,8 @@
 
 [data-picodash-panel-scroll-indicator='end'] {
   bottom: 6px;
+  --_picodash-scroll-enter-y: 6px;
+  transform-origin: center bottom;
 }
 
 [data-picodash-panel-body][data-picodash-scroll-overflow~='start']:not([hidden])
@@ -353,6 +361,8 @@
 [data-picodash-panel-body][data-picodash-scroll-overflow~='end']:not([hidden])
   ~ [data-picodash-panel-scroll-indicator='end'] {
   opacity: 1;
+  scale: 1;
+  translate: -50% 0;
 }
 
 .picodash-dashpanel [data-picodash-panel-move-handle]:active {
@@ -477,6 +487,8 @@
 }
 
 [data-picodash-panel-resize-target] {
+  --_picodash-resize-enter-x: 0px;
+  --_picodash-resize-enter-y: 0px;
   position: absolute;
   z-index: 3;
   display: grid;
@@ -499,7 +511,12 @@
   border-radius: var(--picodash-radius-control);
   background: currentColor;
   opacity: 0;
-  transition: opacity var(--picodash-duration-fast) var(--picodash-easing-out);
+  scale: 0.8;
+  translate: var(--_picodash-resize-enter-x) var(--_picodash-resize-enter-y);
+  transition:
+    opacity var(--picodash-duration-fast) var(--picodash-easing-out),
+    scale var(--picodash-duration-fast) var(--picodash-easing-out),
+    translate var(--picodash-duration-fast) var(--picodash-easing-out);
   pointer-events: none;
 }
 
@@ -516,6 +533,24 @@
 [data-picodash-panel-resize-target]:focus-visible > [data-picodash-panel-resize-segment],
 [data-picodash-panel-resize-target][aria-pressed='true'] > [data-picodash-panel-resize-segment] {
   opacity: 1;
+  scale: 1;
+  translate: 0 0;
+}
+
+[data-picodash-panel-resize-target*='n'] {
+  --_picodash-resize-enter-y: -4px;
+}
+
+[data-picodash-panel-resize-target*='s'] {
+  --_picodash-resize-enter-y: 4px;
+}
+
+[data-picodash-panel-resize-target*='w'] {
+  --_picodash-resize-enter-x: -4px;
+}
+
+[data-picodash-panel-resize-target*='e'] {
+  --_picodash-resize-enter-x: 4px;
 }
 
 [data-picodash-panel-resize-target]:is(:hover, :focus-visible),

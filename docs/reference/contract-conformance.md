@@ -162,9 +162,12 @@ exception remains. All six affected Resize Lab and phone journeys pass in Chromi
 shared UI passes 86 tests. Workspace formatting/lint/types and package/agent artifact checks pass.
 The same Resize Lab journeys also verify reversible show/hide transitions for arrows and resize
 grips: pausing native CSS transitions midway, reversing twice, and checking each new transition
-starts from the current opacity. Reduced-motion changes are immediate. The Panel portal regression
-checks that decorative transition end/cancel events never cause intrinsic measurement. The three
-Resize Lab journeys pass in 19.0 seconds (`output/scroll-fade/opacity-browser.log`), with no added
+starts from the current opacity, scale, and translation. The same native-transition checks now
+pause and reverse all three properties together, while themed stroke transforms and fixed hit
+targets retain their existing geometry checks. Reduced-motion changes are immediate. The Panel
+portal regression checks that decorative opacity/scale/translation end/cancel events never cause
+intrinsic measurement. The three Resize Lab journeys pass in 18.7 seconds
+(`output/scroll-fade/scale-translate-browser.log`), with no added
 browser test. A dark-theme visual capture is `output/scroll-fade/dark-indicators.png`. These are local browser
 results, not cross-browser or owner hands-on acceptance.
 

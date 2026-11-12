@@ -104,75 +104,131 @@ async function dragTarget(
   if (release) await page.mouse.up()
 }
 
-async function assertReversibleFade(
+type CuePose = Record<'opacity' | 'scale' | 'translate', number[]>
+
+async function assertReversibleCueMotion(
   page: Page,
   indicator: Locator,
   show: () => Promise<unknown>,
   hide: () => Promise<unknown>,
+  settledTranslate: readonly [number, number] = [0, 0],
 ) {
+  const readPose = () =>
+    indicator.evaluate((element): CuePose => {
+      const style = getComputedStyle(element)
+      const scale = style.scale.split(/\s+/).map(Number.parseFloat)
+      const translate = style.translate.split(/\s+/).map(Number.parseFloat)
+      return {
+        opacity: [Number(style.opacity)],
+        scale: [scale[0], scale[1] ?? scale[0]],
+        translate: [translate[0], translate[1] ?? 0],
+      }
+    })
   await hide()
   await expect(indicator).toHaveCSS('opacity', '0')
-  let previous = 0
+  const hidden = await readPose()
+  const shown: CuePose = { opacity: [1], scale: [1, 1], translate: [...settledTranslate] }
+  expect(hidden.scale[0]).toBeLessThan(1)
+  expect(
+    Math.hypot(...hidden.translate.map((value, index) => value - shown.translate[index])),
+  ).toBeGreaterThan(0)
+  let previous = hidden
   for (const target of [1, 0, 1]) {
     const observation = indicator.evaluate(
       (element) =>
-        new Promise<{ from: number; to: number; current: number }>((resolve, reject) => {
-          const cleanup = () => {
-            clearTimeout(timeout)
-            element.removeEventListener('transitionrun', inspect)
-          }
-          const inspect = (event: Event) => {
-            if (
-              !(event instanceof TransitionEvent) ||
-              event.target !== element ||
-              event.propertyName !== 'opacity'
-            )
-              return
-            const animation = element
-              .getAnimations()
-              .find(
-                (animation) =>
-                  animation instanceof CSSTransition && animation.transitionProperty === 'opacity',
+        new Promise<Record<keyof CuePose, { from: number[]; to: number[]; current: number[] }>>(
+          (resolve, reject) => {
+            const cleanup = () => {
+              clearTimeout(timeout)
+              element.removeEventListener('transitionrun', inspect)
+            }
+            const inspect = (event: Event) => {
+              if (
+                !(event instanceof TransitionEvent) ||
+                event.target !== element ||
+                event.propertyName !== 'opacity'
               )
-            const effect = animation?.effect
-            const duration = effect?.getTiming().duration
-            if (!animation || !(effect instanceof KeyframeEffect) || typeof duration !== 'number')
-              return
-            const frames = effect.getKeyframes()
-            animation.pause()
-            animation.currentTime = duration / 2
-            cleanup()
-            resolve({
-              from: Number(frames[0]?.opacity),
-              to: Number(frames[frames.length - 1]?.opacity),
-              current: Number(getComputedStyle(element).opacity),
-            })
-          }
-          const timeout = setTimeout(() => {
-            cleanup()
-            reject(new Error('Expected a reversible opacity transition.'))
-          }, 3000)
-          element.addEventListener('transitionrun', inspect)
-        }),
+                return
+              const sample = (property: keyof CuePose) => {
+                const animation = element
+                  .getAnimations()
+                  .find(
+                    (animation) =>
+                      animation instanceof CSSTransition &&
+                      animation.transitionProperty === property,
+                  )
+                const effect = animation?.effect
+                const duration = effect?.getTiming().duration
+                if (
+                  !animation ||
+                  !(effect instanceof KeyframeEffect) ||
+                  typeof duration !== 'number'
+                )
+                  throw new Error(`Expected a ${property} transition.`)
+                const components = (value: string) => {
+                  const parts = value.split(/\s+/).map(Number.parseFloat)
+                  return property === 'opacity'
+                    ? [parts[0]]
+                    : [parts[0], parts[1] ?? (property === 'scale' ? parts[0] : 0)]
+                }
+                const frames = effect.getKeyframes()
+                animation.pause()
+                animation.currentTime = duration / 2
+                return {
+                  from: components(String(frames[0]?.[property])),
+                  to: components(String(frames[frames.length - 1]?.[property])),
+                  current: components(getComputedStyle(element).getPropertyValue(property)),
+                }
+              }
+              try {
+                resolve({
+                  opacity: sample('opacity'),
+                  scale: sample('scale'),
+                  translate: sample('translate'),
+                })
+              } catch (error) {
+                reject(error)
+              } finally {
+                cleanup()
+              }
+            }
+            const timeout = setTimeout(() => {
+              cleanup()
+              reject(new Error('Expected reversible cue motion.'))
+            }, 3000)
+            element.addEventListener('transitionrun', inspect)
+          },
+        ),
     )
     await (target === 1 ? show() : hide())
     const sample = await observation
-    expect(sample.from).toBeCloseTo(previous, 3)
-    expect(sample.to).toBe(target)
-    expect(sample.current).toBeGreaterThan(0)
-    expect(sample.current).toBeLessThan(1)
-    previous = sample.current
+    const expected = target === 1 ? shown : hidden
+    for (const property of ['opacity', 'scale', 'translate'] as const) {
+      expect(sample[property].to).toEqual(expected[property])
+      sample[property].from.forEach((value, index) =>
+        expect(value).toBeCloseTo(previous[property][index], 3),
+      )
+    }
+    expect(sample.opacity.current[0]).toBeGreaterThan(0)
+    expect(sample.opacity.current[0]).toBeLessThan(1)
+    expect(sample.scale.current[0]).toBeGreaterThan(hidden.scale[0])
+    expect(sample.scale.current[0]).toBeLessThan(1)
+    previous = {
+      opacity: sample.opacity.current,
+      scale: sample.scale.current,
+      translate: sample.translate.current,
+    }
   }
   await indicator.evaluate((element) => {
     for (const animation of element.getAnimations()) animation.finish()
   })
-  await expect(indicator).toHaveCSS('opacity', '1')
+  await expect.poll(readPose).toEqual(shown)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   try {
     await hide()
-    await expect(indicator).toHaveCSS('opacity', '0')
+    await expect.poll(readPose).toEqual(hidden)
     await show()
-    await expect(indicator).toHaveCSS('opacity', '1')
+    await expect.poll(readPose).toEqual(shown)
     expect(await indicator.evaluate((element) => element.getAnimations().length)).toBe(0)
   } finally {
     await page.emulateMedia({ reducedMotion: 'no-preference' })
@@ -185,7 +241,7 @@ async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: Te
   const edges = page.getByRole('combobox', { name: 'Edge handle style', exact: true })
   const corners = page.getByRole('combobox', { name: 'Corner handle style', exact: true })
   const edge = panel.getByRole('button', { name: 'Resize panel Resize Panel from e', exact: true })
-  await assertReversibleFade(
+  await assertReversibleCueMotion(
     page,
     edge.locator('[data-picodash-panel-resize-segment="primary"]'),
     () => edge.hover(),
@@ -230,6 +286,8 @@ async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: Te
                   x,
                   y,
                   opacity: style.opacity,
+                  scale: style.scale,
+                  translate: style.translate,
                   pointerEvents: style.pointerEvents,
                   reachable: document.elementFromPoint(x, y) === button,
                   outside:
@@ -244,6 +302,8 @@ async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: Te
       expect(handle.strokes).toHaveLength(dual ? 2 : 1)
       for (const stroke of handle.strokes) {
         expect(stroke.opacity).toBe('1')
+        expect(stroke.scale).toBe('1')
+        expect(stroke.translate).toBe('0px')
         expect(stroke.pointerEvents).toBe('none')
         expect(stroke.reachable).toBe(true)
         expect(stroke.outside).toBe(recipe === 'external' && handle.kind === 'corner')
@@ -257,7 +317,10 @@ async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: Te
         ])
       } else {
         expect(primary.rotation).toEqual(secondary.rotation)
-        expect(Math.hypot(primary.x - secondary.x, primary.y - secondary.y)).toBeGreaterThan(3)
+        expect(
+          Math.hypot(primary.x - secondary.x, primary.y - secondary.y),
+          JSON.stringify({ recipe, kind: handle.kind, primary, secondary }),
+        ).toBeGreaterThan(3)
         if (handle.kind === 'corner') expect(primary.width).toBe(secondary.width * 2)
       }
     }
@@ -699,7 +762,7 @@ test('measures animated natural content while manual height scrolls and cancelle
   })
   await expect(startIndicator).toHaveCSS('opacity', '1')
   await expect(endIndicator).toHaveCSS('opacity', '1')
-  await assertReversibleFade(
+  await assertReversibleCueMotion(
     page,
     endIndicator,
     () =>
@@ -710,6 +773,7 @@ test('measures animated natural content while manual height scrolls and cancelle
       body.evaluate((element) => {
         element.scrollTop = element.scrollHeight
       }),
+    [-50, 0],
   )
   await testInfo.attach('floating-scroll-indicators', {
     body: await panel.screenshot(),
