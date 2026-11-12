@@ -263,6 +263,48 @@ test('measures animated natural content while manual height scrolls and cancelle
   page,
 }, testInfo) => {
   const panel = await openResizeLab(page)
+  const bridge = await bridgeFor(page)
+  const session = await bridge.session()
+  await page.getByText('Content constraints and explicit metrics', { exact: true }).click()
+  await page.getByLabel('Content maximum height', { exact: true }).check()
+  await page.getByRole('button', { name: 'Apply configuration', exact: true }).click()
+  const firstItem = panel.getByRole('button', { name: 'Accordion item 1', exact: true })
+  const thirdItem = panel.getByRole('button', { name: 'Accordion item 3', exact: true })
+  const settleDisclosure = async () => {
+    await expect(panel.locator('[data-resize-accordion-transition]')).toHaveCount(0)
+    await expect(panel).not.toHaveAttribute('data-picodash-height-motion')
+  }
+  await firstItem.click()
+  await thirdItem.click()
+  await settleDisclosure()
+  const south = panel.getByRole('button', { name: 'Resize panel Resize Panel from s', exact: true })
+  await south.hover()
+  const expandedHeight = (await box(panel)).height
+  expect(expandedHeight).toBeGreaterThan(300)
+  await dragTarget(page, panel, 's', 0, 260 - expandedHeight, true, 1)
+  await expect(page.getByLabel('Manual panel size')).toHaveText('automatic × 260')
+  const retainedSize = await metadata(bridge.client, session)
+  await thirdItem.click()
+  await settleDisclosure()
+  await expect.poll(async () => (await box(panel)).height).toBeLessThan(260)
+  await firstItem.click()
+  await settleDisclosure()
+  await expect.poll(async () => Math.round((await box(panel)).height)).toBe(260)
+  expect(await metadata(bridge.client, session)).toEqual(retainedSize)
+  const contentMaximum = Number(
+    (await page.getByLabel('Effective panel maximum').textContent())?.split(' × ')[1],
+  )
+  expect(contentMaximum).toBeGreaterThan(260)
+  await dragTarget(page, panel, 's', 0, 200, true, 1)
+  await expect.poll(async () => (await box(panel)).height).toBeCloseTo(contentMaximum, 0)
+  await expect
+    .poll(() =>
+      panel
+        .locator('[data-picodash-panel-body]')
+        .evaluate((element) => element.scrollHeight <= element.clientHeight + 1),
+    )
+    .toBe(true)
+  await page.getByRole('button', { name: 'Reset resize example', exact: true }).click()
   await page.getByLabel('Resize recipe').selectOption('accordion')
   const initialPanelHeight = (await box(panel)).height
   const item = panel.getByRole('button', { name: 'Accordion item 2', exact: true })
@@ -318,8 +360,6 @@ test('measures animated natural content while manual height scrolls and cancelle
   await expect
     .poll(() => body.evaluate((element) => element.scrollHeight > element.clientHeight))
     .toBe(true)
-  const bridge = await bridgeFor(page)
-  const session = await bridge.session()
   const fastBaseline = await bridge.client.readEvents(session, {
     type: 'read_events',
     requestId: 'fast-resize-baseline',

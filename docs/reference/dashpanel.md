@@ -712,6 +712,9 @@ Keep reads/writes frame-coalesced and exclude DashPanel's owned placement-FLIP t
 temporary caps across the complete shell/content measurement, not just its initial rectangle. A
 child's animated disclosure follows its intermediate natural size without repeatedly starting a
 second Panel size animation.
+Owned height motion retains its temporary cap until every animated size property has committed
+its final style. Completion then restores the underlying geometry once; no stale animation cap
+may constrain later content growth or a manual resize.
 
 Intersect declared/content bounds, shell minimum, boundary/insets, and allocation. During an
 impossible dynamic combination, containment/allocation caps win, then explicit maxima, content

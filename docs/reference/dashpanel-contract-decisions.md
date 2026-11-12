@@ -245,6 +245,8 @@ commit, cancellation, and effect cleanup are explicit states/transitions. Self-i
 observations do not cancel the gesture. Boundary/coordinate/policy changes, external metadata
 writes, enabled-content-bound invalidation, hide/collapse, capture loss, cancellation, or teardown
 discard stale previews and write nothing. Leaving a target while captured does not cancel.
+Owned multi-property height motion completes as one group. Restore temporary sizing styles after
+all property animations finish, so a later property completion cannot reinstall an obsolete cap.
 
 Report Panel-owned hover/focus/pointer interactions, move/resize lifecycle and geometry differences,
 commands, and automatic projection through public Nexus events. Motion updates coalesce; a final

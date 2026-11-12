@@ -2799,7 +2799,6 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       {
         duration: motion.duration / 1_000,
         ease: motion.easing,
-        onComplete: settle,
       },
     )
     panelHeightTransitionRef.current = {
@@ -2811,6 +2810,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       maxBlockSize,
       maxBlockSizePriority,
     }
+    // Mini's option callback runs per property. Restore only after both final styles commit.
+    void animation.then(settle)
   }, [geometry, id, panelHeightTransitionRevision, runtime])
   const revealStyle: CSSProperties | undefined =
     dockedMinimizePresentation && renderedMapped && renderedRect

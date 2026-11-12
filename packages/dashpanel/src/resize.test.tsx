@@ -554,6 +554,51 @@ describe('DashPanel manual sizing integration', () => {
     expect(panel.hasAttribute('data-picodash-height-motion')).toBe(false)
   })
 
+  it.each([false, true])(
+    'restores height styles after both properties complete (cap first: %s)',
+    async (capFirst) => {
+      const { getController, panel } = await setup()
+      panel.style.setProperty('--picodash-duration-fast', '200ms')
+      const animations: {
+        cancel: () => void
+        play: () => void
+        pause: () => void
+        onfinish: (() => void) | null
+        currentTime: number
+        playbackRate: number
+        playState: string
+      }[] = []
+      Object.defineProperty(panel, 'animate', {
+        configurable: true,
+        value: () => {
+          const animation: (typeof animations)[number] = {
+            cancel: vi.fn(),
+            play() {},
+            pause() {},
+            onfinish: null,
+            currentTime: 0,
+            playbackRate: 1,
+            playState: 'running',
+          }
+          animations.push(animation)
+          return animation
+        },
+      })
+      await notify(panel)
+      await act(async () => getController().collapse())
+      expect(animations).toHaveLength(2)
+      const first = animations[capFirst ? 1 : 0]
+      const second = animations[capFirst ? 0 : 1]
+      if (!first || !second) throw new Error('Expected both owned height animations.')
+      await act(async () => first.onfinish?.())
+      expect(panel.hasAttribute('data-picodash-height-motion')).toBe(true)
+      await act(async () => second.onfinish?.())
+      expect(panel.hasAttribute('data-picodash-height-motion')).toBe(false)
+      expect(panel.style.maxBlockSize).toBe('40px')
+      expect(panel.style.blockSize).toBe('')
+    },
+  )
+
   it('coalesces a 1000Hz ten-second pointer source to frame previews and one settled write', async () => {
     const { nexus, panel } = await setup()
     const east = panel.querySelector<HTMLButtonElement>('[data-picodash-panel-resize-target="e"]')!
