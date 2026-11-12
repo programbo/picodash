@@ -1092,10 +1092,10 @@ subtle visual affordance can retain a precise target. The coarse-pointer header 
 editor supply the accepted 44px equivalent functionality; the fine-pointer hit token does not
 create a promise of eight overlapping 44px touch strips.
 
-The visible edge indicators are centered 2px strokes drawn by CSS. Grip length accepts CSS lengths
+The default visible edge indicators are centered single 2px strokes drawn by CSS. Grip length accepts CSS lengths
 such as `18px` or `1.25rem`, percentages, and valid CSS combinations. A percentage uses that edge
 button's length, excluding the corner margins on fine pointers; coarse edge buttons are 44px long.
-The four corner indicators are separate fixed 10px diagonal strokes in 20px targets and do not use
+The four default corner indicators are fixed 10px diagonal strokes in 20px targets and do not use
 the edge-length token. Indicators inherit border color and use focus color on hover, focus, or grab.
 The header and body share a rounded, clipped surface. Resize targets and indicators occupy a
 separate unclipped layer within the Panel's own stacking and activation context. The layer does
@@ -1105,6 +1105,32 @@ inside-border position, positive lengths move outward, and negative lengths move
 does not change measured Panel geometry, resize limits, or durable layout. Host ancestor clipping
 and the viewport still apply; the resize layer does not escape the Provider's portal or layering.
 Hidden, collapsed, minimized, and otherwise ineligible Panels retain the existing target policy.
+
+#### Themeable resize segments
+
+Each resize button contains two decorative spans, independently styleable through these supported
+hooks:
+
+| Hook                                 | Values                                     | Purpose                               |
+| ------------------------------------ | ------------------------------------------ | ------------------------------------- |
+| `data-picodash-panel-resize-target`  | `n`, `ne`, `e`, `se`, `s`, `sw`, `w`, `nw` | Button direction.                     |
+| `data-picodash-panel-resize-kind`    | `edge`, `corner`                           | Select an entire target family.       |
+| `data-picodash-panel-resize-segment` | `primary`, `secondary`                     | Select either stroke inside a button. |
+
+Both spans share one grid cell. The primary span draws the existing single line; the secondary
+span starts with `display: none`. A theme can reveal it with `display: block` and set each segment's
+size, transform, or self-alignment. Edge percentages continue to resolve against the button's length.
+The segments remain `aria-hidden` and `pointer-events: none`, and inherit the same handle visibility,
+hover/focus/grab color, and forced-color rules. Keep those rules when changing their geometry so
+the button remains the single named, focusable drag target.
+
+The [executable CSS examples](../examples/dashpanel-resize-handles.css) provide independently
+composable parallel edge strokes, perpendicular external corner brackets, and unequal parallel
+internal corner strokes. Load the example CSS after the package stylesheet and apply
+`resize-edges-parallel` with either `resize-corners-external` or `resize-corners-internal` through
+`className`. The selectors can also be adapted to an application's named theme. Removing these
+example classes restores the single-line defaults. The recipes use the existing offset token for
+external target placement and add no resize props or state.
 
 Magnetic motion is independent of the live transform rather than a transition on Panel position.
 Duration accepts a non-negative CSS time. Bounce accepts a unitless value from `0` through `0.25`;

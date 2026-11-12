@@ -271,6 +271,16 @@ The content journey retains ordinary and root-List scrolling/measurement evidenc
 Chromium proof; host ancestor and viewport clipping still apply. The regular/compact/coarse, live
 placement, and phone-sized boundary journeys also pass.
 
+Resize themes can style two decorative segments per target using the supported direction, kind,
+and primary/secondary segment hooks. The secondary segment is hidden in the default recipe.
+The [CSS examples](../examples/dashpanel-resize-handles.css) run inside the retained-intent Resize
+Lab journey: single-line defaults, parallel edges, perpendicular external corners, and unequal
+parallel internal corners are checked in all directions. Computed geometry, visibility, and native
+hit testing prove that both strokes resolve to one resize button without changing the Panel box.
+Local captures are `output/resize-evidence/resize-handles-{single,parallel,external,internal}.png`.
+All 240 Panel tests, the Panel check/artifact gate, and all three Resize Lab journeys pass for this
+change. The browser test count remains unchanged.
+
 Two final findings now have isolated fixes: movement event publication coalesces to frames and
 flushes before the terminal event; commands merge from authoritative public scoped metadata instead
 of an effect-delayed cache. Synchronous scoped observation and a final snapshot fence prevent

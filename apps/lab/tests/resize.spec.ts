@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
 import {
@@ -104,6 +104,100 @@ async function dragTarget(
   if (release) await page.mouse.up()
 }
 
+async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: TestInfo) {
+  await page.addStyleTag({
+    path: resolve(process.cwd(), '../../docs/examples/dashpanel-resize-handles.css'),
+  })
+  await panel.evaluate((element) => element.scrollIntoView({ block: 'center' }))
+  const originalBox = await box(panel)
+  const classes = ['resize-edges-parallel', 'resize-corners-external', 'resize-corners-internal']
+  for (const recipe of ['single', 'parallel', 'external', 'internal']) {
+    await panel.evaluate(
+      (element, { classes, recipe }) => {
+        element.classList.remove(...classes)
+        if (recipe !== 'single') element.classList.add('resize-edges-parallel')
+        if (recipe === 'external') element.classList.add('resize-corners-external')
+        if (recipe === 'internal') element.classList.add('resize-corners-internal')
+      },
+      { classes, recipe },
+    )
+    await panel
+      .getByRole('button', { name: 'Resize panel Resize Panel from e', exact: true })
+      .hover()
+    const handles = await panel
+      .locator('[data-picodash-panel-resize-target]')
+      .evaluateAll((buttons) =>
+        buttons.map((button) => {
+          const panel = button.closest('[data-picodash-panel]')
+          if (!panel) throw new Error('Expected a resize target inside a Panel.')
+          const bounds = panel.getBoundingClientRect()
+          return {
+            kind: button.getAttribute('data-picodash-panel-resize-kind'),
+            strokes: Array.from(button.querySelectorAll('[data-picodash-panel-resize-segment]'))
+              .filter((segment) => getComputedStyle(segment).display !== 'none')
+              .map((segment) => {
+                const style = getComputedStyle(segment)
+                const rect = segment.getBoundingClientRect()
+                const x = rect.x + rect.width / 2
+                const y = rect.y + rect.height / 2
+                const matrix = new DOMMatrixReadOnly(
+                  style.transform === 'none' ? undefined : style.transform,
+                )
+                return {
+                  width: Number.parseFloat(style.width),
+                  height: Number.parseFloat(style.height),
+                  rotation: [matrix.a, matrix.b, matrix.c, matrix.d],
+                  x,
+                  y,
+                  opacity: style.opacity,
+                  pointerEvents: style.pointerEvents,
+                  reachable: document.elementFromPoint(x, y) === button,
+                  outside:
+                    x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom,
+                }
+              }),
+          }
+        }),
+      )
+    for (const handle of handles) {
+      const dual = recipe !== 'single' && (handle.kind === 'edge' || recipe !== 'parallel')
+      expect(handle.strokes).toHaveLength(dual ? 2 : 1)
+      for (const stroke of handle.strokes) {
+        expect(stroke.opacity).toBe('1')
+        expect(stroke.pointerEvents).toBe('none')
+        expect(stroke.reachable).toBe(true)
+        expect(stroke.outside).toBe(recipe === 'external' && handle.kind === 'corner')
+      }
+      if (!dual) continue
+      const [primary, secondary] = handle.strokes
+      if (!primary || !secondary) throw new Error('Expected two rendered resize segments.')
+      if (recipe === 'external' && handle.kind === 'corner') {
+        expect([primary.width, primary.height, secondary.width, secondary.height]).toEqual([
+          14, 2, 2, 14,
+        ])
+      } else {
+        expect(primary.rotation).toEqual(secondary.rotation)
+        expect(Math.hypot(primary.x - secondary.x, primary.y - secondary.y)).toBeGreaterThan(3)
+        if (handle.kind === 'corner') expect(primary.width).toBe(secondary.width * 2)
+      }
+    }
+    expect(await box(panel)).toEqual(originalBox)
+    await testInfo.attach(`resize-handles-${recipe}`, {
+      body: await page.screenshot({
+        path: resolve(process.cwd(), `../../output/resize-evidence/resize-handles-${recipe}.png`),
+        clip: {
+          x: originalBox.x - 24,
+          y: originalBox.y - 24,
+          width: originalBox.width + 48,
+          height: originalBox.height + 48,
+        },
+      }),
+      contentType: 'image/png',
+    })
+  }
+  await panel.evaluate((element, classes) => element.classList.remove(...classes), classes)
+}
+
 test('retains manual intent through resize, contracted reload, expansion and header restoration', async ({
   page,
 }, testInfo) => {
@@ -146,6 +240,7 @@ test('retains manual intent through resize, contracted reload, expansion and hea
   await page.getByLabel('Requested manual height').fill('320')
   await page.getByRole('button', { name: 'Set manual size', exact: true }).click()
   await expect(page.getByLabel('Manual panel size')).toHaveText('480 × 320')
+  await assertResizeHandleThemes(page, panel, testInfo)
   const restore = panel.getByRole('button', { name: 'Restore preferred size', exact: true })
   const actions = panel.getByRole('button', { name: 'Actions for Resize Panel', exact: true })
   expect((await box(restore)).x).toBeLessThan((await box(actions)).x)

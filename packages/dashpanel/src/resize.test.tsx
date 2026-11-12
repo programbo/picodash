@@ -247,6 +247,17 @@ describe('DashPanel manual sizing integration', () => {
     const layer = panel.querySelector('[data-picodash-panel-resize-layer]')!
     expect(layer.parentElement).toBe(panel)
     expect(layer.querySelectorAll('button')).toHaveLength(8)
+    for (const button of layer.querySelectorAll('button')) {
+      expect(
+        Array.from(button.children, (segment) => [
+          segment.getAttribute('data-picodash-panel-resize-segment'),
+          segment.getAttribute('aria-hidden'),
+        ]),
+      ).toEqual([
+        ['primary', 'true'],
+        ['secondary', 'true'],
+      ])
+    }
     expect(panel.querySelector('[data-picodash-panel-surface]')?.contains(layer)).toBe(false)
     const events: NexusInteractionEvent[] = []
     const unsubscribe = nexus.events.subscribe((event) => events.push(event))

@@ -3351,6 +3351,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                     key={target}
                     type="button"
                     data-picodash-panel-resize-target={target}
+                    data-picodash-panel-resize-kind={target.length === 1 ? 'edge' : 'corner'}
                     aria-label={`Resize panel ${panelName} from ${target}`}
                     aria-pressed={resizeInteraction.activeTarget === target}
                     title={`Resize ${target}`}
@@ -3362,7 +3363,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                     }}
                     onKeyDown={(event) => resizeInteraction.onKeyDown(target, event)}
                   >
-                    <span aria-hidden="true" />
+                    <span data-picodash-panel-resize-segment="primary" aria-hidden="true" />
+                    <span data-picodash-panel-resize-segment="secondary" aria-hidden="true" />
                   </button>
                 ))}
               </div>

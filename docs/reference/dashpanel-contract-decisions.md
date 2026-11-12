@@ -226,6 +226,16 @@ The layer retains Panel activation, visibility, portal, and stacking ownership, 
 to host ancestor/viewport clipping. Offsets never affect measured or persisted geometry. This
 revises the inside-only presentation following owner instruction on 2026-11-12.
 
+Each resize button exposes its direction through `data-picodash-panel-resize-target`, its
+`edge | corner` kind through `data-picodash-panel-resize-kind`, and two decorative spans through
+`data-picodash-panel-resize-segment=primary | secondary`. These are supported theme styling hooks.
+Both spans share one grid cell and are hidden from assistive technology and pointer hit testing.
+The primary span retains the single-line default; the secondary span defaults to `display: none`.
+Themes may reveal and independently size, translate, rotate, and align the two segments for
+parallel edges, perpendicular external corners, asymmetric parallel internal corners, or other
+one/two-stroke designs. Both segments retain the common visibility and interaction-color policy.
+Decoration does not add another control, operation, or durable state.
+
 The supplementary border targets remain compact precision controls, with 20px corners and the
 fine-edge hit token's 10px default. They do not claim 44px squares at every border position. On
 coarse pointers, an always-visible 44×44px “Resize panel” header action opens the numeric/tap editor

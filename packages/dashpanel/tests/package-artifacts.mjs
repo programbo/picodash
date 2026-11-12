@@ -134,6 +134,7 @@ async function main() {
     assert.match(css, new RegExp(`--picodash-panel-${token}`))
   assert.match(css, /picodash-dashpanel/)
   assert.match(css, /data-active/)
+  assert.match(css, /data-picodash-panel-resize-segment/)
   assert.doesNotMatch(css, /@picodash\/dashpanel\/src/)
   console.log('@picodash/dashpanel package artifact contract passed')
 }
