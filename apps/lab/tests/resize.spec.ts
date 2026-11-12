@@ -239,7 +239,20 @@ test('retains manual intent through resize, contracted reload, expansion and hea
       buttons: 1,
       clickCount: 1,
     })
-    // A final release sample can arrive before another movement sample or preview frame.
+    await input.send('Input.dispatchMouseEvent', {
+      type: 'mouseMoved',
+      x: start.x + 40,
+      y: start.y + 16,
+      button: 'left',
+      buttons: 1,
+    })
+    // A release-bearing movement can revoke capture before the later pointerup arrives.
+    await input.send('Input.dispatchMouseEvent', {
+      type: 'mouseMoved',
+      x: start.x + 60,
+      y: start.y + 24,
+      buttons: 0,
+    })
     await input.send('Input.dispatchMouseEvent', {
       type: 'mouseReleased',
       x: start.x + 60,
@@ -552,8 +565,52 @@ test('measures animated natural content while manual height scrolls and cancelle
     element.scrollTop = 100
   })
   await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(100)
-  // One native move followed immediately by release: no preview/Bridge assertion between them.
-  await dragTarget(page, panel, 'se', 32, 24, true, 1)
+  // Match a moving release: primary-button-up motion revokes capture before pointerup.
+  const fastGrip = panel.getByRole('button', {
+    name: 'Resize panel Resize Panel from se',
+    exact: true,
+  })
+  await fastGrip.hover()
+  const fastBox = await box(fastGrip)
+  const fastStart = { x: fastBox.x + fastBox.width / 2, y: fastBox.y + fastBox.height / 2 }
+  const fastInput = await page.context().newCDPSession(page)
+  try {
+    await fastInput.send('Input.dispatchMouseEvent', {
+      type: 'mouseMoved',
+      ...fastStart,
+      buttons: 0,
+    })
+    await fastInput.send('Input.dispatchMouseEvent', {
+      type: 'mousePressed',
+      ...fastStart,
+      button: 'left',
+      buttons: 1,
+      clickCount: 1,
+    })
+    await fastInput.send('Input.dispatchMouseEvent', {
+      type: 'mouseMoved',
+      x: fastStart.x + 24,
+      y: fastStart.y + 16,
+      button: 'left',
+      buttons: 1,
+    })
+    await fastInput.send('Input.dispatchMouseEvent', {
+      type: 'mouseMoved',
+      x: fastStart.x + 32,
+      y: fastStart.y + 24,
+      buttons: 0,
+    })
+    await fastInput.send('Input.dispatchMouseEvent', {
+      type: 'mouseReleased',
+      x: fastStart.x + 32,
+      y: fastStart.y + 24,
+      button: 'left',
+      buttons: 0,
+      clickCount: 1,
+    })
+  } finally {
+    await fastInput.detach()
+  }
   await expect(page.getByLabel('Manual panel size')).toHaveText('392 × 264')
   await expect.poll(async () => Math.round((await box(panel)).width)).toBe(392)
   await expect.poll(async () => Math.round((await box(panel)).height)).toBe(264)

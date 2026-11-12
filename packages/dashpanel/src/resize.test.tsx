@@ -32,13 +32,13 @@ const originalCaptureDescriptors = new Map(
   ]),
 )
 
-const pointer = (type: string, x: number, y: number) => {
+const pointer = (type: string, x: number, y: number, buttons = type === 'pointerup' ? 0 : 1) => {
   const event = new MouseEvent(type, {
     bubbles: true,
     clientX: x,
     clientY: y,
     button: 0,
-    buttons: type === 'pointerup' ? 0 : 1,
+    buttons,
   })
   Object.defineProperties(event, {
     pointerId: { value: 7 },
@@ -304,6 +304,89 @@ describe('DashPanel manual sizing integration', () => {
     expect(writes).toHaveBeenCalledTimes(1)
     expect(captures.size).toBe(0)
   })
+
+  it.each(['move', 'resize'] as const)(
+    'owns %s pointer events before the first React effect and consumes an immediate outside release',
+    async (operation) => {
+      const { nexus, panel } = await setup()
+      const selector =
+        operation === 'move'
+          ? '[data-picodash-panel-move-handle]'
+          : '[data-picodash-panel-resize-target="e"]'
+      const handle = panel.querySelector<HTMLButtonElement>(selector)!
+      const events: NexusInteractionEvent[] = []
+      const unsubscribe = nexus.events.subscribe((event) => events.push(event))
+      const writes = vi.fn()
+      nexus.subscribe(writes)
+      await act(async () => {
+        handle.dispatchEvent(pointer('pointerdown', 220, 130))
+        window.dispatchEvent(pointer('pointermove', 260, 150))
+        window.dispatchEvent(pointer('pointerup', 270, 150))
+        handle.dispatchEvent(pointer('lostpointercapture', 270, 150))
+      })
+      expect(nexus.scope('test').getState().scope?.dashPanel).toMatchObject(
+        operation === 'move'
+          ? { preferredPosition: { x: 70, y: 50 } }
+          : { manualSize: { width: 250 } },
+      )
+      expect(writes).toHaveBeenCalledTimes(1)
+      expect(events.filter(({ event }) => event.type === 'drag.end')).toHaveLength(1)
+      expect(events.filter(({ event }) => event.type === 'drag.cancel')).toHaveLength(0)
+      expect(captures.size).toBe(0)
+      expect(frames.size).toBe(0)
+      unsubscribe()
+    },
+  )
+
+  it.each([
+    { operation: 'move', released: true },
+    { operation: 'resize', released: true },
+    { operation: 'move', released: false },
+    { operation: 'resize', released: false },
+  ] as const)(
+    'handles $operation capture loss with released=$released before pointerup',
+    async ({ operation, released }) => {
+      const { nexus, panel } = await setup()
+      const handle = panel.querySelector<HTMLButtonElement>(
+        operation === 'move'
+          ? '[data-picodash-panel-move-handle]'
+          : '[data-picodash-panel-resize-target="e"]',
+      )!
+      const events: NexusInteractionEvent[] = []
+      const unsubscribe = nexus.events.subscribe((event) => events.push(event))
+      const writes = vi.fn()
+      nexus.subscribe(writes)
+      await act(async () => handle.dispatchEvent(pointer('pointerdown', 220, 130)))
+      await act(async () => window.dispatchEvent(pointer('pointermove', 260, 150)))
+      await act(async () => {
+        const pending = [...frames.values()]
+        frames.clear()
+        for (const callback of pending) callback(16)
+      })
+      await act(async () => {
+        handle.dispatchEvent(pointer('lostpointercapture', 270, 150, released ? 0 : 1))
+        handle.dispatchEvent(pointer('pointerup', 270, 150))
+      })
+      if (released) {
+        expect(nexus.scope('test').getState().scope?.dashPanel).toMatchObject(
+          operation === 'move'
+            ? { preferredPosition: { x: 70, y: 50 } }
+            : { manualSize: { width: 250 } },
+        )
+        expect(writes).toHaveBeenCalledTimes(1)
+        expect(events.filter(({ event }) => event.type === 'drag.end')).toHaveLength(1)
+        expect(events.filter(({ event }) => event.type === 'drag.cancel')).toHaveLength(0)
+      } else {
+        expect(nexus.scope('test').getState().scope).toBeUndefined()
+        expect(writes).not.toHaveBeenCalled()
+        expect(events.filter(({ event }) => event.type === 'drag.end')).toHaveLength(0)
+        expect(events.filter(({ event }) => event.type === 'drag.cancel')).toHaveLength(1)
+      }
+      expect(captures.size).toBe(0)
+      expect(frames.size).toBe(0)
+      unsubscribe()
+    },
+  )
 
   it('fences a canonical metadata write before React can refresh the resize registration', async () => {
     const { panel, nexus } = await setup()

@@ -993,6 +993,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     readonly moved: boolean
     readonly sourceFingerprint: string
   } | null>(null)
+  const moveInputSubscription = useRef<(() => void) | undefined>(undefined)
   const cancelObservedMoveRef = useRef<() => void>(() => undefined)
   const cancelResizeRef = useRef<(reason: string) => void>(() => undefined)
   cancelResizeRef.current = resizeInteraction.cancel
@@ -1715,6 +1716,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       sourceFingerprint: JSON.stringify(scoped.getState().scope?.dashPanel ?? null),
     } as const
     moveSession.current = session
+    const ownerWindow = event?.currentTarget.ownerDocument.defaultView
+    if (mode === 'pointer' && ownerWindow)
+      moveInputSubscription.current = subscribeMoveInput(ownerWindow)
     const actual = asideRef.current?.getBoundingClientRect()
     interactions.beginMove(
       actual,
@@ -1745,6 +1749,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   }
 
   const cancelMove = (reason = 'cancelled') => {
+    moveInputSubscription.current?.()
+    moveInputSubscription.current = undefined
     interactions.cancelMove(reason)
     cancelPanelMagneticMotion()
     runtime.setDockAllocationPreview(id, null)
@@ -1834,6 +1840,18 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
               disposition: { kind: 'snapped', position: currentSnapIntent.target },
             }
           : { mode: 'floating', disposition: { kind: 'free' } }
+    }
+    const finalPosition = previewPositionRef.current
+    if (
+      JSON.stringify(placement) === JSON.stringify(effectivePlacement) &&
+      (placement.disposition.kind !== 'free' ||
+        (finalPosition &&
+          sameMeasuredLength(finalPosition.x, session.startPosition.x) &&
+          sameMeasuredLength(finalPosition.y, session.startPosition.y)))
+    ) {
+      interactions.endMove('unchanged')
+      cancelMove()
+      return { status: 'executed' as const }
     }
     const panel = asideRef.current
     if (panel && placement.disposition.kind === 'docked') {
@@ -2011,7 +2029,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     // Release can contain a newer position than the last delivered/coalesced move sample.
     onMovePointerMove(event)
     commitMove()
-    session.captureTarget?.releasePointerCapture?.(event.pointerId)
+    if (session.captureTarget?.hasPointerCapture?.(event.pointerId))
+      session.captureTarget.releasePointerCapture(event.pointerId)
   }
 
   const onMovePointerCancel = (event?: ReactPointerEvent<HTMLElement>) => {
@@ -2035,15 +2054,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
   })
 
-  useEffect(() => {
-    const ownerWindow = asideRef.current?.ownerDocument.defaultView
-    if (
-      moveMode !== 'pointer' ||
-      !ownerWindow ||
-      typeof ownerWindow.addEventListener !== 'function' ||
-      typeof ownerWindow.removeEventListener !== 'function'
-    )
-      return
+  const subscribeMoveInput = (ownerWindow: Window) => {
     const move = (event: PointerEvent) =>
       nativeMoveHandlersRef.current.move(event as unknown as ReactPointerEvent<HTMLElement>)
     const up = (event: PointerEvent) =>
@@ -2057,14 +2068,24 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       ownerWindow.removeEventListener('pointermove', move)
       ownerWindow.removeEventListener('pointerup', up)
       ownerWindow.removeEventListener('pointercancel', cancel)
+    }
+  }
+  useLayoutEffect(
+    () => () => {
+      moveInputSubscription.current?.()
+      moveInputSubscription.current = undefined
       const session = moveSession.current
       if (session?.mode === 'pointer') {
-        session.captureTarget?.releasePointerCapture?.(session.pointerId ?? -1)
+        interactions.cancelMove('unmounted')
         moveSession.current = null
         previewPositionRef.current = null
+        snapIntentRef.current = null
+        dockIntentRef.current = null
+        session.captureTarget?.releasePointerCapture?.(session.pointerId ?? -1)
       }
-    }
-  }, [moveMode])
+    },
+    [],
+  )
 
   const onMoveKeyDown = (event: ReactKeyboardEvent<HTMLElement>) => {
     const session = moveSession.current
@@ -3123,8 +3144,14 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
               onLostPointerCapture={(event) => {
                 asideProps.onLostPointerCapture?.(event)
                 const session = moveSession.current
-                if (session?.mode === 'pointer' && session.pointerId === event.pointerId)
-                  cancelMove('capture_lost')
+                if (
+                  session?.mode === 'pointer' &&
+                  session.pointerId === event.pointerId &&
+                  session.captureTarget === event.target
+                ) {
+                  if ((event.buttons & 1) === 0) onMovePointerUp(event)
+                  else cancelMove('capture_lost')
+                }
               }}
               data-collapsed={collapsed ? 'true' : 'false'}
             >

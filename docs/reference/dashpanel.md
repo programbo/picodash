@@ -788,7 +788,12 @@ cancel. Boundary/inset/coordinate/zoom changes, external metadata writes, policy
 enabled-content-bound invalidation, hide/collapse, capture loss, cancellation, window blur, or
 unmount discard the preview and write nothing. Pointer exit while captured does not cancel. Every
 terminal path releases capture, scheduled frames, subscriptions, cursor/selection state, and active
-feedback once. Reduced motion and active gestures make size following immediate.
+feedback once. Native move/up/cancel observation begins synchronously with the gesture, before
+React effects can run. Some browser hosts deliver implicit `lostpointercapture` with the primary
+button already released before `pointerup`, particularly when releasing during motion. That event
+completes the gesture from its own final coordinates; the later `pointerup` is ignored. Loss while
+the primary button remains held is still cancellation. Reduced motion and active gestures make
+size following immediate.
 
 Report owned hover/focus/pointer interactions, move/resize lifecycle/diffs, command outcomes, and
 automatic content/boundary/policy projection through [Nexus events](nexus.md#interaction-events).

@@ -38,7 +38,12 @@ enabled content minimums may temporarily constrain the rendered size.
 Free Panels support four edge and four corner resize targets. Anchored placements expose only
 compatible targets; allocation-owned dimensions remain dormant. Resizing does not detach or change
 placement. Pointer, keyboard, numeric controls, and public commands share sizing validation and
-projection. A changed gesture commits once; no-op and cancellation commit nothing.
+projection. A changed gesture commits once; no-op and cancellation commit nothing. Native listener ownership
+starts with the gesture rather than a later React effect. A matching native capture-loss event
+whose primary button is already released completes the gesture using its final coordinates,
+independently of whether `pointerup` has arrived. Capture loss with the button still held remains
+cancellation. This event-order clarification follows the observed moving-release failure in the
+in-app browser on 2026-11-12.
 
 Eight supplementary border targets cannot all be 44px squares on a minimum-sized Panel without
 covering one another, header actions, or content. The accepted coarse-pointer revision therefore

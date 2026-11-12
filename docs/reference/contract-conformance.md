@@ -289,6 +289,20 @@ stored style values. Four Lab model tests, all three Resize Lab journeys, worksp
 the production Lab build pass.
 Desktop/narrow control captures are under `output/resize-evidence/resize-handle-controls-*.png`.
 
+Moving-release regression evidence identifies a native ordering difference in the in-app browser:
+`lostpointercapture` with `buttons: 0` arrived about 16ms before `pointerup`. Cancelling at that first
+event discarded valid move/resize previews. Both operations now complete from the first matching
+released-button event and ignore the later duplicate; capture loss while the primary button remains
+held still cancels without writing. Native input subscriptions also begin synchronously at gesture
+acquisition, closing the separate pre-effect release gap. Final no-op placement does not materialize
+dormant defaults. Six new component cases fail before their repairs; all 246 Panel tests, package
+check/build/artifacts, workspace checks, and the three Resize Lab journeys pass afterward.
+The two existing browser journeys now deliver release-bearing movement before pointerup and check
+retained dimensions/position, exactly one terminal event, disclosed Nexus metadata, and scroll
+retention. Eight additional native sequences (0/1/3/12 intermediate samples per operation) commit
+once in `output/fast-release/moving-release.json`. The owner confirmed both moving-release paths
+retain changes in the affected in-app browser. The normal browser test count remains unchanged.
+
 Two final findings now have isolated fixes: movement event publication coalesces to frames and
 flushes before the terminal event; commands merge from authoritative public scoped metadata instead
 of an effect-delayed cache. Synchronous scoped observation and a final snapshot fence prevent

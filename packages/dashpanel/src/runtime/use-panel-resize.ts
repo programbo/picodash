@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -101,6 +100,7 @@ export function usePanelResize(inputs: PanelResizeInputs) {
   const [activeTarget, setActiveTarget] = useState<DashPanelResizeTarget | null>(null)
   const frame = useRef<number | undefined>(undefined)
   const canonicalSubscription = useRef<(() => void) | undefined>(undefined)
+  const inputSubscription = useRef<(() => void) | undefined>(undefined)
   const sequence = useRef(0)
   const normalized = normalizeDashPanelResize(inputs.resize)
   const targets = resolveDashPanelResizeTargets({
@@ -130,6 +130,8 @@ export function usePanelResize(inputs: PanelResizeInputs) {
   const cleanup = () => {
     const session = state.current
     state.current = idle
+    inputSubscription.current?.()
+    inputSubscription.current = undefined
     canonicalSubscription.current?.()
     canonicalSubscription.current = undefined
     const ownerWindow = latest.current.element.current?.ownerDocument.defaultView
@@ -274,6 +276,67 @@ export function usePanelResize(inputs: PanelResizeInputs) {
   }
   const handlers = useRef({ update, finish, cancel })
   handlers.current = { update, finish, cancel }
+  const finishPointer = (event: Pick<PointerEvent, 'pointerId' | 'clientX' | 'clientY'>) => {
+    const session = state.current
+    if (session.kind === 'idle' || session.pointerId !== event.pointerId) return
+    const ownerWindow = session.capture?.ownerDocument.defaultView
+    if (frame.current !== undefined) ownerWindow?.cancelAnimationFrame(frame.current)
+    frame.current = undefined
+    handlers.current.update({
+      x: event.clientX - session.startPointer.x,
+      y: event.clientY - session.startPointer.y,
+    })
+    handlers.current.finish()
+  }
+  const subscribeInput = (ownerWindow: Window) => {
+    let pending: Readonly<{ x: number; y: number }> | undefined
+    const flush = () => {
+      frame.current = undefined
+      if (pending) {
+        const delta = pending
+        pending = undefined
+        handlers.current.update(delta)
+      }
+    }
+    const move = (event: PointerEvent) => {
+      const session = state.current
+      if (session.kind === 'idle' || session.pointerId !== event.pointerId) return
+      pending = {
+        x: event.clientX - session.startPointer.x,
+        y: event.clientY - session.startPointer.y,
+      }
+      if (frame.current === undefined) frame.current = ownerWindow.requestAnimationFrame(flush)
+    }
+    const up = (event: PointerEvent) => {
+      finishPointer(event)
+    }
+    const pointerCancel = (event: PointerEvent) => {
+      const session = state.current
+      if (session.kind !== 'idle' && session.pointerId === event.pointerId)
+        handlers.current.cancel('pointercancel')
+    }
+    const blur = () => handlers.current.cancel('window_blur')
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        handlers.current.cancel('escape')
+      }
+    }
+    ownerWindow.addEventListener('pointermove', move)
+    ownerWindow.addEventListener('pointerup', up)
+    ownerWindow.addEventListener('pointercancel', pointerCancel)
+    ownerWindow.addEventListener('blur', blur)
+    ownerWindow.addEventListener('keydown', escape)
+    return () => {
+      ownerWindow.removeEventListener('pointermove', move)
+      ownerWindow.removeEventListener('pointerup', up)
+      ownerWindow.removeEventListener('pointercancel', pointerCancel)
+      ownerWindow.removeEventListener('blur', blur)
+      ownerWindow.removeEventListener('keydown', escape)
+      if (frame.current !== undefined) ownerWindow.cancelAnimationFrame(frame.current)
+      frame.current = undefined
+    }
+  }
   const begin = (
     target: DashPanelResizeTarget,
     input: NexusInteractionSource,
@@ -319,6 +382,8 @@ export function usePanelResize(inputs: PanelResizeInputs) {
           handlers.current.cancel('metadata_changed')
       })
     })
+    const ownerWindow = current.element.current.ownerDocument.defaultView
+    if (ownerWindow) inputSubscription.current = subscribeInput(ownerWindow)
     setActiveTarget(target)
     if (event) event.currentTarget.setPointerCapture?.(event.pointerId)
     if (input === 'keyboard') {
@@ -335,65 +400,6 @@ export function usePanelResize(inputs: PanelResizeInputs) {
       current.announce(`Resizing Panel from ${target}. Use arrows; Enter applies, Escape cancels.`)
     }
   }
-  useEffect(() => {
-    const ownerWindow = inputs.element.current?.ownerDocument.defaultView
-    if (!ownerWindow || activeTarget === null) return
-    let pending: Readonly<{ x: number; y: number }> | undefined
-    const flush = () => {
-      frame.current = undefined
-      if (pending) {
-        const delta = pending
-        pending = undefined
-        handlers.current.update(delta)
-      }
-    }
-    const move = (event: PointerEvent) => {
-      const session = state.current
-      if (session.kind === 'idle' || session.pointerId !== event.pointerId) return
-      pending = {
-        x: event.clientX - session.startPointer.x,
-        y: event.clientY - session.startPointer.y,
-      }
-      if (frame.current === undefined) frame.current = ownerWindow.requestAnimationFrame(flush)
-    }
-    const up = (event: PointerEvent) => {
-      const session = state.current
-      if (session.kind === 'idle' || session.pointerId !== event.pointerId) return
-      if (frame.current !== undefined) ownerWindow.cancelAnimationFrame(frame.current)
-      pending = {
-        x: event.clientX - session.startPointer.x,
-        y: event.clientY - session.startPointer.y,
-      }
-      flush()
-      handlers.current.finish()
-    }
-    const pointerCancel = (event: PointerEvent) => {
-      const session = state.current
-      if (session.kind !== 'idle' && session.pointerId === event.pointerId)
-        handlers.current.cancel('pointercancel')
-    }
-    const blur = () => handlers.current.cancel('window_blur')
-    const escape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        handlers.current.cancel('escape')
-      }
-    }
-    ownerWindow.addEventListener('pointermove', move)
-    ownerWindow.addEventListener('pointerup', up)
-    ownerWindow.addEventListener('pointercancel', pointerCancel)
-    ownerWindow.addEventListener('blur', blur)
-    ownerWindow.addEventListener('keydown', escape)
-    return () => {
-      ownerWindow.removeEventListener('pointermove', move)
-      ownerWindow.removeEventListener('pointerup', up)
-      ownerWindow.removeEventListener('pointercancel', pointerCancel)
-      ownerWindow.removeEventListener('blur', blur)
-      ownerWindow.removeEventListener('keydown', escape)
-      if (frame.current !== undefined) ownerWindow.cancelAnimationFrame(frame.current)
-      frame.current = undefined
-    }
-  }, [activeTarget, inputs.element])
   const policyKey = JSON.stringify([
     inputs.fingerprint,
     inputs.boundary,
@@ -409,6 +415,8 @@ export function usePanelResize(inputs: PanelResizeInputs) {
   useLayoutEffect(() => {
     const ownerWindow = inputs.element.current?.ownerDocument.defaultView
     return () => {
+      inputSubscription.current?.()
+      inputSubscription.current = undefined
       if (frame.current !== undefined) ownerWindow?.cancelAnimationFrame(frame.current)
       frame.current = undefined
       canonicalSubscription.current?.()
@@ -451,7 +459,18 @@ export function usePanelResize(inputs: PanelResizeInputs) {
         event,
       )
     },
-    onLostPointerCapture: () => handlers.current.cancel('capture_lost'),
+    onLostPointerCapture: (event: ReactPointerEvent<HTMLElement>) => {
+      const session = state.current
+      if (
+        session.kind === 'idle' ||
+        session.pointerId !== event.pointerId ||
+        session.capture !== event.target
+      )
+        return
+      // Some browser hosts deliver implicit capture release before pointerup.
+      if ((event.buttons & 1) === 0) finishPointer(event)
+      else handlers.current.cancel('capture_lost')
+    },
     onKeyDown: (target: DashPanelResizeTarget, event: ReactKeyboardEvent<HTMLElement>) => {
       const session = state.current
       if (session.kind === 'idle') {
