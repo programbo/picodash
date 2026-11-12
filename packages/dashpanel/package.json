@@ -4,7 +4,8 @@
   "description": "A standalone React panel shell for arbitrary application content.",
   "license": "MIT",
   "files": [
-    "dist"
+    "dist",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "type": "module",
   "exports": {

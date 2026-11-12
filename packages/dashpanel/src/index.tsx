@@ -2004,6 +2004,8 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const onMovePointerUp = (event: ReactPointerEvent<HTMLElement>) => {
     const session = moveSession.current
     if (!session || session.mode !== 'pointer' || session.pointerId !== event.pointerId) return
+    // Release can contain a newer position than the last delivered/coalesced move sample.
+    onMovePointerMove(event)
     commitMove()
     session.captureTarget?.releasePointerCapture?.(event.pointerId)
   }
@@ -3187,14 +3189,54 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                       </Button>
                     </div>
                   ),
-                  actions: renderActionMenu ? (
-                    <ActionMenu label={`Actions for ${panelName}`}>{actionMenuChildren}</ActionMenu>
-                  ) : undefined,
+                  actions:
+                    durableLayout?.manualSize || renderActionMenu ? (
+                      <>
+                        {durableLayout?.manualSize ? (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Button
+                                aria-label="Restore preferred size"
+                                data-picodash-panel-restore-size
+                                iconOnly
+                                variant="ghost"
+                                size="sm"
+                                onPress={() => {
+                                  pendingRestoreFocus.current = true
+                                  const result = runtime.restorePreferredSize(id)
+                                  if (result.status !== 'executed' || !result.transaction.ok)
+                                    pendingRestoreFocus.current = false
+                                }}
+                              >
+                                {/* Lucide square-dimensions (ISC); see THIRD_PARTY_NOTICES.md. */}
+                                <svg
+                                  viewBox="0 0 24 24"
+                                  aria-hidden="true"
+                                  focusable="false"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <rect width="18" height="18" x="3" y="3" rx="2" />
+                                  <path d="M12 7H7v5" />
+                                  <path d="M12 17h5v-5" />
+                                </svg>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Restore preferred size</TooltipContent>
+                          </Tooltip>
+                        ) : null}
+                        {renderActionMenu ? (
+                          <ActionMenu label={`Actions for ${panelName}`}>
+                            {actionMenuChildren}
+                          </ActionMenu>
+                        ) : null}
+                      </>
+                    ) : undefined,
                   trailing:
-                    showCloseButton ||
-                    durableLayout?.manualSize ||
-                    renderedSizing?.constraints.length ||
-                    resize !== false ? (
+                    showCloseButton || renderedSizing?.constraints.length || resize !== false ? (
                       <div data-picodash-panel-actions>
                         {resize !== false ? (
                           <Tooltip>
@@ -3221,37 +3263,6 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>Resize panel</TooltipContent>
-                          </Tooltip>
-                        ) : null}
-                        {durableLayout?.manualSize ? (
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Button
-                                aria-label="Restore preferred size"
-                                data-picodash-panel-restore-size
-                                iconOnly
-                                variant="ghost"
-                                size="sm"
-                                onPress={() => {
-                                  pendingRestoreFocus.current = true
-                                  const result = runtime.restorePreferredSize(id)
-                                  if (result.status !== 'executed' || !result.transaction.ok)
-                                    pendingRestoreFocus.current = false
-                                }}
-                              >
-                                <svg viewBox="0 0 16 16" aria-hidden="true">
-                                  <path
-                                    d="M3 6a5 5 0 1 1 0 5M3 2v4h4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Restore preferred size</TooltipContent>
                           </Tooltip>
                         ) : null}
                         {renderedSizing?.constraints.length ? (

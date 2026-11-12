@@ -108,17 +108,78 @@ test('retains manual intent through resize, contracted reload, expansion and hea
   page,
 }, testInfo) => {
   const panel = await openResizeLab(page)
+  const bridge = await bridgeFor(page)
+  const session = await bridge.session()
+  const titleSurface = panel.locator('[data-picodash-panel-title-drag-surface]')
+  await titleSurface.evaluate((element) => element.scrollIntoView({ block: 'center' }))
+  await titleSurface.hover()
+  const titleBox = await box(titleSurface)
+  const input = await page.context().newCDPSession(page)
+  const start = { x: titleBox.x + titleBox.width / 2, y: titleBox.y + titleBox.height / 2 }
+  try {
+    await input.send('Input.dispatchMouseEvent', { type: 'mouseMoved', ...start, buttons: 0 })
+    await input.send('Input.dispatchMouseEvent', {
+      type: 'mousePressed',
+      ...start,
+      button: 'left',
+      buttons: 1,
+      clickCount: 1,
+    })
+    // A final release sample can arrive before another movement sample or preview frame.
+    await input.send('Input.dispatchMouseEvent', {
+      type: 'mouseReleased',
+      x: start.x + 60,
+      y: start.y + 24,
+      button: 'left',
+      buttons: 0,
+      clickCount: 1,
+    })
+  } finally {
+    await input.detach()
+  }
+  await expect(page.getByLabel('Preferred panel position')).toHaveText('84, 48')
+  expect(await metadata(bridge.client, session)).toMatchObject({
+    dashPanel: { preferredPosition: { x: 84, y: 48 } },
+  })
+  await page.getByRole('button', { name: 'Reset resize example', exact: true }).click()
   await page.getByLabel('Requested manual width').fill('480')
   await page.getByLabel('Requested manual height').fill('320')
   await page.getByRole('button', { name: 'Set manual size', exact: true }).click()
   await expect(page.getByLabel('Manual panel size')).toHaveText('480 × 320')
+  const restore = panel.getByRole('button', { name: 'Restore preferred size', exact: true })
+  const actions = panel.getByRole('button', { name: 'Actions for Resize Panel', exact: true })
+  expect((await box(restore)).x).toBeLessThan((await box(actions)).x)
+  await panel.evaluate((element) => {
+    element.style.setProperty('--picodash-panel-resize-grip-size', '40%')
+  })
+  for (const target of ['e', 's'] as const) {
+    const grip = panel.getByRole('button', {
+      name: `Resize panel Resize Panel from ${target}`,
+      exact: true,
+    })
+    const dimensions = await grip.evaluate((element) => {
+      const indicator = element.firstElementChild
+      if (!(indicator instanceof HTMLElement)) throw new Error('Expected a resize indicator.')
+      const rect = element.getBoundingClientRect()
+      const style = getComputedStyle(indicator)
+      return {
+        width: rect.width,
+        height: rect.height,
+        indicatorWidth: Number.parseFloat(style.width),
+        indicatorHeight: Number.parseFloat(style.height),
+      }
+    })
+    if (target === 'e') expect(dimensions.indicatorHeight).toBeCloseTo(dimensions.height * 0.4, 1)
+    else expect(dimensions.indicatorWidth).toBeCloseTo(dimensions.width * 0.4, 1)
+  }
+  await panel.evaluate((element) => {
+    element.style.removeProperty('--picodash-panel-resize-grip-size')
+  })
   const move = panel.getByRole('button', { name: 'Move panel Resize Panel', exact: true })
   await move.press('Enter')
   await move.press('Shift+ArrowRight')
   await move.press('Shift+ArrowDown')
   await move.press('Enter')
-  const bridge = await bridgeFor(page)
-  const session = await bridge.session()
   const baseline = await bridge.client.readEvents(session, {
     type: 'read_events',
     requestId: 'resize-baseline',

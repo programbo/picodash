@@ -289,7 +289,7 @@ describe('@picodash/dashpanel alpha shell', () => {
         preventDefault: vi.fn(),
         currentTarget: pointerTarget,
       })
-      pointerMove.props.onPointerUpCapture({ pointerId: 1 })
+      pointerMove.props.onPointerUpCapture({ pointerId: 1, clientX: 10, clientY: 10 })
     })
     expect(nexus.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     act(() => {

@@ -727,8 +727,9 @@ Derive manual sizing from override presence, including when the number equals th
 Resizing width alone leaves automatic height automatic. Growing content after manual height
 selection scrolls until restoration, except for explicitly enabled content minimums.
 
-The default header exposes “Restore preferred size” while manual overrides exist, with a visible
-shape/presence marker distinct from temporary boundary/content limitation. The command and
+The default header exposes “Restore preferred size” while manual overrides exist, with Lucide's
+`square-dimensions` icon immediately before the action menu. Its shape/presence marker is distinct
+from temporary boundary/content limitation. The command and
 `DashPanelRestoreSizeItem` support custom controls. Restoring size preserves preferred position and
 placement; `resetLayout()` clears all Panel overrides. The manual marker clears even when the
 current boundary still limits the rendered result.
@@ -894,6 +895,9 @@ target during the drag, applies the documented resistance until `detachDistance`
 retained snap on release. A released Panel resumes the raw contained projection. Hybrid dock
 targeting reads that raw Panel rectangle and the current pointer, while its animated proxy remains
 visual intent only and never becomes geometry input.
+The release event supplies the final pointer coordinates even when its last movement sample was
+not delivered. Update the movement session from that release before committing and flushing the
+final event, so immediate release and a held drag reach the same placement.
 
 Snap acquisition and final detachment animate an independent Motion translation with the owning
 theme's DashPanel motion tokens. Motion also owns measured-height interpolation and the Hybrid dock
@@ -1063,7 +1067,7 @@ DashPanel owns these public product tokens:
 | `--picodash-panel-width`            | Preferred intrinsic Panel width.               | `<length-percentage>`           | `min(20rem, calc(100dvw - 2rem))` |
 | `--picodash-panel-height`           | Preferred height before manual/projected size. | `auto` or `px`/`rem`/`%` length | `auto`                            |
 | `--picodash-panel-resize-hit-size`  | Fine-pointer edge hit-region width.            | `<length>`                      | `10px`                            |
-| `--picodash-panel-resize-grip-size` | Visible edge-grip length.                      | `<length>`                      | `18px`                            |
+| `--picodash-panel-resize-grip-size` | Visible edge-grip length.                      | `<length-percentage>`           | `18px`                            |
 | `--picodash-panel-snap-duration`    | Magnetic snap-settle duration.                 | `<time>`                        | `160ms`                           |
 | `--picodash-panel-snap-easing`      | Magnetic snap-settle timing function.          | `<easing-function>`             | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
 | `--picodash-panel-snap-bounce`      | Snap overshoot as a fraction of snap travel.   | `<number>`                      | `0.06`                            |
@@ -1083,6 +1087,15 @@ input; it does not rewrite either preferred token. Grip length and hit width are
 subtle visual affordance can retain a precise target. The coarse-pointer header resize control and
 editor supply the accepted 44px equivalent functionality; the fine-pointer hit token does not
 create a promise of eight overlapping 44px touch strips.
+
+The visible edge indicators are centered 2px strokes drawn by CSS. Grip length accepts CSS lengths
+such as `18px` or `1.25rem`, percentages, and valid CSS combinations. A percentage uses that edge
+button's length, excluding the corner margins on fine pointers; coarse edge buttons are 44px long.
+The four corner indicators are separate fixed 10px diagonal strokes in 20px targets and do not use
+the edge-length token. Indicators inherit border color and use focus color on hover, focus, or grab.
+All targets and indicators are inside the Panel's clipped shell. Outside placement and an external
+offset are not public configuration options; an outside handle layer would require a separate
+clipping and hit-testing contract.
 
 Magnetic motion is independent of the live transform rather than a transition on Panel position.
 Duration accepts a non-negative CSS time. Bounce accepts a unitless value from `0` through `0.25`;

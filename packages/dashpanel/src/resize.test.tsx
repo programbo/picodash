@@ -314,6 +314,32 @@ describe('DashPanel manual sizing integration', () => {
     unsubscribe()
   })
 
+  it('commits the release position when the last movement sample has not been delivered', async () => {
+    const { nexus, panel } = await setup()
+    const handle = panel.querySelector<HTMLButtonElement>('[data-picodash-panel-move-handle]')!
+    const events: NexusInteractionEvent[] = []
+    const unsubscribe = nexus.events.subscribe((event) => events.push(event))
+    const writes = vi.fn()
+    nexus.subscribe(writes)
+    await act(async () => {
+      handle.dispatchEvent(pointer('pointerdown', 20, 30))
+      handle.dispatchEvent(pointer('pointerup', 80, 54))
+    })
+    expect(nexus.scope('test').getState().scope?.dashPanel?.preferredPosition).toEqual({
+      x: 80,
+      y: 54,
+    })
+    expect(writes).toHaveBeenCalledTimes(1)
+    expect(events.filter(({ event }) => event.type === 'drag.end')).toHaveLength(1)
+    expect(events.find(({ event }) => event.type === 'drag.end')?.event).toMatchObject({
+      operation: 'move',
+      outcome: 'accepted',
+      geometry: { delta: { x: 60, y: 24, width: 0, height: 0 } },
+    })
+    expect(captures.size).toBe(0)
+    unsubscribe()
+  })
+
   it('coalesces move telemetry at 60Hz and flushes before the one terminal event', async () => {
     const { nexus, panel } = await setup()
     const handle = panel.querySelector<HTMLButtonElement>('[data-picodash-panel-move-handle]')!
@@ -410,6 +436,10 @@ describe('DashPanel manual sizing integration', () => {
     expect(panel.querySelector('[aria-label="Close panel Resize test"]')).toBeNull()
     const restore = panel.querySelector<HTMLButtonElement>('[aria-label="Restore preferred size"]')
     expect(restore).not.toBeNull()
+    const actions = panel.querySelector('[aria-label="Actions for Resize test"]')!
+    expect(
+      restore!.compareDocumentPosition(actions) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
     await act(async () => restore!.focus())
     expect(document.activeElement).toBe(restore)
     await act(async () => restore!.click())

@@ -226,7 +226,8 @@ with 44px inputs/actions. This equivalent control preserves the complete functio
 large border targets would overlap chrome/content. Standard coarse header actions remain 44px.
 
 The header's “Restore preferred size” action appears when manual overrides exist and clears only
-size. The marker's presence/shape, not color alone, indicates manual sizing. Temporary boundary or
+size. Its `square-dimensions` icon precedes the action menu; Close remains on the right. The
+marker's presence/shape, not color alone, indicates manual sizing. Temporary boundary or
 content limitation has separate feedback. A reusable action and controller command support custom
 controls. Header restoration is independent of `showCloseButton`. Full layout reset also clears
 placement and position overrides.
@@ -251,6 +252,9 @@ update precedes exactly one end/cancel event. The result distinguishes accepted,
 rejected commits and preserves pending-persistence status. No interaction frame is canonical or
 persisted state. Dev Bridge observes only disclosed scopes/event types through its read-only event
 cursor protocol.
+Movement consumes the release event's coordinates before commit, including when a final move sample
+has not arrived. It must not depend on a rendered preview frame or a drag hold to retain the final
+position.
 
 ## Related decisions
 
