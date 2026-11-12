@@ -12,7 +12,7 @@ describe('Panel natural measurement', () => {
   it('keeps natural placement size independent of a temporary dock allocation cap', () => {
     const panel = document.createElement('aside')
     panel.innerHTML =
-      '<div data-picodash-panel-surface><div data-slot="dash-header"></div><div data-picodash-panel-body><div data-picodash-panel-content>Content</div></div></div>'
+      '<div data-picodash-panel-surface><div data-slot="dash-header"></div><div data-picodash-panel-scroll-frame><div data-picodash-panel-body><div data-picodash-panel-content>Content</div></div></div></div>'
     const header = panel.querySelector('[data-slot="dash-header"]')
     const body = panel.querySelector('[data-picodash-panel-body]')
     document.body.append(panel)
@@ -41,7 +41,7 @@ describe('Panel natural measurement', () => {
   it('measures full horizontal docks at their allocated width without changing preferred width', () => {
     const panel = document.createElement('aside')
     panel.innerHTML =
-      '<div data-picodash-panel-surface><div data-slot="dash-header"></div><div data-picodash-panel-body><div data-picodash-panel-content>Content</div></div></div>'
+      '<div data-picodash-panel-surface><div data-slot="dash-header"></div><div data-picodash-panel-scroll-frame><div data-picodash-panel-body><div data-picodash-panel-content>Content</div></div></div></div>'
     const header = panel.querySelector('[data-slot="dash-header"]')
     const body = panel.querySelector('[data-picodash-panel-body]')
     document.body.append(panel)
@@ -74,7 +74,7 @@ describe('Panel natural measurement', () => {
     portal.style.height = '1000px'
     const panel = document.createElement('aside')
     panel.innerHTML =
-      '<div data-picodash-panel-surface><div data-slot="dash-header"></div><div data-picodash-panel-body><div data-picodash-panel-content>Content</div></div></div>'
+      '<div data-picodash-panel-surface><div data-slot="dash-header"></div><div data-picodash-panel-scroll-frame><div data-picodash-panel-body><div data-picodash-panel-content>Content</div></div></div></div>'
     const header = panel.querySelector('[data-slot="dash-header"]')
     const body = panel.querySelector('[data-picodash-panel-body]')
     portal.append(panel)
@@ -122,7 +122,10 @@ describe('Panel natural measurement', () => {
     body.append(content)
     const surface = document.createElement('div')
     surface.setAttribute('data-picodash-panel-surface', '')
-    surface.append(header, body)
+    const frame = document.createElement('div')
+    frame.setAttribute('data-picodash-panel-scroll-frame', '')
+    frame.append(body)
+    surface.append(header, frame)
     panel.append(surface)
     document.body.append(panel)
     vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (

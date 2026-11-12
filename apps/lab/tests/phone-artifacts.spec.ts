@@ -295,21 +295,14 @@ test('captures phone-sized boundary contraction with start and end lanes', async
     const fade = () =>
       automatic.evaluate((element) => {
         const style = getComputedStyle(element)
-        const progress = (name: string) =>
-          element
-            .getAnimations()
-            .find(
-              (animation) => animation instanceof CSSAnimation && animation.animationName === name,
-            )
-            ?.effect?.getComputedTiming().progress
         return {
-          start: progress('picodash-scroll-fade-start'),
-          end: progress('picodash-scroll-fade-end'),
+          start: Number.parseFloat(style.getPropertyValue('--_picodash-scroll-fade-top')),
+          end: Number.parseFloat(style.getPropertyValue('--_picodash-scroll-fade-bottom')),
           mask: style.maskImage,
         }
       })
     await expect.poll(async () => (await fade()).start).toBe(0)
-    await expect.poll(async () => (await fade()).end).toBe(0)
+    await expect.poll(async () => (await fade()).end).toBeGreaterThan(0)
     expect((await fade()).mask).toContain('linear-gradient')
     for (const band of ['start', 'end']) {
       expect(
@@ -323,13 +316,13 @@ test('captures phone-sized boundary contraction with start and end lanes', async
       element.scrollTop = (element.scrollHeight - element.clientHeight) / 2
     })
     await expect.poll(async () => (await fade()).start).toBeGreaterThan(0)
-    await expect.poll(async () => (await fade()).end).toBeLessThan(1)
+    await expect.poll(async () => (await fade()).end).toBeGreaterThan(0)
     await capture(page, testInfo, 'boundary-scroll-middle.png')
     expect(await automatic.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
     await automatic.evaluate((element) => {
       element.scrollTop = element.scrollHeight
     })
-    await expect.poll(async () => (await fade()).end).toBe(1)
+    await expect.poll(async () => (await fade()).end).toBe(0)
     await capture(page, testInfo, 'boundary-scroll-end.png')
     expect(
       await automatic.evaluate(
@@ -507,8 +500,7 @@ async function triggeredMotion(
 }
 
 async function motionCount(locator: Locator): Promise<number> {
-  // Scroll-driven masks respond directly to scrolling, including with reduced motion.
-  // This assertion prohibits timed motion, not the reviewed scroll-fade exception.
+  // Overflow feedback has no timed motion or animation timeline.
   return locator.evaluate(
     (element) =>
       element

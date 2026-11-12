@@ -39,6 +39,7 @@ import {
   PicodashOverlayProvider,
   PicodashThemeProvider,
   usePicodashOverlayDefaults,
+  useScrollFade,
 } from '@picodash/ui'
 import {
   DashPanelActionItems,
@@ -886,6 +887,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
   const effectivePlacement = runtimeState?.placement ?? resolvedPlacement
   const headingId = `picodash-panel-heading-${useId()}`
   const bodyId = `picodash-panel-body-${useId()}`
+  const scrollFadeRef = useScrollFade()
   const moveInstructionsId = `picodash-panel-move-instructions-${useId()}`
   const asideRef = useRef<HTMLElement | null>(null)
   const registration = useRef<PanelRuntimeRegistration | null>(null)
@@ -1248,7 +1250,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     }
     if (observedBoundary) observer?.observe(observedBoundary)
     const panelBody = panel.querySelector<HTMLElement>(
-      ':scope > [data-picodash-panel-surface] > [data-picodash-panel-body]',
+      ':scope > [data-picodash-panel-surface] > [data-picodash-panel-scroll-frame] > [data-picodash-panel-body]',
     )
     const contentBoundsActive = Object.values(contentConstraints ?? {}).some(Boolean)
     const refreshLoadedContent = () => {
@@ -1362,17 +1364,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       )
         cancelObservedMoveRef.current()
     }
-    const refreshForSettledLayout = (event: Event) => {
-      // UI's scroll-driven mask cannot change layout. Measuring intrinsic size here would
-      // temporarily remove overflow and reset the scroll position that just drove the mask.
-      if (
-        'animationName' in event &&
-        (event.animationName === 'picodash-scroll-fade-start' ||
-          event.animationName === 'picodash-scroll-fade-end')
-      )
-        return
-      refreshGeometry()
-    }
+    const refreshForSettledLayout = refreshGeometry
     const refreshForScroll = (event: Event) => {
       const origin = event.composedPath()[0] ?? event.target
       // Scrolling Panel content does not move its shell or boundary. Intrinsic measurement
@@ -3348,15 +3340,25 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                       ) : undefined,
                   }}
                 />
-                <div
-                  id={bodyId}
-                  data-picodash-panel-body
-                  data-picodash-scroll-fade
-                  hidden={collapsed && !dockedMinimized}
-                  inert={collapsed || undefined}
-                  aria-hidden={collapsed || undefined}
-                >
-                  <div data-picodash-panel-content>{children}</div>
+                <div data-picodash-panel-scroll-frame>
+                  <div
+                    id={bodyId}
+                    data-picodash-panel-body
+                    data-picodash-scroll-fade
+                    ref={scrollFadeRef}
+                    hidden={collapsed && !dockedMinimized}
+                    inert={collapsed || undefined}
+                    aria-hidden={collapsed || undefined}
+                  >
+                    <div data-picodash-panel-content>{children}</div>
+                  </div>
+                  {(['start', 'end'] as const).map((edge) => (
+                    <span key={edge} data-picodash-panel-scroll-indicator={edge} aria-hidden="true">
+                      <svg viewBox="0 0 24 12" fill="currentColor">
+                        <path d="M0 0h24L12 12Z" />
+                      </svg>
+                    </span>
+                  ))}
                 </div>
                 {sizeEditorOpen ? (
                   <PanelSizeEditor

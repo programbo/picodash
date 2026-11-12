@@ -168,11 +168,11 @@ describe('DashPanel portal ownership', () => {
     vi.stubGlobal(
       'ResizeObserver',
       class {
-        constructor(callback: ResizeObserverCallback) {
+        constructor(readonly callback: ResizeObserverCallback) {
           resize = callback
         }
         observe = observe
-        disconnect = disconnect
+        disconnect = () => disconnect(this.callback)
       },
     )
     vi.stubGlobal('requestAnimationFrame', requestAnimationFrame)
@@ -234,7 +234,7 @@ describe('DashPanel portal ownership', () => {
     expect(panel.style.left).toBe('70px')
     expect(requestAnimationFrame).not.toHaveBeenCalled()
     await act(async () => root.unmount())
-    expect(disconnect).toHaveBeenCalledTimes(1)
+    expect(disconnect).toHaveBeenCalledWith(resize)
     vi.restoreAllMocks()
     expect(() => nexus.destroy()).not.toThrow()
   })
@@ -319,9 +319,12 @@ describe('DashPanel portal ownership', () => {
       this: HTMLElement,
       selectors: string,
     ) {
-      if (selectors === ':scope > [data-picodash-panel-surface] > [data-picodash-panel-body]') {
+      if (
+        selectors ===
+        ':scope > [data-picodash-panel-surface] > [data-picodash-panel-scroll-frame] > [data-picodash-panel-body]'
+      ) {
         return (
-          Array.from(this.querySelector('[data-picodash-panel-surface]')?.children ?? []).find(
+          Array.from(this.querySelector('[data-picodash-panel-scroll-frame]')?.children ?? []).find(
             (child) => child.hasAttribute('data-picodash-panel-body'),
           ) ?? null
         )
@@ -817,7 +820,7 @@ describe('DashPanel portal ownership', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('ignores content scroll and scroll-fade events while still measuring window scroll', async () => {
+  it('ignores content scroll while still measuring window scroll', async () => {
     const nexus = makeNexus()
     await render(
       <DashPanelProvider nexus={nexus} portalContainer={null}>
@@ -830,11 +833,6 @@ describe('DashPanel portal ownership', () => {
     const body = panel.querySelector<HTMLElement>('[data-picodash-panel-body]')!
     const measure = vi.spyOn(panel, 'getBoundingClientRect')
     await act(async () => body.dispatchEvent(new Event('scroll', { bubbles: true })))
-    for (const name of ['picodash-scroll-fade-start', 'picodash-scroll-fade-end']) {
-      const event = new Event('animationend', { bubbles: true })
-      Object.defineProperty(event, 'animationName', { value: name })
-      await act(async () => body.dispatchEvent(event))
-    }
     expect(measure).not.toHaveBeenCalled()
     await act(async () => window.dispatchEvent(new Event('scroll')))
     expect(measure).toHaveBeenCalled()

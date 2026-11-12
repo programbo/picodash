@@ -50,9 +50,7 @@ if (errors.length > 0) {
 }
 
 function checkStylesheet(relativePath, contents) {
-  // Reviewed CSS-only scroll-position feedback, not time-based choreography.
-  const scrollFade = relativePath === 'packages/ui/scroll-fade.css'
-  if (/@keyframes\b|\banimation\s*:/u.test(contents) && !scrollFade) {
+  if (/@keyframes\b|\banimation\s*:/u.test(contents)) {
     errors.push(
       `${relativePath}: CSS keyframes require a reviewed policy exception; use Motion for orchestrated animation`,
     )

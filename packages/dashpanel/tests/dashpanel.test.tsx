@@ -988,6 +988,17 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(body.props.hidden).toBe(false)
     expect(body.props.inert).toBeUndefined()
     expect(body.props['data-picodash-scroll-fade']).toBe(true)
+    expect(
+      renderer.root
+        .findAll((node) => node.props['data-picodash-panel-scroll-indicator'] !== undefined)
+        .map((node) => [
+          node.props['data-picodash-panel-scroll-indicator'],
+          node.props['aria-hidden'],
+        ]),
+    ).toEqual([
+      ['start', 'true'],
+      ['end', 'true'],
+    ])
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()
   })

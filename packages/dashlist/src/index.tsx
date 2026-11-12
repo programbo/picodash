@@ -53,6 +53,7 @@ import {
   Popover,
   DashHeader,
   PicodashThemeProvider,
+  useScrollFade,
   type PicodashDensity,
   type PicodashThemeOption,
 } from '@picodash/ui'
@@ -1697,6 +1698,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
   const reorderInstructionsId = `picodash-dashlist-reorder-instructions-${useId()}`
   const rootRef = useRef<HTMLDivElement>(null)
   const [compact, setCompact] = useState(false)
+  const scrollFadeRef = useScrollFade()
   const setRootRef = useCallback(
     (element: HTMLDivElement | null) => {
       rootRef.current = element
@@ -1811,6 +1813,7 @@ const DashListImpl = forwardRef<HTMLDivElement, DashListProps>(function DashList
                                   role="presentation"
                                   data-picodash-dashlist-band={band}
                                   data-picodash-scroll-fade={band === 'automatic' || undefined}
+                                  ref={band === 'automatic' ? scrollFadeRef : undefined}
                                 >
                                   {declarationsByBand[band].map((declaration, index) =>
                                     createElement(

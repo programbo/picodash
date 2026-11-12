@@ -70,7 +70,7 @@ export function measurePanelSizing(
     ":scope > [data-picodash-panel-surface] > [data-slot='dash-header']",
   )
   const body = panel.querySelector<HTMLElement>(
-    ':scope > [data-picodash-panel-surface] > [data-picodash-panel-body]',
+    ':scope > [data-picodash-panel-surface] > [data-picodash-panel-scroll-frame] > [data-picodash-panel-body]',
   )
   const content = body?.querySelector<HTMLElement>(':scope > [data-picodash-panel-content]') ?? body
   const wasHidden = panel.hidden

@@ -401,7 +401,7 @@ The reused primary-List workflow retains the accepted DashList requirements to:
 The root uses named reexports and exposes no `Picodash*` aliases for foundation-owned components.
 The facade does not fork their types or behavior. Its `/ui` entrypoint explicitly mirrors the
 accepted `@picodash/ui` inventory, never the lower-level owner consumed by DashPanel or DashList.
-It reexports `Popover` and `PopoverProps` as the exact UI-owned identities without exposing private
+It reexports `useScrollFade`, `Popover`, and `PopoverProps` as the exact UI-owned identities without exposing private
 active-layer machinery.
 Product-specific DashList controls retain their owning package surfaces even when Picodash
 reexports them separately.

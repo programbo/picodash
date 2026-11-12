@@ -63,7 +63,8 @@ The accepted ownership boundary includes:
 - theme and density context, data attributes, and detached-root propagation support;
 - the shared structural stylesheet for UI-owned components;
 - generic accessible chrome and action-menu composition primitives admitted by the rules above;
-- `DashHeader` as presentational header composition.
+- `DashHeader` as presentational header composition;
+- product-neutral vertical scroll feedback through `useScrollFade`.
 
 The initial component inventory, public prop policy, theme utilities, tokens, and product reexports
 are accepted below. Exact compact recipe values, private structural selectors, and exhaustive
@@ -79,19 +80,20 @@ token-consumption tables are implementation evidence rather than unresolved API 
 The initial public components are exported from the `@picodash/ui` root. Every component exports a
 named `*Props` type. No dedicated component subpath is introduced for this inventory.
 
-| Family       | Initial public components                                                      |
-| ------------ | ------------------------------------------------------------------------------ |
-| Theme        | `PicodashThemeProvider`, `PicodashOverlayProvider`, and the accepted context   |
-|              | hooks and public types.                                                        |
-| Header       | `DashHeader`.                                                                  |
-| Button       | `Button`.                                                                      |
-| Confirmation | `AlertDialog`, `AlertDialogAction`, `AlertDialogCancel`, `AlertDialogContent`, |
-|              | `AlertDialogDescription`, `AlertDialogFooter`, `AlertDialogHeader`,            |
-|              | `AlertDialogMedia`, `AlertDialogOverlay`, `AlertDialogTitle`,                  |
-|              | `AlertDialogTrigger`.                                                          |
-| Action menu  | `ActionMenu`, `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`.        |
-| Popover      | `Popover`.                                                                     |
-| Tooltip      | `Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger`.              |
+| Family          | Initial public components                                                      |
+| --------------- | ------------------------------------------------------------------------------ |
+| Theme           | `PicodashThemeProvider`, `PicodashOverlayProvider`, and the accepted context   |
+|                 | hooks and public types.                                                        |
+| Header          | `DashHeader`.                                                                  |
+| Button          | `Button`.                                                                      |
+| Confirmation    | `AlertDialog`, `AlertDialogAction`, `AlertDialogCancel`, `AlertDialogContent`, |
+|                 | `AlertDialogDescription`, `AlertDialogFooter`, `AlertDialogHeader`,            |
+|                 | `AlertDialogMedia`, `AlertDialogOverlay`, `AlertDialogTitle`,                  |
+|                 | `AlertDialogTrigger`.                                                          |
+| Action menu     | `ActionMenu`, `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`.        |
+| Popover         | `Popover`.                                                                     |
+| Tooltip         | `Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger`.              |
+| Scroll feedback | `useScrollFade` callback-ref hook.                                             |
 
 The public `ActionMenu` root replaces the prototype technique in which `ActionSubmenu` changes
 meaning when placed in a hidden root context. `ActionSubmenu` always means a nested submenu in the
@@ -963,23 +965,40 @@ static check does not prove that an animation looks or feels correct.
 
 ### Scroll overflow feedback
 
-UI supplies a shared vertical mask adapted from shadcn's
-[`scroll-fade`](https://ui.shadcn.com/docs/utils/scroll-fade), bundled in `@picodash/ui/style.css`.
-Product packages attach the internal structural marker to the actual scrolling element, not its
-shell: the DashPanel body or the root DashList automatic band. No extra consumer stylesheet,
-dependency, or scroll listener is required.
+> Contract: Revised — measured overflow replaces scroll timelines
+>
+> Implementation: Verified
+>
+> Notes: Floating Panel body indicators remain DashPanel-owned.
+
+UI supplies `useScrollFade(): RefCallback<HTMLElement>` and a vertical mask bundled in
+`@picodash/ui/style.css`. Attach the returned stable React 19 callback ref to the actual scrolling
+element. DashPanel uses its body; DashList uses its root automatic band. No extra consumer
+stylesheet or dependency is required. The hook adds only internal presentation markers and mask
+values; it owns no layout, scroll position, React state, Nexus state, or persistence.
+
+The hook measures the current viewport height, scroll height, and clamped scroll offset on mount,
+scroll, content mutation/load, and observed viewport or descendant size changes. It updates DOM
+feedback synchronously before paint. Observing descendants matters when a constrained flex child
+keeps its size while a nested disclosure grows. Temporary intrinsic measurements cannot deactivate
+an animation timeline because this implementation uses no timeline, keyframes, or timed transition.
+Unmount and ref replacement release all observers/listeners and remove the owned feedback.
 
 At the scroll start, only the bottom fades. Between the ends, both fade; at the scroll end, only
-the top fades. Content that fits remains fully visible. The fade reaches at most 25% of the
-scrollport height or 40px, whichever is smaller, over 96px of scroll travel. Headers and pinned
-content outside the scrollport are unaffected. The quarter-height cap keeps the cue visible beyond
-ordinary content padding in short scrollports without letting the two fades cover the whole body.
+the top fades. Content that fits remains fully visible. Each fade grows linearly over 96px of
+hidden content to at most 25% of the scrollport height or 40px, whichever is smaller. A distance of
+at most 1px counts as an edge to accommodate rounded browser scroll metrics. Headers and pinned
+content outside the scrollport are unaffected.
 
-This is a reviewed CSS-keyframe exception to the Motion default: CSS scroll timelines drive a mask
-directly from scroll position, with no elapsed-time choreography. It remains enabled with reduced
-motion for that reason. Forced-colors mode removes the mask. Browsers without CSS scroll timelines
-retain ordinary scrolling with no fade, rather than permanently obscuring content at either end.
-The private mask variables are implementation details, not additional public theme tokens.
+Reduced motion retains this direct overflow feedback. Forced-colors mode removes the mask. Without
+JavaScript measurements the zero-length mask defaults leave content fully visible. Private mask
+variables and structural markers are implementation details, not public theme tokens. Products own
+any additional floating indicators and their placement outside the masked scrollport.
+
+Evidence: [hook lifecycle and geometry tests](../../packages/ui/tests/scroll-fade.test.tsx),
+[CSS contract tests](../../packages/ui/tests/css-contract.test.ts), the [animated-content resize
+journey](../../apps/lab/tests/resize.spec.ts), and the [phone scroll
+journeys](../../apps/lab/tests/phone-artifacts.spec.ts).
 
 ### CSS verification
 

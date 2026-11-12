@@ -39,7 +39,7 @@ async function main() {
 
   const css = await readFile(path.join(packageRoot, 'dist/style.css'), 'utf8')
   assert.ok(css.includes('data-picodash-scroll-fade'), 'shared CSS must bundle scroll-fade')
-  assert.ok(css.includes('scroll(self y)'), 'shared CSS must retain the native scroll timeline')
+  assert.ok(!css.includes('scroll(self y)'), 'shared CSS must not depend on scroll timelines')
 
   const runtime = await import(
     `${pathToFileURL(path.join(packageRoot, 'dist/index.mjs')).href}?artifact-check`
@@ -72,6 +72,7 @@ async function main() {
     'usePicodashDensity',
     'usePicodashOverlayDefaults',
     'usePicodashTheme',
+    'useScrollFade',
   ])
 
   const declarations = await readFile(path.join(packageRoot, 'dist/index.d.mts'), 'utf8')

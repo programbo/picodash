@@ -51,6 +51,15 @@ is not replaced by the shared package.
 The pre-release migration is a clean rename and ownership move. The target does not retain an
 `@picodash/theme` compatibility alias or publish two theme authorities.
 
+### Vertical scroll feedback amendment
+
+UI owns `useScrollFade`, a product-neutral DOM callback ref shared unchanged by DashPanel and
+DashList. It derives a vertical mask from measured overflow and observes the scrollport and its
+content. It does not own scroll position or durable state. This replaces the CSS scroll-timeline
+recipe, whose inactive timeline could clear the mask while a Panel's content and shell resized.
+DashPanel owns its floating edge indicators, outside the mask and without pointer interception.
+The public hook is also reexported unchanged by Picodash's `/ui` facade.
+
 ## Consequences
 
 - UI is a supporting foundation, not a fourth independently marketed product.

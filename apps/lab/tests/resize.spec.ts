@@ -506,25 +506,46 @@ test('measures animated natural content while manual height scrolls and cancelle
   const item = panel.getByRole('button', { name: 'Accordion item 2', exact: true })
   const transitionSamples = await item.evaluate(
     (button) =>
-      new Promise<{ content: number; panel: number }[]>((resolveSamples) => {
-        if (!(button instanceof HTMLButtonElement))
-          throw new Error('Expected the accordion disclosure button.')
-        const regionId = button.getAttribute('aria-controls')
-        const region = regionId ? button.ownerDocument.getElementById(regionId) : null
-        const shell = button.closest('aside')
-        const samples: { content: number; panel: number }[] = []
-        if (!region || !shell) throw new Error('Accordion region or Panel shell is unavailable.')
-        const sample = () => {
-          samples.push({
-            content: region.getBoundingClientRect().height,
-            panel: shell.getBoundingClientRect().height,
+      new Promise<{ content: number; panel: number; remaining: number; bottomFade: number }[]>(
+        (resolveSamples) => {
+          if (!(button instanceof HTMLButtonElement))
+            throw new Error('Expected the accordion disclosure button.')
+          const regionId = button.getAttribute('aria-controls')
+          const region = regionId ? button.ownerDocument.getElementById(regionId) : null
+          const shell = button.closest('aside')
+          const body = shell?.querySelector('[data-picodash-panel-body]')
+          const samples: {
+            content: number
+            panel: number
+            remaining: number
+            bottomFade: number
+          }[] = []
+          if (!region || !shell || !body)
+            throw new Error('Accordion region or Panel shell is unavailable.')
+          const observer = new ResizeObserver(() => {
+            samples.push({
+              content: region.getBoundingClientRect().height,
+              panel: shell.getBoundingClientRect().height,
+              remaining: body.scrollHeight - body.clientHeight - body.scrollTop,
+              bottomFade: Number.parseFloat(
+                getComputedStyle(body).getPropertyValue('--_picodash-scroll-fade-bottom'),
+              ),
+            })
           })
-          if (samples.length < 30) requestAnimationFrame(sample)
-          else resolveSamples(samples)
-        }
-        button.click()
-        requestAnimationFrame(sample)
-      }),
+          observer.observe(region)
+          observer.observe(body)
+          let frames = 0
+          const sample = () => {
+            if (++frames < 30) requestAnimationFrame(sample)
+            else {
+              observer.disconnect()
+              resolveSamples(samples)
+            }
+          }
+          button.click()
+          requestAnimationFrame(sample)
+        },
+      ),
   )
   expect(new Set(transitionSamples.map(({ content }) => Math.round(content))).size).toBeGreaterThan(
     3,
@@ -532,6 +553,12 @@ test('measures animated natural content while manual height scrolls and cancelle
   expect(
     new Set(transitionSamples.map(({ panel: height }) => Math.round(height))).size,
   ).toBeGreaterThan(3)
+  expect(transitionSamples.filter(({ remaining }) => remaining > 5).length).toBeGreaterThan(0)
+  expect(
+    transitionSamples
+      .filter(({ remaining }) => remaining > 5)
+      .every(({ bottomFade }) => bottomFade > 0),
+  ).toBe(true)
   await expect(item).toHaveAttribute('aria-expanded', 'true')
   const grownPanel = await box(panel)
   const contentBoundary = await box(
@@ -556,6 +583,37 @@ test('measures animated natural content while manual height scrolls and cancelle
   await expect
     .poll(() => body.evaluate((element) => element.scrollHeight > element.clientHeight))
     .toBe(true)
+  const startIndicator = panel.locator('[data-picodash-panel-scroll-indicator="start"]')
+  const endIndicator = panel.locator('[data-picodash-panel-scroll-indicator="end"]')
+  await expect(startIndicator).toBeHidden()
+  await expect(endIndicator).toBeVisible()
+  expect(
+    await endIndicator.evaluate((element) => {
+      const bounds = element.getBoundingClientRect()
+      return {
+        mask: getComputedStyle(element).maskImage,
+        pointerEvents: getComputedStyle(element).pointerEvents,
+        receivesPointer:
+          document
+            .elementFromPoint(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2)
+            ?.closest('[data-picodash-panel-scroll-indicator]') !== null,
+      }
+    }),
+  ).toEqual({ mask: 'none', pointerEvents: 'none', receivesPointer: false })
+  await body.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  await expect(startIndicator).toBeVisible()
+  await expect(endIndicator).toBeHidden()
+  await body.evaluate((element) => {
+    element.scrollTop = 100
+  })
+  await expect(startIndicator).toBeVisible()
+  await expect(endIndicator).toBeVisible()
+  await testInfo.attach('floating-scroll-indicators', {
+    body: await panel.screenshot(),
+    contentType: 'image/png',
+  })
   const fastBaseline = await bridge.client.readEvents(session, {
     type: 'read_events',
     requestId: 'fast-resize-baseline',

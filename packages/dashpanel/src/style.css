@@ -297,7 +297,15 @@
   gap: var(--picodash-space-0-5);
 }
 
-.picodash-dashpanel > [data-picodash-panel-surface] > [data-picodash-panel-body] {
+[data-picodash-panel-scroll-frame] {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+.picodash-dashpanel [data-picodash-panel-body] {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -305,6 +313,44 @@
   min-block-size: 0;
   overflow: auto;
   overscroll-behavior: contain;
+}
+
+[data-picodash-panel-scroll-indicator] {
+  position: absolute;
+  left: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  inline-size: 32px;
+  block-size: 24px;
+  transform: translateX(-50%);
+  color: var(--picodash-color-text);
+  filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.55));
+  pointer-events: none;
+}
+
+[data-picodash-panel-scroll-indicator] > svg {
+  inline-size: 24px;
+  block-size: 12px;
+}
+
+[data-picodash-panel-scroll-indicator='start'] {
+  top: 6px;
+}
+
+[data-picodash-panel-scroll-indicator='start'] > svg {
+  transform: rotate(180deg);
+}
+
+[data-picodash-panel-scroll-indicator='end'] {
+  bottom: 6px;
+}
+
+[data-picodash-panel-body][data-picodash-scroll-overflow~='start']:not([hidden])
+  ~ [data-picodash-panel-scroll-indicator='start'],
+[data-picodash-panel-body][data-picodash-scroll-overflow~='end']:not([hidden])
+  ~ [data-picodash-panel-scroll-indicator='end'] {
+  display: flex;
 }
 
 .picodash-dashpanel [data-picodash-panel-move-handle]:active {
@@ -401,10 +447,7 @@
   --picodash-panel-resize-offset: 0px;
 }
 
-.picodash-dashpanel
-  > [data-picodash-panel-surface]
-  > [data-picodash-panel-body]
-  > [data-picodash-panel-content] {
+.picodash-dashpanel [data-picodash-panel-body] > [data-picodash-panel-content] {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;

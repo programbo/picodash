@@ -1382,7 +1382,8 @@ scrolls while both pinned bands remain visible.
 
 The root automatic scrollport uses UI's vertical
 [`scroll-fade` recipe](ui.md#scroll-overflow-feedback) to indicate offscreen content. Start and end
-bands remain unfaded; nested group bands do not add masks or nested scrollports.
+bands remain unfaded; nested group bands do not add masks or nested scrollports. The shared
+`useScrollFade` hook observes content and viewport geometry rather than CSS scroll timelines.
 
 Changing `pin` moves a node immediately to the declared band. Existing relative order is preserved
 where meaningful; otherwise the node follows already-customized destination nodes in declaration

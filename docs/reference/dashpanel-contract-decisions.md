@@ -123,7 +123,11 @@ allocation. Intrinsic and minimum measurements exclude the Panel's visual dock-a
 
 The scrolling content uses shared UI's vertical `scroll-fade` recipe. The Panel body owns it for
 ordinary content; a root DashList applies it only to its automatic band. Headers and pinned start
-and end content remain unfaded. See [shared scroll feedback](ui.md#scroll-overflow-feedback).
+and end content remain unfaded. The shared geometry-driven hook updates the mask before paint as
+content and the shell resize. For ordinary body overflow, DashPanel adds a floating triangle at each
+edge with hidden content. These decorative, pointer-transparent indicators sit outside the mask,
+disappear at their respective scroll ends, and remain absent when content fits or the body is
+collapsed. See [shared scroll feedback](ui.md#scroll-overflow-feedback).
 
 Settled intrinsic height changes, including Panel and DashGroup disclosure, use Motion with the
 shared theme motion tokens. Active dragging and reduced-motion preference make the transition

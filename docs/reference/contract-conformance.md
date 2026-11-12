@@ -146,12 +146,20 @@ movement and finishes fading without waiting for the pointer to stop.
 The same placement journey contracts a Hybrid Panel near each bottom corner and checks that release
 restores its intrinsic height with its bottom aligned to the boundary. The phone boundary journey
 checks automatic-band overflow, unfaded start/end lanes, and scroll-fade at the top, middle, and
-bottom, retains the scrolled position after mask events, and records screenshots and playback
+bottom, retains the scrolled position, and records screenshots and playback
 evidence. The Panel portal test distinguishes internal content scroll from viewport scroll.
 The phone placement journey also contracts ordinary non-DashList content, captures its fade at
 the start/middle/end, retains its scroll offset, and checks that the final action is reachable.
-Shared UI's CSS contract test and motion-policy
-check cover the bundled scroll-timeline exception; unsupported browsers retain unfaded scrolling.
+Shared UI's hook tests cover measured edge feedback, descendant changes, and StrictMode cleanup.
+The CSS contract and motion-policy check prohibit dependence on scroll timelines. The Resize Lab
+animated-content journey samples the bottom fade after layout throughout accordion expansion and
+checks floating body triangles at the start, middle, and end, including mask independence and pointer
+pass-through. The custom mask replaces the former shadcn scroll-timeline recipe; no CSS-keyframe
+exception remains. All six affected Resize Lab and phone journeys pass in Chromium (28.5 seconds;
+`output/scroll-fade/browser-tests.log`). The full Panel and List suites pass 246 and 257 tests;
+shared UI passes 86 tests. Workspace formatting/lint/types and package/agent artifact checks pass.
+A dark-theme visual capture is `output/scroll-fade/dark-indicators.png`. These are local browser
+results, not cross-browser or owner hands-on acceptance.
 
 M3 owner hands-on approval was recorded on 2026-09-09. The persistence journey also covers Console
 and driver reset of settled overrides, malformed JSON and incompatible-envelope fallback to current

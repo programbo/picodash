@@ -126,6 +126,7 @@ assert.deepEqual(
     'usePicodashDensity',
     'usePicodashOverlayDefaults',
     'usePicodashTheme',
+    'useScrollFade',
   ].sort(),
 )
 

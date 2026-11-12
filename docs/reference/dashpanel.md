@@ -825,9 +825,15 @@ back into the settled layout.
 Overflowing ordinary content scrolls within the Panel body, with the shared vertical
 [`scroll-fade` recipe](ui.md#scroll-overflow-feedback) indicating content above or below. A root
 DashList owns its automatic-band scrollport instead; the Panel header and pinned bands remain
-unfaded. Content that fits is not faded.
-Scrolling inside the Panel or completing a scroll-mask animation does not trigger intrinsic shell
-measurement; ancestor or viewport scrolling still updates placement geometry.
+unfaded. Content that fits is not faded. The geometry-driven mask updates before paint during
+content and shell resizing. Ordinary body overflow also shows a floating triangle above each faded
+edge. Each filled triangle retains 45-degree slopes and casts a shape-following shadow, without a
+rectangular background or border. The indicators sit outside the mask, remain decorative and
+pointer-transparent, and disappear
+at their respective ends or when the body is collapsed. Themes may style the public
+`data-picodash-panel-scroll-indicator="start" | "end"` hooks using shared semantic tokens.
+Scrolling inside the Panel does not trigger intrinsic shell measurement; ancestor or viewport
+scrolling still updates placement geometry.
 Natural/minimum measurement preserves the Panel's mounted scrollports while temporarily changing
 size constraints. Restore their horizontal and vertical offsets after the complete measurement,
 subject to the final scroll range. A resize or release must not reset ordinary content or a root
