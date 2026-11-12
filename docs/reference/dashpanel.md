@@ -766,7 +766,10 @@ changes placement, or saves peer allocation. Dock resizing updates relevant allo
 
 Resize is enabled by default on eligible axes. `handles='auto'` reveals grips on hover/focus and
 keeps them visible on coarse pointers; `always` keeps decoration visible; `hidden` hides only
-decoration. Directional cursors, focus feedback, keyboard access, and the non-drag control remain.
+decoration. Grip segments fade in and out with the shared theme duration and easing; reversing
+hover/focus state continues from the current opacity without restarting. Reduced motion makes
+these changes immediate. Hit targets remain active throughout. Directional cursors, focus feedback,
+keyboard access, and the non-drag control remain.
 Corners take precedence over edges. Hit regions exclude buttons, scrollbars, content interaction,
 and List reorder handles. Border grips are supplementary precision controls: corners are 20px and
 fine edge width defaults to 10px through the hit token. They do not claim 44px-square targets.
@@ -829,11 +832,14 @@ unfaded. Content that fits is not faded. The geometry-driven mask updates before
 content and shell resizing. Ordinary body overflow also shows a floating triangle above each faded
 edge. Each filled triangle retains 45-degree slopes and casts a shape-following shadow, without a
 rectangular background or border. The indicators sit outside the mask, remain decorative and
-pointer-transparent, and disappear
-at their respective ends or when the body is collapsed. Themes may style the public
-`data-picodash-panel-scroll-indicator="start" | "end"` hooks using shared semantic tokens.
+pointer-transparent, and disappear at their respective ends or when the body is collapsed. Their
+opacity transitions use the shared
+`--picodash-duration-fast` and `--picodash-easing-out` tokens, reverse from the current opacity, and
+switch immediately with reduced motion. The mask depth itself does not animate. Themes may style
+the public `data-picodash-panel-scroll-indicator="start" | "end"` hooks using shared semantic tokens.
 Scrolling inside the Panel does not trigger intrinsic shell measurement; ancestor or viewport
-scrolling still updates placement geometry.
+scrolling still updates placement geometry. Decorative opacity transition completion or cancellation
+also leaves intrinsic measurement untouched.
 Natural/minimum measurement preserves the Panel's mounted scrollports while temporarily changing
 size constraints. Restore their horizontal and vertical offsets after the complete measurement,
 subject to the final scroll range. A resize or release must not reset ordinary content or a root

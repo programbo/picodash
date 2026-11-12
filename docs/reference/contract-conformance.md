@@ -160,7 +160,12 @@ pass-through. The custom mask replaces the former shadcn scroll-timeline recipe;
 exception remains. All six affected Resize Lab and phone journeys pass in Chromium (28.5 seconds;
 `output/scroll-fade/browser-tests.log`). The full Panel and List suites pass 246 and 257 tests;
 shared UI passes 86 tests. Workspace formatting/lint/types and package/agent artifact checks pass.
-A dark-theme visual capture is `output/scroll-fade/dark-indicators.png`. These are local browser
+The same Resize Lab journeys also verify reversible show/hide transitions for arrows and resize
+grips: pausing native CSS transitions midway, reversing twice, and checking each new transition
+starts from the current opacity. Reduced-motion changes are immediate. The Panel portal regression
+checks that decorative transition end/cancel events never cause intrinsic measurement. The three
+Resize Lab journeys pass in 19.0 seconds (`output/scroll-fade/opacity-browser.log`), with no added
+browser test. A dark-theme visual capture is `output/scroll-fade/dark-indicators.png`. These are local browser
 results, not cross-browser or owner hands-on acceptance.
 
 M3 owner hands-on approval was recorded on 2026-09-09. The persistence journey also covers Console

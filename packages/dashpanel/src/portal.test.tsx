@@ -820,7 +820,7 @@ describe('DashPanel portal ownership', () => {
     expect(() => nexus.destroy()).not.toThrow()
   })
 
-  it('ignores content scroll while still measuring window scroll', async () => {
+  it('ignores content scroll and decorative opacity transitions while measuring window scroll', async () => {
     const nexus = makeNexus()
     await render(
       <DashPanelProvider nexus={nexus} portalContainer={null}>
@@ -833,6 +833,15 @@ describe('DashPanel portal ownership', () => {
     const body = panel.querySelector<HTMLElement>('[data-picodash-panel-body]')!
     const measure = vi.spyOn(panel, 'getBoundingClientRect')
     await act(async () => body.dispatchEvent(new Event('scroll', { bubbles: true })))
+    for (const origin of panel.querySelectorAll(
+      '[data-picodash-panel-scroll-indicator], [data-picodash-panel-resize-segment]',
+    )) {
+      for (const type of ['transitionend', 'transitioncancel']) {
+        const event = new Event(type, { bubbles: true })
+        Object.defineProperty(event, 'propertyName', { value: 'opacity' })
+        await act(async () => origin.dispatchEvent(event))
+      }
+    }
     expect(measure).not.toHaveBeenCalled()
     await act(async () => window.dispatchEvent(new Event('scroll')))
     expect(measure).toHaveBeenCalled()

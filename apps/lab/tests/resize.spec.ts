@@ -104,17 +104,106 @@ async function dragTarget(
   if (release) await page.mouse.up()
 }
 
+async function assertReversibleFade(
+  page: Page,
+  indicator: Locator,
+  show: () => Promise<unknown>,
+  hide: () => Promise<unknown>,
+) {
+  await hide()
+  await expect(indicator).toHaveCSS('opacity', '0')
+  let previous = 0
+  for (const target of [1, 0, 1]) {
+    const observation = indicator.evaluate(
+      (element) =>
+        new Promise<{ from: number; to: number; current: number }>((resolve, reject) => {
+          const cleanup = () => {
+            clearTimeout(timeout)
+            element.removeEventListener('transitionrun', inspect)
+          }
+          const inspect = (event: Event) => {
+            if (
+              !(event instanceof TransitionEvent) ||
+              event.target !== element ||
+              event.propertyName !== 'opacity'
+            )
+              return
+            const animation = element
+              .getAnimations()
+              .find(
+                (animation) =>
+                  animation instanceof CSSTransition && animation.transitionProperty === 'opacity',
+              )
+            const effect = animation?.effect
+            const duration = effect?.getTiming().duration
+            if (!animation || !(effect instanceof KeyframeEffect) || typeof duration !== 'number')
+              return
+            const frames = effect.getKeyframes()
+            animation.pause()
+            animation.currentTime = duration / 2
+            cleanup()
+            resolve({
+              from: Number(frames[0]?.opacity),
+              to: Number(frames[frames.length - 1]?.opacity),
+              current: Number(getComputedStyle(element).opacity),
+            })
+          }
+          const timeout = setTimeout(() => {
+            cleanup()
+            reject(new Error('Expected a reversible opacity transition.'))
+          }, 3000)
+          element.addEventListener('transitionrun', inspect)
+        }),
+    )
+    await (target === 1 ? show() : hide())
+    const sample = await observation
+    expect(sample.from).toBeCloseTo(previous, 3)
+    expect(sample.to).toBe(target)
+    expect(sample.current).toBeGreaterThan(0)
+    expect(sample.current).toBeLessThan(1)
+    previous = sample.current
+  }
+  await indicator.evaluate((element) => {
+    for (const animation of element.getAnimations()) animation.finish()
+  })
+  await expect(indicator).toHaveCSS('opacity', '1')
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  try {
+    await hide()
+    await expect(indicator).toHaveCSS('opacity', '0')
+    await show()
+    await expect(indicator).toHaveCSS('opacity', '1')
+    expect(await indicator.evaluate((element) => element.getAnimations().length)).toBe(0)
+  } finally {
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+  }
+}
+
 async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: TestInfo) {
   await panel.evaluate((element) => element.scrollIntoView({ block: 'center' }))
   const originalBox = await box(panel)
   const edges = page.getByRole('combobox', { name: 'Edge handle style', exact: true })
   const corners = page.getByRole('combobox', { name: 'Corner handle style', exact: true })
+  const edge = panel.getByRole('button', { name: 'Resize panel Resize Panel from e', exact: true })
+  await assertReversibleFade(
+    page,
+    edge.locator('[data-picodash-panel-resize-segment="primary"]'),
+    () => edge.hover(),
+    async () => {
+      await edges.focus()
+      await page.mouse.move(0, 0)
+    },
+  )
   for (const recipe of ['single', 'parallel', 'external', 'internal']) {
     await edges.selectOption(recipe === 'single' ? 'single' : 'parallel')
     await corners.selectOption(recipe === 'external' || recipe === 'internal' ? recipe : 'single')
     await panel
       .getByRole('button', { name: 'Resize panel Resize Panel from e', exact: true })
       .hover()
+    await expect(edge.locator('[data-picodash-panel-resize-segment="primary"]')).toHaveCSS(
+      'opacity',
+      '1',
+    )
     const handles = await panel
       .locator('[data-picodash-panel-resize-target]')
       .evaluateAll((buttons) =>
@@ -585,8 +674,8 @@ test('measures animated natural content while manual height scrolls and cancelle
     .toBe(true)
   const startIndicator = panel.locator('[data-picodash-panel-scroll-indicator="start"]')
   const endIndicator = panel.locator('[data-picodash-panel-scroll-indicator="end"]')
-  await expect(startIndicator).toBeHidden()
-  await expect(endIndicator).toBeVisible()
+  await expect(startIndicator).toHaveCSS('opacity', '0')
+  await expect(endIndicator).toHaveCSS('opacity', '1')
   expect(
     await endIndicator.evaluate((element) => {
       const bounds = element.getBoundingClientRect()
@@ -603,13 +692,25 @@ test('measures animated natural content while manual height scrolls and cancelle
   await body.evaluate((element) => {
     element.scrollTop = element.scrollHeight
   })
-  await expect(startIndicator).toBeVisible()
-  await expect(endIndicator).toBeHidden()
+  await expect(startIndicator).toHaveCSS('opacity', '1')
+  await expect(endIndicator).toHaveCSS('opacity', '0')
   await body.evaluate((element) => {
     element.scrollTop = 100
   })
-  await expect(startIndicator).toBeVisible()
-  await expect(endIndicator).toBeVisible()
+  await expect(startIndicator).toHaveCSS('opacity', '1')
+  await expect(endIndicator).toHaveCSS('opacity', '1')
+  await assertReversibleFade(
+    page,
+    endIndicator,
+    () =>
+      body.evaluate((element) => {
+        element.scrollTop = 100
+      }),
+    () =>
+      body.evaluate((element) => {
+        element.scrollTop = element.scrollHeight
+      }),
+  )
   await testInfo.attach('floating-scroll-indicators', {
     body: await panel.screenshot(),
     contentType: 'image/png',

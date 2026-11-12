@@ -318,7 +318,7 @@
 [data-picodash-panel-scroll-indicator] {
   position: absolute;
   left: 50%;
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: center;
   inline-size: 32px;
@@ -326,6 +326,8 @@
   transform: translateX(-50%);
   color: var(--picodash-color-text);
   filter: drop-shadow(0 2px 2px rgb(0 0 0 / 0.55));
+  opacity: 0;
+  transition: opacity var(--picodash-duration-fast) var(--picodash-easing-out);
   pointer-events: none;
 }
 
@@ -350,7 +352,7 @@
   ~ [data-picodash-panel-scroll-indicator='start'],
 [data-picodash-panel-body][data-picodash-scroll-overflow~='end']:not([hidden])
   ~ [data-picodash-panel-scroll-indicator='end'] {
-  display: flex;
+  opacity: 1;
 }
 
 .picodash-dashpanel [data-picodash-panel-move-handle]:active {
@@ -424,6 +426,8 @@
 
   .picodash-dashpanel [data-picodash-collapse-chevron],
   .picodash-dashpanel [data-picodash-arrow-direction],
+  [data-picodash-panel-scroll-indicator],
+  .picodash-dashpanel [data-picodash-panel-resize-target] > [data-picodash-panel-resize-segment],
   [data-picodash-panel-reveal],
   [data-picodash-panel-reveal] [data-picodash-arrow-direction] {
     transition: none;
@@ -495,6 +499,7 @@
   border-radius: var(--picodash-radius-control);
   background: currentColor;
   opacity: 0;
+  transition: opacity var(--picodash-duration-fast) var(--picodash-easing-out);
   pointer-events: none;
 }
 

@@ -1364,7 +1364,20 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       )
         cancelObservedMoveRef.current()
     }
-    const refreshForSettledLayout = refreshGeometry
+    const refreshForSettledLayout = (event: Event) => {
+      const origin = event.composedPath()[0] ?? event.target
+      // Decorative fades cannot change geometry, including when reversed mid-transition.
+      if (
+        'propertyName' in event &&
+        event.propertyName === 'opacity' &&
+        origin instanceof Element &&
+        origin.matches(
+          '[data-picodash-panel-scroll-indicator], [data-picodash-panel-resize-segment]',
+        )
+      )
+        return
+      refreshGeometry()
+    }
     const refreshForScroll = (event: Event) => {
       const origin = event.composedPath()[0] ?? event.target
       // Scrolling Panel content does not move its shell or boundary. Intrinsic measurement
