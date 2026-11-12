@@ -985,8 +985,9 @@ an animation timeline because this implementation uses no timeline, keyframes, o
 Unmount and ref replacement release all observers/listeners and remove the owned feedback.
 
 At the scroll start, only the bottom fades. Between the ends, both fade; at the scroll end, only
-the top fades. Content that fits remains fully visible. Each fade grows linearly over 96px of
-hidden content to at most 25% of the scrollport height or 40px, whichever is smaller. A distance of
+the top fades. Content that fits remains fully visible. Each visible fade has a constant depth of
+40px, capped at 25% of the scrollport height for short viewports. Hidden content determines whether
+the fade appears, not its depth. A distance of
 at most 1px counts as an edge to accommodate rounded browser scroll metrics. Headers and pinned
 content outside the scrollport are unaffected.
 

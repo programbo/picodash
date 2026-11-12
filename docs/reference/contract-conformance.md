@@ -151,6 +151,8 @@ evidence. The Panel portal test distinguishes internal content scroll from viewp
 The phone placement journey also contracts ordinary non-DashList content, captures its fade at
 the start/middle/end, retains its scroll offset, and checks that the final action is reachable.
 Shared UI's hook tests cover measured edge feedback, descendant changes, and StrictMode cleanup.
+The same geometry case varies overflow from 2px through 600px and verifies that fade depth stays
+40px; short viewports retain the quarter-height cap, and fitted content clears both cues.
 The CSS contract and motion-policy check prohibit dependence on scroll timelines. The Resize Lab
 animated-content journey samples the bottom fade after layout throughout accordion expansion and
 checks floating body triangles at the start, middle, and end, including mask independence and pointer

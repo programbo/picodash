@@ -12,8 +12,8 @@ export function useScrollFade(): RefCallback<HTMLElement> {
       const position = Math.max(0, Math.min(maximum, element.scrollTop))
       const remaining = maximum - position
       const extent = Math.min(40, element.clientHeight / 4)
-      const top = position > 1 ? extent * Math.min(1, position / 96) : 0
-      const bottom = remaining > 1 ? extent * Math.min(1, remaining / 96) : 0
+      const top = position > 1 ? extent : 0
+      const bottom = remaining > 1 ? extent : 0
       for (const [edge, size] of [
         ['top', top],
         ['bottom', bottom],

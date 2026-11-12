@@ -76,11 +76,16 @@ function setup({ height = 200, content = 800, strict = false } = {}) {
 }
 
 describe('useScrollFade', () => {
-  it('derives both edge cues from current geometry, including short viewports and overscroll', () => {
+  it('keeps fade depth independent of overflow, including short viewports and overscroll', () => {
     const { renderer, metrics, read, scroll } = setup()
     expect(read()).toEqual({ top: 0, bottom: 40, overflow: 'end' })
+    for (const content of [202, 248, 296, 800]) {
+      metrics.content = content
+      observers[0].resize()
+      expect(read()).toEqual({ top: 0, bottom: 40, overflow: 'end' })
+    }
     scroll(48)
-    expect(read()).toEqual({ top: 20, bottom: 40, overflow: 'start end' })
+    expect(read()).toEqual({ top: 40, bottom: 40, overflow: 'start end' })
     scroll(600)
     expect(read()).toEqual({ top: 40, bottom: 0, overflow: 'start' })
     scroll(900)

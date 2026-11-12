@@ -59,6 +59,8 @@ content. It does not own scroll position or durable state. This replaces the CSS
 recipe, whose inactive timeline could clear the mask while a Panel's content and shell resized.
 DashPanel owns its floating edge indicators, outside the mask and without pointer interception.
 The public hook is also reexported unchanged by Picodash's `/ui` facade.
+Fade depth is constant for a given viewport, capped at 40px or one-quarter of its height. The
+amount of hidden content controls edge visibility only; it does not enlarge the gradient.
 
 ## Consequences
 
