@@ -144,6 +144,11 @@ evidence, has exercised the contracts most likely to change.
 
 ## Phase 3: Foundational product stability
 
+The [DashPanel resizing and Resize Lab proposal](internal/dashpanel-resizing-plan.md) is a Draft
+extension for this phase. It proposes manual sizing, restored preferences, Nexus interaction events,
+and a configurable Placement scenario. Its contract revisions and evidence gates are not yet accepted
+or implemented.
+
 Nexus, DashPanel, and DashList each earn their own maturity based on their own release gates:
 
 - public API and type checks;

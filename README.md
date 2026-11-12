@@ -40,6 +40,7 @@ Picodash integration follows after all three products are stable.
 - [Nexus target API](docs/reference/nexus.md)
 - [Shared UI target reference](docs/reference/ui.md)
 - [DashPanel target reference](docs/reference/dashpanel.md)
+- [DashPanel resizing and Resize Lab proposal](docs/internal/dashpanel-resizing-plan.md) (Draft)
 - [DashList target reference](docs/reference/dashlist.md)
 - [Picodash target reference](docs/reference/picodash.md)
 - [Component catalog target reference](docs/reference/catalog.md)
