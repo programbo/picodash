@@ -189,6 +189,9 @@ content maxima, and satisfiable minima. Report the temporarily unsatisfied minim
 retain the original intent and restore it when feasible. A Panel cannot promise a minimum larger
 than its container while also remaining contained. Ordinary content uses the Panel body scrollport;
 a root DashList retains its automatic-band scroll owner and pinned-band minimum.
+Natural/minimum measurement retains mounted content and restores valid horizontal and vertical
+scroll offsets after temporary sizing styles are removed. Only the final rendered scroll range
+may clamp those offsets; intermediate measurement layout must not reset them.
 
 ### 3.3 Target availability and anchoring (PANEL-RESIZE-1)
 

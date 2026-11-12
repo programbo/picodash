@@ -123,7 +123,11 @@ import {
   resolveDashPanelDockedMinimizePresentation,
   type DashPanelDockArrowDirection,
 } from './placement/docked-minimize.ts'
-import { measurePanelSizing, type PanelSizingPolicy } from './runtime/panel-size-measurement.ts'
+import {
+  capturePanelScrollOffsets,
+  measurePanelSizing,
+  type PanelSizingPolicy,
+} from './runtime/panel-size-measurement.ts'
 import { cn } from './runtime/class-name.ts'
 import { usePanelInteractions } from './runtime/use-panel-interactions.ts'
 import { usePanelResize } from './runtime/use-panel-resize.ts'
@@ -1071,74 +1075,77 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       const transform = element.style.getPropertyValue('transform')
       const transformPriority = element.style.getPropertyPriority('transform')
       const layoutMotion = element.hasAttribute('data-picodash-dock-allocation-motion')
+      const restoreScroll = capturePanelScrollOffsets(element)
       let panelRect: DOMRect
       let minimumHeight: number
       try {
         if (layoutMotion) element.style.setProperty('transform', 'none', 'important')
         panelRect = measurePreferredPanelRect(element)
         minimumHeight = measureMinimumPanelHeight(element, panelRect.height, panelRect.width)
+        const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
+        const boundaryRect =
+          target?.getBoundingClientRect?.() ?? viewportRect(element.ownerDocument)
+        const insetBoundary = insetDashPanelRect(boundaryRect, resolvedBoundaryInset)
+        const preview = resizePreviewRef.current
+        const previewWidth = preview?.axes.includes('width')
+          ? preview.rect.width
+          : durableLayout?.manualSize?.width
+        const previewHeight = preview?.axes.includes('height')
+          ? preview.rect.height
+          : durableLayout?.manualSize?.height
+        const manual =
+          previewWidth !== undefined
+            ? {
+                width: previewWidth,
+                ...(previewHeight !== undefined ? { height: previewHeight } : {}),
+              }
+            : previewHeight !== undefined
+              ? { height: previewHeight }
+              : undefined
+        const position =
+          effectivePlacement.disposition.kind === 'docked'
+            ? effectivePlacement.disposition.position
+            : undefined
+        const targetAllocation = position
+          ? runtime.resolveDockTarget({ kind: 'settled', scopeId: id, available: insetBoundary })
+          : undefined
+        const measured = measurePanelSizing(
+          element,
+          insetBoundary,
+          sizingPolicy,
+          manual,
+          minimumHeight,
+          targetAllocation
+            ? {
+                ...(targetAllocation.allocation !== undefined
+                  ? { height: targetAllocation.allocation }
+                  : {}),
+                ...(targetAllocation.inlineAllocation !== undefined
+                  ? { width: targetAllocation.inlineAllocation }
+                  : {}),
+              }
+            : undefined,
+          position === 'full-top' || position === 'full-bottom'
+            ? (targetAllocation?.inlineAllocation ?? insetBoundary.width)
+            : undefined,
+        )
+        const sizing = measured.sizing
+        const next = {
+          boundary: insetBoundary,
+          minimumHeight: Math.min(minimumHeight, sizing.resolved.height),
+          size: measured.unallocatedSize,
+          rect: panelRect,
+          sizing,
+        }
+        geometryRef.current = next
+        return next
       } finally {
         if (layoutMotion) {
           if (transform) element.style.setProperty('transform', transform, transformPriority)
           else element.style.removeProperty('transform')
         }
+        restoreScroll()
       }
-      const target = resolveDashPanelBoundary(boundary, providerPolicy.boundary)
-      const boundaryRect = target?.getBoundingClientRect?.() ?? viewportRect(element.ownerDocument)
-      const insetBoundary = insetDashPanelRect(boundaryRect, resolvedBoundaryInset)
-      const preview = resizePreviewRef.current
-      const previewWidth = preview?.axes.includes('width')
-        ? preview.rect.width
-        : durableLayout?.manualSize?.width
-      const previewHeight = preview?.axes.includes('height')
-        ? preview.rect.height
-        : durableLayout?.manualSize?.height
-      const manual =
-        previewWidth !== undefined
-          ? {
-              width: previewWidth,
-              ...(previewHeight !== undefined ? { height: previewHeight } : {}),
-            }
-          : previewHeight !== undefined
-            ? { height: previewHeight }
-            : undefined
-      const position =
-        effectivePlacement.disposition.kind === 'docked'
-          ? effectivePlacement.disposition.position
-          : undefined
-      const targetAllocation = position
-        ? runtime.resolveDockTarget({ kind: 'settled', scopeId: id, available: insetBoundary })
-        : undefined
-      const measured = measurePanelSizing(
-        element,
-        insetBoundary,
-        sizingPolicy,
-        manual,
-        minimumHeight,
-        targetAllocation
-          ? {
-              ...(targetAllocation.allocation !== undefined
-                ? { height: targetAllocation.allocation }
-                : {}),
-              ...(targetAllocation.inlineAllocation !== undefined
-                ? { width: targetAllocation.inlineAllocation }
-                : {}),
-            }
-          : undefined,
-        position === 'full-top' || position === 'full-bottom'
-          ? (targetAllocation?.inlineAllocation ?? insetBoundary.width)
-          : undefined,
-      )
-      const sizing = measured.sizing
-      const next = {
-        boundary: insetBoundary,
-        minimumHeight: Math.min(minimumHeight, sizing.resolved.height),
-        size: measured.unallocatedSize,
-        rect: panelRect,
-        sizing,
-      }
-      geometryRef.current = next
-      return next
     },
     [
       boundary,

@@ -88,6 +88,7 @@ async function dragTarget(
   x: number,
   y: number,
   release = true,
+  steps = 8,
 ) {
   const handle = panel.getByRole('button', {
     name: `Resize panel Resize Panel from ${target}`,
@@ -99,7 +100,7 @@ async function dragTarget(
   const start = await box(handle)
   await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2)
   await page.mouse.down()
-  await page.mouse.move(start.x + start.width / 2 + x, start.y + start.height / 2 + y, { steps: 8 })
+  await page.mouse.move(start.x + start.width / 2 + x, start.y + start.height / 2 + y, { steps })
   if (release) await page.mouse.up()
 }
 
@@ -258,6 +259,44 @@ test('measures animated natural content while manual height scrolls and cancelle
     .toBe(true)
   const bridge = await bridgeFor(page)
   const session = await bridge.session()
+  const fastBaseline = await bridge.client.readEvents(session, {
+    type: 'read_events',
+    requestId: 'fast-resize-baseline',
+  })
+  if (fastBaseline.type !== 'events_result') throw new Error('Expected a fast-resize baseline.')
+  await body.evaluate((element) => {
+    element.scrollTop = 100
+  })
+  await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(100)
+  // One native move followed immediately by release: no preview/Bridge assertion between them.
+  await dragTarget(page, panel, 'se', 32, 24, true, 1)
+  await expect(page.getByLabel('Manual panel size')).toHaveText('392 × 264')
+  await expect.poll(async () => Math.round((await box(panel)).width)).toBe(392)
+  await expect.poll(async () => Math.round((await box(panel)).height)).toBe(264)
+  await expect.poll(() => body.evaluate((element) => element.scrollTop)).toBe(100)
+  expect(await metadata(bridge.client, session)).toMatchObject({
+    dashPanel: { manualSize: { width: 392, height: 264 } },
+  })
+  const fastResult = await bridge.client.readEvents(session, {
+    type: 'read_events',
+    requestId: 'fast-resize-observed',
+    cursor: fastBaseline.cursor,
+    timeoutMs: 1000,
+  })
+  if (fastResult.type !== 'events_result') throw new Error('Expected fast resize events.')
+  const fastTerminal = fastResult.events
+    .map(({ event }) => event.event)
+    .filter((event) => event.type === 'drag.end' || event.type === 'drag.cancel')
+  expect(fastTerminal).toEqual([
+    expect.objectContaining({
+      type: 'drag.end',
+      operation: 'resize',
+      outcome: 'accepted',
+      geometry: expect.objectContaining({
+        delta: { x: 0, y: 0, width: 32, height: 24 },
+      }),
+    }),
+  ])
   const saved = await metadata(bridge.client, session)
   const baseline = await bridge.client.readEvents(session, {
     type: 'read_events',
@@ -314,12 +353,17 @@ test('measures animated natural content while manual height scrolls and cancelle
     .toBe(true)
   const startBefore = await box(startBand)
   const endBefore = await box(endBand)
+  const panelBefore = await box(panel)
   await automaticBand.evaluate((element) => {
     element.scrollTop = 120
   })
   await expect.poll(() => automaticBand.evaluate((element) => element.scrollTop)).toBeGreaterThan(0)
-  expect((await box(startBand)).y).toBeCloseTo(startBefore.y, 1)
-  expect((await box(endBand)).y).toBeCloseTo(endBefore.y, 1)
+  await dragTarget(page, panel, 'e', 32, 0, true, 1)
+  await expect(page.getByLabel('Manual panel size')).toHaveText('512 × 320')
+  await expect.poll(() => automaticBand.evaluate((element) => element.scrollTop)).toBe(120)
+  const panelAfter = await box(panel)
+  expect((await box(startBand)).y - panelAfter.y).toBeCloseTo(startBefore.y - panelBefore.y, 1)
+  expect((await box(endBand)).y - panelAfter.y).toBeCloseTo(endBefore.y - panelBefore.y, 1)
   await testInfo.attach('pinned-band-scroll-owner', {
     body: await panel.screenshot(),
     contentType: 'image/png',

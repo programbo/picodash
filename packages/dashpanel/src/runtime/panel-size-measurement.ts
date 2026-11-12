@@ -22,6 +22,22 @@ export interface PanelSizingPolicy {
 
 const ownedSizes = ['inline-size', 'max-inline-size', 'block-size', 'max-block-size'] as const
 
+/** Restore scrollports after temporary natural/min-content layout expands them. */
+export function capturePanelScrollOffsets(panel: HTMLElement): () => void {
+  const offsets: { element: Element; left: number; top: number }[] = []
+  for (const element of [panel, ...panel.querySelectorAll('*')]) {
+    const left = element.scrollLeft
+    const top = element.scrollTop
+    if (left !== 0 || top !== 0) offsets.push({ element, left, top })
+  }
+  return () => {
+    for (const { element, left, top } of offsets) {
+      if (element.scrollLeft !== left || element.scrollTop !== top)
+        element.scrollTo({ left, top, behavior: 'instant' })
+    }
+  }
+}
+
 function isPanelDimension(value: unknown): value is DashPanelDimension {
   return typeof value === 'number'
     ? Number.isFinite(value) && value >= 0

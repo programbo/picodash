@@ -310,6 +310,21 @@ also passes Next.js 16.3.8 type checking and route output (`output/resize-eviden
 Lab model/state checks pass 12 tests across three files; seven real dev-host tests cover relay,
 loopback/origin/method policy, credentials, locks, signal forwarding, and cleanup.
 
+A follow-up fast-release regression reproduced ordinary content scrolling from `100px` to `0px`
+even though the requested manual `392×264` size committed. Natural/min-content measurement briefly
+expanded the scrollport and let the browser clamp its offset. The complete measurement now captures
+mounted scrollports and restores their valid horizontal/vertical offsets after restoring sizing
+styles. The existing animated-content journey fails on that scroll assertion before the fix and
+passes afterward, including a one-move/immediate-release resize, exactly one accepted Nexus terminal
+event with the final diff, retained rendered/persisted dimensions, and a root DashList automatic
+band retaining its `120px` offset through another fast resize. Pin positions are checked relative
+to the Panel so ordinary Lab page scrolling cannot invalidate the assertion. All 18 Lab tests pass
+on the corrected head with two workers in 57.0 seconds (`output/resize-evidence/scroll-lab-tests.log`),
+as do all 237 Panel tests, the Panel check and package-artifact gate. Browser test count remains 18.
+A bounded Chrome confirmation repeats five immediate resize/releases, alternately widening and
+narrowing while increasing height. Every final manual size matches its drag and retains the
+ordinary body's `100px` scroll offset (`output/resize-evidence/scroll-native-confirmation.json`).
+
 The manual browser inspection found and fixed two composed seams: numeric preferred widths must
 be normalized to CSS pixels before entering the token, and a manually sized shell must cap its body
 so a root DashList retains its automatic-band scrollport. At a manual `480 × 320` size, the observed

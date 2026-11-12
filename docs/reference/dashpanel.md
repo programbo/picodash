@@ -819,6 +819,10 @@ DashList owns its automatic-band scrollport instead; the Panel header and pinned
 unfaded. Content that fits is not faded.
 Scrolling inside the Panel or completing a scroll-mask animation does not trigger intrinsic shell
 measurement; ancestor or viewport scrolling still updates placement geometry.
+Natural/minimum measurement preserves the Panel's mounted scrollports while temporarily changing
+size constraints. Restore their horizontal and vertical offsets after the complete measurement,
+subject to the final scroll range. A resize or release must not reset ordinary content or a root
+DashList's automatic band to the top merely because measurement briefly expanded that scrollport.
 
 Settled intrinsic height changes use Motion with `--picodash-duration-fast` and
 `--picodash-easing-out`, so a custom theme can tune their duration and curve without adding a
