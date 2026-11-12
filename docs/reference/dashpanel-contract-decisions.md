@@ -219,6 +219,13 @@ Equal preferred/min/max values lock that axis, not every other axis. Optional gr
 focus feedback, or non-drag controls. Coarse-pointer grips stay discoverable and actionable without
 covering content, scrollbars, or header buttons. Corners take precedence over edges.
 
+Resize controls occupy an unclipped layer separate from the rounded header/body surface. The
+public `--picodash-panel-resize-offset` defaults to `0px`; positive lengths move targets and their
+indicators outward, and negative lengths move them inward. Only target buttons intercept input.
+The layer retains Panel activation, visibility, portal, and stacking ownership, and remains subject
+to host ancestor/viewport clipping. Offsets never affect measured or persisted geometry. This
+revises the inside-only presentation following owner instruction on 2026-11-12.
+
 The supplementary border targets remain compact precision controls, with 20px corners and the
 fine-edge hit token's 10px default. They do not claim 44px squares at every border position. On
 coarse pointers, an always-visible 44×44px “Resize panel” header action opens the numeric/tap editor

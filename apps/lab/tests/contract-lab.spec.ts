@@ -1181,7 +1181,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   await expect(focusedPanel).toHaveAttribute('data-picodash-placement', 'floating-free')
   await expect(placementState).toHaveText('Floating: free')
 
-  const header = focusedPanel.locator(':scope > [data-slot="dash-header"]')
+  const header = focusedPanel.locator('[data-picodash-panel-drag-surface]')
   await expect(header).toHaveAttribute('data-picodash-panel-drag-surface', 'true')
   const moveControl = focusedPanel.getByRole('button', {
     name: 'Move panel Placement Panel',

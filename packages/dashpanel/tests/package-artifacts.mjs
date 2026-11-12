@@ -130,7 +130,7 @@ async function main() {
     assert.doesNotMatch(declarations, new RegExp(`\\b${retired}\\b`))
 
   const css = await readFile(path.join(packageRoot, 'dist/style.css'), 'utf8')
-  for (const token of ['width', 'height', 'resize-hit-size', 'resize-grip-size'])
+  for (const token of ['width', 'height', 'resize-hit-size', 'resize-grip-size', 'resize-offset'])
     assert.match(css, new RegExp(`--picodash-panel-${token}`))
   assert.match(css, /picodash-dashpanel/)
   assert.match(css, /data-active/)

@@ -175,6 +175,60 @@ test('retains manual intent through resize, contracted reload, expansion and hea
   await panel.evaluate((element) => {
     element.style.removeProperty('--picodash-panel-resize-grip-size')
   })
+  // Exercise the actual hit layer on both sides of the clipped surface, including corners.
+  await panel.evaluate((element) => element.scrollIntoView({ block: 'center' }))
+  const beforeOffset = await box(panel)
+  for (const offset of [-4, 24]) {
+    await panel.evaluate((element, value) => {
+      element.style.setProperty('--picodash-panel-resize-offset', `${value}px`)
+    }, offset)
+    for (const target of ['n', 'ne', 'e', 'se', 's', 'sw', 'w', 'nw']) {
+      const handle = panel.getByRole('button', {
+        name: `Resize panel Resize Panel from ${target}`,
+        exact: true,
+      })
+      const hit = await handle.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        const x = rect.x + rect.width / 2
+        const y = rect.y + rect.height / 2
+        const panel = element.closest('[data-picodash-panel]')!
+        const bounds = panel.getBoundingClientRect()
+        return {
+          reachable: document.elementFromPoint(x, y) === element,
+          outside: x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom,
+        }
+      })
+      expect(hit, `${target} at offset ${offset}`).toEqual({ reachable: true, outside: offset > 0 })
+    }
+    expect(await box(panel)).toEqual(beforeOffset)
+  }
+  await panel.getByRole('button', { name: 'Resize panel Resize Panel from e', exact: true }).hover()
+  const outsideBox = await box(panel)
+  await testInfo.attach('outside-resize-indicators', {
+    body: await page.screenshot({
+      path: resolve(process.cwd(), '../../output/resize-evidence/outside-resize-indicators.png'),
+      clip: {
+        x: outsideBox.x - 32,
+        y: outsideBox.y - 32,
+        width: outsideBox.width + 64,
+        height: outsideBox.height + 64,
+      },
+    }),
+    contentType: 'image/png',
+  })
+  const beforeOutsideDrag = await metadata(bridge.client, session)
+  for (const target of ['e', 'se']) {
+    await dragTarget(page, panel, target, 24, 24, false)
+    await expect(panel).toHaveAttribute('data-picodash-resizing', target)
+    await page.keyboard.press('Escape')
+    await page.mouse.up()
+    await expect(panel).not.toHaveAttribute('data-picodash-resizing')
+    expect(await metadata(bridge.client, session)).toEqual(beforeOutsideDrag)
+  }
+  await panel.evaluate((element) => {
+    element.style.removeProperty('--picodash-panel-resize-offset')
+  })
+
   const move = panel.getByRole('button', { name: 'Move panel Resize Panel', exact: true })
   await move.press('Enter')
   await move.press('Shift+ArrowRight')

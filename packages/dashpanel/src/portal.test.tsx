@@ -319,10 +319,10 @@ describe('DashPanel portal ownership', () => {
       this: HTMLElement,
       selectors: string,
     ) {
-      if (selectors === ':scope > [data-picodash-panel-body]') {
+      if (selectors === ':scope > [data-picodash-panel-surface] > [data-picodash-panel-body]') {
         return (
-          Array.from(this.children).find((child) =>
-            child.hasAttribute('data-picodash-panel-body'),
+          Array.from(this.querySelector('[data-picodash-panel-surface]')?.children ?? []).find(
+            (child) => child.hasAttribute('data-picodash-panel-body'),
           ) ?? null
         )
       }

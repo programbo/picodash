@@ -643,7 +643,9 @@ function measureMinimumPanelHeight(
   element.style.removeProperty('max-block-size')
   try {
     const measured = element.getBoundingClientRect().height
-    const header = element.querySelector<HTMLElement>(":scope > [data-slot='dash-header']")
+    const header = element.querySelector<HTMLElement>(
+      ":scope > [data-picodash-panel-surface] > [data-slot='dash-header']",
+    )
     const headerHeight = Math.max(0, header?.getBoundingClientRect().height ?? 0)
     if (Number.isFinite(measured) && measured > headerHeight && measured < preferredHeight)
       return measured
@@ -1244,7 +1246,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
       for (const child of naturalContent.children) observer?.observe(child)
     }
     if (observedBoundary) observer?.observe(observedBoundary)
-    const panelBody = panel.querySelector<HTMLElement>(':scope > [data-picodash-panel-body]')
+    const panelBody = panel.querySelector<HTMLElement>(
+      ':scope > [data-picodash-panel-surface] > [data-picodash-panel-body]',
+    )
     const contentBoundsActive = Object.values(contentConstraints ?? {}).some(Boolean)
     const refreshLoadedContent = () => {
       if (contentBoundsActive) cancelResizeRef.current('content_constraints_changed')
@@ -3124,236 +3128,244 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
               }}
               data-collapsed={collapsed ? 'true' : 'false'}
             >
-              <DashHeader
-                data-picodash-panel-drag-surface
-                data-disabled={requestedPlacementMode === 'fixed' ? 'true' : undefined}
-                onPointerDown={onHeaderPointerDown}
-                slots={{
-                  leading: currentCollapsible ? (
-                    <Button
-                      ref={collapseButtonRef}
-                      aria-label={collapseLabel}
-                      aria-expanded={!collapsed}
-                      aria-controls={bodyId}
-                      iconOnly
-                      variant="ghost"
-                      size="sm"
-                      onPress={() => {
-                        if (dockedMinimizePresentation) pendingCollapseFocus.current = 'reveal'
-                        runtime.toggleCollapsed(id)
-                      }}
-                    >
-                      {dockedMinimizePresentation ? (
-                        <DockArrowIcon
-                          direction={
-                            dockedMinimized
-                              ? dockedMinimizePresentation.revealDirection
-                              : dockedMinimizePresentation.minimizeDirection
-                          }
-                        />
-                      ) : (
-                        <CollapseIcon collapsed={collapsed} />
-                      )}
-                    </Button>
-                  ) : undefined,
-                  title: (
-                    <div data-picodash-panel-title-drag-surface>
-                      <h2 id={headingId}>{title}</h2>
+              <div data-picodash-panel-surface>
+                <DashHeader
+                  data-picodash-panel-drag-surface
+                  data-disabled={requestedPlacementMode === 'fixed' ? 'true' : undefined}
+                  onPointerDown={onHeaderPointerDown}
+                  slots={{
+                    leading: currentCollapsible ? (
                       <Button
-                        ref={registerMoveHandle}
-                        data-picodash-panel-move-handle
-                        aria-label={`Move panel ${panelName}`}
-                        aria-pressed={moveMode !== null}
-                        aria-describedby={moveInstructionsId}
-                        isDisabled={requestedPlacementMode === 'fixed'}
+                        ref={collapseButtonRef}
+                        aria-label={collapseLabel}
+                        aria-expanded={!collapsed}
+                        aria-controls={bodyId}
+                        iconOnly
                         variant="ghost"
-                        onPointerDown={onMovePointerDown}
-                        onPointerMoveCapture={onMovePointerMove}
-                        onPointerUpCapture={onMovePointerUp}
-                        onPointerCancelCapture={onMovePointerCancel}
-                        onKeyDown={onMoveKeyDown}
-                        data-visible-grip={moveHandle !== 'header' ? 'true' : undefined}
-                        onBlur={() => {
-                          if (moveSession.current?.mode === 'keyboard') cancelMove()
+                        size="sm"
+                        onPress={() => {
+                          if (dockedMinimizePresentation) pendingCollapseFocus.current = 'reveal'
+                          runtime.toggleCollapsed(id)
                         }}
                       >
-                        {moveHandle !== 'header' ? (
-                          <svg viewBox="0 0 16 16" aria-hidden="true">
-                            <path
-                              d="M5 3h1m4 0h1M5 8h1m4 0h1M5 13h1m4 0h1"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                            />
-                          </svg>
-                        ) : null}
+                        {dockedMinimizePresentation ? (
+                          <DockArrowIcon
+                            direction={
+                              dockedMinimized
+                                ? dockedMinimizePresentation.revealDirection
+                                : dockedMinimizePresentation.minimizeDirection
+                            }
+                          />
+                        ) : (
+                          <CollapseIcon collapsed={collapsed} />
+                        )}
                       </Button>
-                    </div>
-                  ),
-                  actions:
-                    durableLayout?.manualSize || renderActionMenu ? (
-                      <>
-                        {durableLayout?.manualSize ? (
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Button
-                                aria-label="Restore preferred size"
-                                data-picodash-panel-restore-size
-                                iconOnly
-                                variant="ghost"
-                                size="sm"
-                                onPress={() => {
-                                  pendingRestoreFocus.current = true
-                                  const result = runtime.restorePreferredSize(id)
-                                  if (result.status !== 'executed' || !result.transaction.ok)
-                                    pendingRestoreFocus.current = false
-                                }}
-                              >
-                                {/* Lucide square-dimensions (ISC); see THIRD_PARTY_NOTICES.md. */}
-                                <svg
-                                  viewBox="0 0 24 24"
-                                  aria-hidden="true"
-                                  focusable="false"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                >
-                                  <rect width="18" height="18" x="3" y="3" rx="2" />
-                                  <path d="M12 7H7v5" />
-                                  <path d="M12 17h5v-5" />
-                                </svg>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Restore preferred size</TooltipContent>
-                          </Tooltip>
-                        ) : null}
-                        {renderActionMenu ? (
-                          <ActionMenu label={`Actions for ${panelName}`}>
-                            {actionMenuChildren}
-                          </ActionMenu>
-                        ) : null}
-                      </>
                     ) : undefined,
-                  trailing:
-                    showCloseButton || renderedSizing?.constraints.length || resize !== false ? (
-                      <div data-picodash-panel-actions>
-                        {resize !== false ? (
-                          <Tooltip>
-                            <TooltipTrigger>
-                              <Button
-                                aria-label={`Resize panel ${panelName}`}
-                                data-picodash-panel-resize-button
-                                iconOnly
-                                variant="ghost"
-                                size="sm"
-                                isDisabled={collapsed}
-                                onPress={() => setSizeEditorOpen(true)}
-                              >
-                                <svg viewBox="0 0 16 16" aria-hidden="true">
-                                  <path
-                                    d="M3 7V3h4m2 10h4V9M3 3l4 4m6 6L9 9"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>Resize panel</TooltipContent>
-                          </Tooltip>
-                        ) : null}
-                        {renderedSizing?.constraints.length ? (
-                          <span
-                            data-picodash-panel-size-limit
-                            role="img"
-                            aria-label="Panel size is constrained"
-                            title={renderedSizing.constraints
-                              .map((reason) => `${reason.axis}: ${reason.code}`)
-                              .join(', ')}
-                          >
+                    title: (
+                      <div data-picodash-panel-title-drag-surface>
+                        <h2 id={headingId}>{title}</h2>
+                        <Button
+                          ref={registerMoveHandle}
+                          data-picodash-panel-move-handle
+                          aria-label={`Move panel ${panelName}`}
+                          aria-pressed={moveMode !== null}
+                          aria-describedby={moveInstructionsId}
+                          isDisabled={requestedPlacementMode === 'fixed'}
+                          variant="ghost"
+                          onPointerDown={onMovePointerDown}
+                          onPointerMoveCapture={onMovePointerMove}
+                          onPointerUpCapture={onMovePointerUp}
+                          onPointerCancelCapture={onMovePointerCancel}
+                          onKeyDown={onMoveKeyDown}
+                          data-visible-grip={moveHandle !== 'header' ? 'true' : undefined}
+                          onBlur={() => {
+                            if (moveSession.current?.mode === 'keyboard') cancelMove()
+                          }}
+                        >
+                          {moveHandle !== 'header' ? (
                             <svg viewBox="0 0 16 16" aria-hidden="true">
                               <path
-                                d="M3 2v12M13 2v12M5 8h6M7 6 5 8l2 2m2-4 2 2-2 2"
-                                fill="none"
+                                d="M5 3h1m4 0h1M5 8h1m4 0h1M5 13h1m4 0h1"
                                 stroke="currentColor"
-                                strokeWidth="1.5"
+                                strokeWidth="2"
+                                strokeLinecap="round"
                               />
                             </svg>
-                          </span>
-                        ) : null}
-                        {showCloseButton ? (
-                          <Button
-                            aria-label={`Close panel ${panelName}`}
-                            iconOnly
-                            variant="ghost"
-                            size="sm"
-                            onPress={() => {
-                              const wasVisible = runtime.getSnapshot().panels[id]?.visible ?? false
-                              try {
-                                runtime.hide(id)
-                              } finally {
-                                const isVisible = runtime.getSnapshot().panels[id]?.visible ?? false
-                                if (wasVisible && !isVisible)
-                                  restorePanelFocus(
-                                    runtime,
-                                    id,
-                                    providerPolicy.boundary,
-                                    overlayDefaults.portalContainer,
-                                  )
-                              }
-                            }}
-                          >
-                            <CloseIcon />
-                          </Button>
-                        ) : null}
+                          ) : null}
+                        </Button>
                       </div>
-                    ) : undefined,
-                }}
-              />
-              <div
-                id={bodyId}
-                data-picodash-panel-body
-                data-picodash-scroll-fade
-                hidden={collapsed && !dockedMinimized}
-                inert={collapsed || undefined}
-                aria-hidden={collapsed || undefined}
-              >
-                <div data-picodash-panel-content>{children}</div>
-              </div>
-              {sizeEditorOpen ? (
-                <PanelSizeEditor
-                  name={panelName}
-                  onClose={() => {
-                    setSizeEditorOpen(false)
-                    asideRef.current
-                      ?.querySelector<HTMLButtonElement>('[data-slot="dash-header-actions"] button')
-                      ?.focus()
+                    ),
+                    actions:
+                      durableLayout?.manualSize || renderActionMenu ? (
+                        <>
+                          {durableLayout?.manualSize ? (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Button
+                                  aria-label="Restore preferred size"
+                                  data-picodash-panel-restore-size
+                                  iconOnly
+                                  variant="ghost"
+                                  size="sm"
+                                  onPress={() => {
+                                    pendingRestoreFocus.current = true
+                                    const result = runtime.restorePreferredSize(id)
+                                    if (result.status !== 'executed' || !result.transaction.ok)
+                                      pendingRestoreFocus.current = false
+                                  }}
+                                >
+                                  {/* Lucide square-dimensions (ISC); see THIRD_PARTY_NOTICES.md. */}
+                                  <svg
+                                    viewBox="0 0 24 24"
+                                    aria-hidden="true"
+                                    focusable="false"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <rect width="18" height="18" x="3" y="3" rx="2" />
+                                    <path d="M12 7H7v5" />
+                                    <path d="M12 17h5v-5" />
+                                  </svg>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Restore preferred size</TooltipContent>
+                            </Tooltip>
+                          ) : null}
+                          {renderActionMenu ? (
+                            <ActionMenu label={`Actions for ${panelName}`}>
+                              {actionMenuChildren}
+                            </ActionMenu>
+                          ) : null}
+                        </>
+                      ) : undefined,
+                    trailing:
+                      showCloseButton || renderedSizing?.constraints.length || resize !== false ? (
+                        <div data-picodash-panel-actions>
+                          {resize !== false ? (
+                            <Tooltip>
+                              <TooltipTrigger>
+                                <Button
+                                  aria-label={`Resize panel ${panelName}`}
+                                  data-picodash-panel-resize-button
+                                  iconOnly
+                                  variant="ghost"
+                                  size="sm"
+                                  isDisabled={collapsed}
+                                  onPress={() => setSizeEditorOpen(true)}
+                                >
+                                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                                    <path
+                                      d="M3 7V3h4m2 10h4V9M3 3l4 4m6 6L9 9"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      strokeWidth="1.5"
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                    />
+                                  </svg>
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>Resize panel</TooltipContent>
+                            </Tooltip>
+                          ) : null}
+                          {renderedSizing?.constraints.length ? (
+                            <span
+                              data-picodash-panel-size-limit
+                              role="img"
+                              aria-label="Panel size is constrained"
+                              title={renderedSizing.constraints
+                                .map((reason) => `${reason.axis}: ${reason.code}`)
+                                .join(', ')}
+                            >
+                              <svg viewBox="0 0 16 16" aria-hidden="true">
+                                <path
+                                  d="M3 2v12M13 2v12M5 8h6M7 6 5 8l2 2m2-4 2 2-2 2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                />
+                              </svg>
+                            </span>
+                          ) : null}
+                          {showCloseButton ? (
+                            <Button
+                              aria-label={`Close panel ${panelName}`}
+                              iconOnly
+                              variant="ghost"
+                              size="sm"
+                              onPress={() => {
+                                const wasVisible =
+                                  runtime.getSnapshot().panels[id]?.visible ?? false
+                                try {
+                                  runtime.hide(id)
+                                } finally {
+                                  const isVisible =
+                                    runtime.getSnapshot().panels[id]?.visible ?? false
+                                  if (wasVisible && !isVisible)
+                                    restorePanelFocus(
+                                      runtime,
+                                      id,
+                                      providerPolicy.boundary,
+                                      overlayDefaults.portalContainer,
+                                    )
+                                }
+                              }}
+                            >
+                              <CloseIcon />
+                            </Button>
+                          ) : null}
+                        </div>
+                      ) : undefined,
                   }}
                 />
-              ) : null}
-              {resizeInteraction.targets.map((target) => (
-                <button
-                  key={target}
-                  type="button"
-                  data-picodash-panel-resize-target={target}
-                  aria-label={`Resize panel ${panelName} from ${target}`}
-                  aria-pressed={resizeInteraction.activeTarget === target}
-                  title={`Resize ${target}`}
-                  onPointerDown={(event) => resizeInteraction.onPointerDown(target, event)}
-                  onLostPointerCapture={resizeInteraction.onLostPointerCapture}
-                  onBlur={() => {
-                    if (resizeInteraction.activeTarget === target)
-                      resizeInteraction.cancel('focus_left')
-                  }}
-                  onKeyDown={(event) => resizeInteraction.onKeyDown(target, event)}
+                <div
+                  id={bodyId}
+                  data-picodash-panel-body
+                  data-picodash-scroll-fade
+                  hidden={collapsed && !dockedMinimized}
+                  inert={collapsed || undefined}
+                  aria-hidden={collapsed || undefined}
                 >
-                  <span aria-hidden="true" />
-                </button>
-              ))}
+                  <div data-picodash-panel-content>{children}</div>
+                </div>
+                {sizeEditorOpen ? (
+                  <PanelSizeEditor
+                    name={panelName}
+                    onClose={() => {
+                      setSizeEditorOpen(false)
+                      asideRef.current
+                        ?.querySelector<HTMLButtonElement>(
+                          '[data-slot="dash-header-actions"] button',
+                        )
+                        ?.focus()
+                    }}
+                  />
+                ) : null}
+              </div>
+              <div data-picodash-panel-resize-layer>
+                {resizeInteraction.targets.map((target) => (
+                  <button
+                    key={target}
+                    type="button"
+                    data-picodash-panel-resize-target={target}
+                    aria-label={`Resize panel ${panelName} from ${target}`}
+                    aria-pressed={resizeInteraction.activeTarget === target}
+                    title={`Resize ${target}`}
+                    onPointerDown={(event) => resizeInteraction.onPointerDown(target, event)}
+                    onLostPointerCapture={resizeInteraction.onLostPointerCapture}
+                    onBlur={() => {
+                      if (resizeInteraction.activeTarget === target)
+                        resizeInteraction.cancel('focus_left')
+                    }}
+                    onKeyDown={(event) => resizeInteraction.onKeyDown(target, event)}
+                  >
+                    <span aria-hidden="true" />
+                  </button>
+                ))}
+              </div>
               <div
                 key={actionAnnouncement.sequence}
                 role="status"

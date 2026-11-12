@@ -261,6 +261,16 @@ that every malformed Panel can be recovered independently of its List.
 | LIST-EVENTS-BROWSER  | Shared public event observation against a second UI consumer                        | [Resize Lab animated-content journey](../../apps/lab/tests/resize.spec.ts)                                                                                                                                                                                                                                                                                         | Verified | Real child List reorder and its Nexus/Bridge event cursor are verified by the animated-content journey within the final 18-test Lab pass. This proves shared public event consumption, not disclosure of private responsive state.                                                                                                 |
 | PICODASH-RESIZE      | Exact foundation reexports and public composition                                   | Facade type and package-artifact smoke checks                                                                                                                                                                                                                                                                                                                      | Verified | All seven facade tests plus check/build/artifacts pass for exact foundation reexports and public composition. This does not promote a separate facade resize implementation or duplicate the Panel browser matrix.                                                                                                                 |
 
+The resize-indicator layer now sits outside the rounded header/body clipping surface, within the
+same Panel stacking context. The public `--picodash-panel-resize-offset` keeps the default position
+at zero and supports signed inward/outward placement without changing measured or saved geometry.
+All 240 Panel tests, the Panel check and artifact gate, and the three Resize Lab journeys pass.
+The retained-intent journey verifies native hit testing for all eight targets at inward and outward
+offsets, unchanged shell geometry, and real outside edge/corner drags cancelled without Nexus writes.
+The content journey retains ordinary and root-List scrolling/measurement evidence. This is local
+Chromium proof; host ancestor and viewport clipping still apply. The regular/compact/coarse, live
+placement, and phone-sized boundary journeys also pass.
+
 Two final findings now have isolated fixes: movement event publication coalesces to frames and
 flushes before the terminal event; commands merge from authoritative public scoped metadata instead
 of an effect-delayed cache. Synchronous scoped observation and a final snapshot fence prevent

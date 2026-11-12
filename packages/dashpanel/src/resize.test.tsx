@@ -244,6 +244,10 @@ describe('DashPanel manual sizing integration', () => {
 
   it('commits one resized axis from keyboard geometry and keeps cancellation non-durable', async () => {
     const { nexus, panel, getController } = await setup()
+    const layer = panel.querySelector('[data-picodash-panel-resize-layer]')!
+    expect(layer.parentElement).toBe(panel)
+    expect(layer.querySelectorAll('button')).toHaveLength(8)
+    expect(panel.querySelector('[data-picodash-panel-surface]')?.contains(layer)).toBe(false)
     const events: NexusInteractionEvent[] = []
     const unsubscribe = nexus.events.subscribe((event) => events.push(event))
     const east = panel.querySelector<HTMLButtonElement>('[data-picodash-panel-resize-target="e"]')!

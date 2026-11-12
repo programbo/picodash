@@ -1065,18 +1065,19 @@ not rely on `--_picodash-*` variables, which are package-private derived values.
 
 DashPanel owns these public product tokens:
 
-| Variable                            | Purpose                                        | Syntax                          | Regular default                   |
-| ----------------------------------- | ---------------------------------------------- | ------------------------------- | --------------------------------- |
-| `--picodash-panel-width`            | Preferred intrinsic Panel width.               | `<length-percentage>`           | `min(20rem, calc(100dvw - 2rem))` |
-| `--picodash-panel-height`           | Preferred height before manual/projected size. | `auto` or `px`/`rem`/`%` length | `auto`                            |
-| `--picodash-panel-resize-hit-size`  | Fine-pointer edge hit-region width.            | `<length>`                      | `10px`                            |
-| `--picodash-panel-resize-grip-size` | Visible edge-grip length.                      | `<length-percentage>`           | `18px`                            |
-| `--picodash-panel-snap-duration`    | Magnetic snap-settle duration.                 | `<time>`                        | `160ms`                           |
-| `--picodash-panel-snap-easing`      | Magnetic snap-settle timing function.          | `<easing-function>`             | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
-| `--picodash-panel-snap-bounce`      | Snap overshoot as a fraction of snap travel.   | `<number>`                      | `0.06`                            |
-| `--picodash-panel-detach-duration`  | Magnetic detach-settle duration.               | `<time>`                        | `140ms`                           |
-| `--picodash-panel-detach-easing`    | Magnetic detach-settle timing function.        | `<easing-function>`             | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
-| `--picodash-panel-detach-bounce`    | Detach overshoot as a fraction of travel.      | `<number>`                      | `0.04`                            |
+| Variable                            | Purpose                                          | Syntax                          | Regular default                   |
+| ----------------------------------- | ------------------------------------------------ | ------------------------------- | --------------------------------- |
+| `--picodash-panel-width`            | Preferred intrinsic Panel width.                 | `<length-percentage>`           | `min(20rem, calc(100dvw - 2rem))` |
+| `--picodash-panel-height`           | Preferred height before manual/projected size.   | `auto` or `px`/`rem`/`%` length | `auto`                            |
+| `--picodash-panel-resize-hit-size`  | Fine-pointer edge hit-region width.              | `<length>`                      | `10px`                            |
+| `--picodash-panel-resize-grip-size` | Visible edge-grip length.                        | `<length-percentage>`           | `18px`                            |
+| `--picodash-panel-resize-offset`    | Outward offset of resize targets and indicators. | `<length>`                      | `0px`                             |
+| `--picodash-panel-snap-duration`    | Magnetic snap-settle duration.                   | `<time>`                        | `160ms`                           |
+| `--picodash-panel-snap-easing`      | Magnetic snap-settle timing function.            | `<easing-function>`             | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
+| `--picodash-panel-snap-bounce`      | Snap overshoot as a fraction of snap travel.     | `<number>`                      | `0.06`                            |
+| `--picodash-panel-detach-duration`  | Magnetic detach-settle duration.                 | `<time>`                        | `140ms`                           |
+| `--picodash-panel-detach-easing`    | Magnetic detach-settle timing function.          | `<easing-function>`             | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
+| `--picodash-panel-detach-bounce`    | Detach overshoot as a fraction of travel.        | `<number>`                      | `0.04`                            |
 
 The token and prop are two access paths to one preferred-width input:
 
@@ -1096,9 +1097,14 @@ such as `18px` or `1.25rem`, percentages, and valid CSS combinations. A percenta
 button's length, excluding the corner margins on fine pointers; coarse edge buttons are 44px long.
 The four corner indicators are separate fixed 10px diagonal strokes in 20px targets and do not use
 the edge-length token. Indicators inherit border color and use focus color on hover, focus, or grab.
-All targets and indicators are inside the Panel's clipped shell. Outside placement and an external
-offset are not public configuration options; an outside handle layer would require a separate
-clipping and hit-testing contract.
+The header and body share a rounded, clipped surface. Resize targets and indicators occupy a
+separate unclipped layer within the Panel's own stacking and activation context. The layer does
+not intercept content input; only its buttons receive pointer events, with corners above edges.
+`--picodash-panel-resize-offset` moves each target and its indicator together: `0px` retains the
+inside-border position, positive lengths move outward, and negative lengths move inward. Offset
+does not change measured Panel geometry, resize limits, or durable layout. Host ancestor clipping
+and the viewport still apply; the resize layer does not escape the Provider's portal or layering.
+Hidden, collapsed, minimized, and otherwise ineligible Panels retain the existing target policy.
 
 Magnetic motion is independent of the live transform rather than a transition on Panel position.
 Duration accepts a non-negative CSS time. Bounce accepts a unitless value from `0` through `0.25`;

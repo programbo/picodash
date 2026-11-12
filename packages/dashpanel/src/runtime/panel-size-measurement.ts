@@ -66,8 +66,12 @@ export function measurePanelSizing(
     Number.parseFloat(
       ownerWindow?.getComputedStyle(panel.ownerDocument.documentElement).fontSize ?? '16',
     ) || 16
-  const header = panel.querySelector<HTMLElement>(":scope > [data-slot='dash-header']")
-  const body = panel.querySelector<HTMLElement>(':scope > [data-picodash-panel-body]')
+  const header = panel.querySelector<HTMLElement>(
+    ":scope > [data-picodash-panel-surface] > [data-slot='dash-header']",
+  )
+  const body = panel.querySelector<HTMLElement>(
+    ':scope > [data-picodash-panel-surface] > [data-picodash-panel-body]',
+  )
   const content = body?.querySelector<HTMLElement>(':scope > [data-picodash-panel-content]') ?? body
   const wasHidden = panel.hidden
   const visibility = panel.style.visibility

@@ -23,7 +23,7 @@
   inline-size: var(--picodash-panel-width);
   block-size: var(--picodash-panel-height, auto);
   max-inline-size: 100%;
-  overflow: hidden;
+  overflow: visible;
   z-index: 0;
   border: var(--picodash-border-width-thin) solid var(--picodash-color-border);
   border-radius: var(--picodash-radius-surface);
@@ -115,7 +115,18 @@
   will-change: transform, opacity;
 }
 
-.picodash-dashpanel > [data-slot='dash-header'] {
+/* Clip chrome and content independently of the resize controls. */
+.picodash-dashpanel > [data-picodash-panel-surface] {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.picodash-dashpanel > [data-picodash-panel-surface] > [data-slot='dash-header'] {
   position: relative;
   display: flex;
   flex: none;
@@ -130,16 +141,21 @@
   user-select: none;
 }
 
-.picodash-dashpanel > [data-slot='dash-header'][data-disabled='true'] {
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header'][data-disabled='true'] {
   cursor: default;
   touch-action: auto;
 }
 
-.picodash-dashpanel > [data-slot='dash-header']:has([data-slot='dash-header-leading'] > *) {
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header']:has([data-slot='dash-header-leading'] > *) {
   padding-inline-start: var(--picodash-space-1);
 }
 
 .picodash-dashpanel
+  > [data-picodash-panel-surface]
   > [data-slot='dash-header']:has(
     [data-slot='dash-header-actions'] > *,
     [data-slot='dash-header-trailing'] > *
@@ -147,28 +163,50 @@
   padding-inline-end: var(--picodash-space-1);
 }
 
-.picodash-dashpanel > [data-slot='dash-header'] [data-slot='dash-header-leading'],
-.picodash-dashpanel > [data-slot='dash-header'] [data-slot='dash-header-actions'],
-.picodash-dashpanel > [data-slot='dash-header'] [data-slot='dash-header-trailing'] {
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-leading'],
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-actions'],
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-trailing'] {
   flex: none;
   gap: var(--picodash-space-0-5);
 }
 
-.picodash-dashpanel > [data-slot='dash-header'] [data-slot='dash-header-title'] {
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header']
+  [data-slot='dash-header-title'] {
   align-self: stretch;
   min-inline-size: 0;
 }
 
-.picodash-dashpanel > [data-slot='dash-header'] [data-slot='button'][data-icon-only] {
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header']
+  [data-slot='button'][data-icon-only] {
   inline-size: var(--picodash-control-height-sm);
   block-size: var(--picodash-control-height-sm);
 }
 
-.picodash-dashpanel > [data-slot='dash-header'] [data-slot='button'] {
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header']
+  [data-slot='button'] {
   touch-action: manipulation;
 }
 
-.picodash-dashpanel > [data-slot='dash-header'] [data-slot='button'][data-icon-only] > svg {
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header']
+  [data-slot='button'][data-icon-only]
+  > svg {
   display: block;
   inline-size: var(--picodash-icon-sm);
   block-size: var(--picodash-icon-sm);
@@ -186,6 +224,7 @@
 }
 
 .picodash-dashpanel
+  > [data-picodash-panel-surface]
   > [data-slot='dash-header']
   [data-slot='dash-header-leading']
   > [data-slot='button'] {
@@ -231,12 +270,13 @@
 }
 
 .picodash-dashpanel
+  > [data-picodash-panel-surface]
   > [data-slot='dash-header']:has([data-picodash-panel-move-handle][data-focus-visible]) {
   outline: 2px solid var(--picodash-color-focus);
   outline-offset: -2px;
 }
 
-.picodash-dashpanel > [data-slot='dash-header'] h2 {
+.picodash-dashpanel > [data-picodash-panel-surface] > [data-slot='dash-header'] h2 {
   overflow: hidden;
   margin: 0;
   color: var(--picodash-color-text-strong);
@@ -248,13 +288,16 @@
   white-space: nowrap;
 }
 
-.picodash-dashpanel > [data-slot='dash-header'] [data-picodash-panel-actions] {
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header']
+  [data-picodash-panel-actions] {
   display: inline-flex;
   align-items: center;
   gap: var(--picodash-space-0-5);
 }
 
-.picodash-dashpanel > [data-picodash-panel-body] {
+.picodash-dashpanel > [data-picodash-panel-surface] > [data-picodash-panel-body] {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -272,7 +315,9 @@
   cursor: default;
 }
 
-.picodash-dashpanel[data-picodash-placement$='free-preview'] > [data-slot='dash-header'] {
+.picodash-dashpanel[data-picodash-placement$='free-preview']
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header'] {
   cursor: grabbing;
 }
 
@@ -316,7 +361,10 @@
 }
 
 @media (pointer: coarse) {
-  .picodash-dashpanel > [data-slot='dash-header'] [data-slot='button'][data-icon-only] {
+  .picodash-dashpanel
+    > [data-picodash-panel-surface]
+    > [data-slot='dash-header']
+    [data-slot='button'][data-icon-only] {
     min-inline-size: 44px;
     min-block-size: 44px;
   }
@@ -350,9 +398,13 @@
   --picodash-panel-height: auto;
   --picodash-panel-resize-hit-size: 10px;
   --picodash-panel-resize-grip-size: 18px;
+  --picodash-panel-resize-offset: 0px;
 }
 
-.picodash-dashpanel > [data-picodash-panel-body] > [data-picodash-panel-content] {
+.picodash-dashpanel
+  > [data-picodash-panel-surface]
+  > [data-picodash-panel-body]
+  > [data-picodash-panel-content] {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
@@ -364,8 +416,17 @@
   user-select: none;
   transition: none;
 }
-.picodash-dashpanel[data-picodash-resizing] > [data-slot='dash-header'] {
+.picodash-dashpanel[data-picodash-resizing]
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header'] {
   cursor: inherit;
+}
+
+[data-picodash-panel-resize-layer] {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
 }
 
 [data-picodash-panel-resize-target] {
@@ -378,6 +439,7 @@
   border: 0;
   background: transparent;
   color: var(--picodash-color-border);
+  pointer-events: auto;
   touch-action: none;
   user-select: none;
 }
@@ -420,10 +482,10 @@
   cursor: ns-resize;
 }
 [data-picodash-panel-resize-target='n'] {
-  top: 0;
+  top: calc(-1 * var(--picodash-panel-resize-offset));
 }
 [data-picodash-panel-resize-target='s'] {
-  bottom: 0;
+  bottom: calc(-1 * var(--picodash-panel-resize-offset));
 }
 [data-picodash-panel-resize-target='e'],
 [data-picodash-panel-resize-target='w'] {
@@ -433,10 +495,10 @@
   cursor: ew-resize;
 }
 [data-picodash-panel-resize-target='e'] {
-  right: 0;
+  right: calc(-1 * var(--picodash-panel-resize-offset));
 }
 [data-picodash-panel-resize-target='w'] {
-  left: 0;
+  left: calc(-1 * var(--picodash-panel-resize-offset));
 }
 [data-picodash-panel-resize-target='e'] > span,
 [data-picodash-panel-resize-target='w'] > span {
@@ -452,23 +514,23 @@
   z-index: 4;
 }
 [data-picodash-panel-resize-target='ne'] {
-  top: 0;
-  right: 0;
+  top: calc(-1 * var(--picodash-panel-resize-offset));
+  right: calc(-1 * var(--picodash-panel-resize-offset));
   cursor: nesw-resize;
 }
 [data-picodash-panel-resize-target='nw'] {
-  top: 0;
-  left: 0;
+  top: calc(-1 * var(--picodash-panel-resize-offset));
+  left: calc(-1 * var(--picodash-panel-resize-offset));
   cursor: nwse-resize;
 }
 [data-picodash-panel-resize-target='se'] {
-  bottom: 0;
-  right: 0;
+  bottom: calc(-1 * var(--picodash-panel-resize-offset));
+  right: calc(-1 * var(--picodash-panel-resize-offset));
   cursor: nwse-resize;
 }
 [data-picodash-panel-resize-target='sw'] {
-  bottom: 0;
-  left: 0;
+  bottom: calc(-1 * var(--picodash-panel-resize-offset));
+  left: calc(-1 * var(--picodash-panel-resize-offset));
   cursor: nesw-resize;
 }
 [data-picodash-panel-resize-target='ne'] > span,
@@ -498,7 +560,9 @@
   inline-size: var(--picodash-icon-sm);
   block-size: var(--picodash-icon-sm);
 }
-.picodash-dashpanel[data-picodash-move-handle-mode='grip'] > [data-slot='dash-header'] {
+.picodash-dashpanel[data-picodash-move-handle-mode='grip']
+  > [data-picodash-panel-surface]
+  > [data-slot='dash-header'] {
   cursor: default;
   touch-action: auto;
 }

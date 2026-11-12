@@ -36,10 +36,10 @@ describe('DashPanel stylesheet contract', () => {
     )
     expect(css).not.toContain('.picodash-dashpanel::before')
     expect(css).toMatch(
-      /\.picodash-dashpanel\s*>\s*\[data-slot='dash-header'\]\s*\{[^}]*box-sizing:\s*border-box;[^}]*border-block-end:[^}]*padding:/s,
+      /\.picodash-dashpanel\s*>\s*\[data-picodash-panel-surface\]\s*>\s*\[data-slot='dash-header'\]\s*\{[^}]*box-sizing:\s*border-box;[^}]*border-block-end:[^}]*padding:/s,
     )
     expect(css).toMatch(
-      /\.picodash-dashpanel\s*>\s*\[data-slot='dash-header'\]\s+h2\s*\{[^}]*font-size:\s*var\(--picodash-font-size-xl\);[^}]*font-weight:\s*var\(--picodash-font-weight-semibold\);/s,
+      /\.picodash-dashpanel\s*>\s*\[data-picodash-panel-surface\]\s*>\s*\[data-slot='dash-header'\]\s+h2\s*\{[^}]*font-size:\s*var\(--picodash-font-size-xl\);[^}]*font-weight:\s*var\(--picodash-font-weight-semibold\);/s,
     )
     expect(css).toMatch(
       /\[data-slot='dash-header'\]\s+\[data-slot='button'\]\[data-icon-only\]\s*\{[^}]*inline-size:\s*var\(--picodash-control-height-sm\);[^}]*block-size:\s*var\(--picodash-control-height-sm\);/s,
