@@ -2,6 +2,7 @@
 
 import { Component, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { DashPanel, DashPanelProvider, DashPanelTrigger, useDashPanel } from '@picodash/dashpanel'
+import { cn } from '@lab/lib/utils'
 import { ContractLabDevBridgeConnector } from './dev-bridge-connector'
 import { useContractLabDiagnosticCount } from './nexus-diagnostics'
 import { ResizeLabContent } from './resize-lab-content'
@@ -213,6 +214,11 @@ function ResizeLabWorkspace({
             draft={draft}
             error={error}
             onEdit={edit}
+            onHandleAppearanceChange={(appearance) => {
+              setConfiguration((previous) => ({ ...previous, ...appearance }))
+              setDraft((previous) => ({ ...previous, ...appearance }))
+              setRecipe('custom')
+            }}
             onApply={() => {
               const result = parseResizeConfiguration(draft)
               if (!result.ok) {
@@ -334,7 +340,11 @@ function ResizeLabWorkspace({
           minHeight: configuration.contentMinHeight,
           maxHeight: configuration.contentMaxHeight,
         }}
-        className="pointer-events-auto"
+        className={cn('pointer-events-auto', {
+          'resize-edges-parallel': configuration.edgeHandles === 'parallel',
+          'resize-corners-external': configuration.cornerHandles === 'external',
+          'resize-corners-internal': configuration.cornerHandles === 'internal',
+        })}
         onCollapsedChange={onCollapsedChange}
         data-resize-lab-panel
       >

@@ -23,10 +23,12 @@
     "@picodash/picodash": "workspace:*",
     "@picodash/ui": "workspace:*",
     "@tanstack/charts": "catalog:",
+    "clsx": "catalog:",
     "motion": "catalog:",
     "next": "16.3.8",
     "react": "catalog:",
-    "react-dom": "catalog:"
+    "react-dom": "catalog:",
+    "tailwind-merge": "catalog:"
   },
   "devDependencies": {
     "@playwright/test": "catalog:",

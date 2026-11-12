@@ -105,22 +105,13 @@ async function dragTarget(
 }
 
 async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: TestInfo) {
-  await page.addStyleTag({
-    path: resolve(process.cwd(), '../../docs/examples/dashpanel-resize-handles.css'),
-  })
   await panel.evaluate((element) => element.scrollIntoView({ block: 'center' }))
   const originalBox = await box(panel)
-  const classes = ['resize-edges-parallel', 'resize-corners-external', 'resize-corners-internal']
+  const edges = page.getByRole('combobox', { name: 'Edge handle style', exact: true })
+  const corners = page.getByRole('combobox', { name: 'Corner handle style', exact: true })
   for (const recipe of ['single', 'parallel', 'external', 'internal']) {
-    await panel.evaluate(
-      (element, { classes, recipe }) => {
-        element.classList.remove(...classes)
-        if (recipe !== 'single') element.classList.add('resize-edges-parallel')
-        if (recipe === 'external') element.classList.add('resize-corners-external')
-        if (recipe === 'internal') element.classList.add('resize-corners-internal')
-      },
-      { classes, recipe },
-    )
+    await edges.selectOption(recipe === 'single' ? 'single' : 'parallel')
+    await corners.selectOption(recipe === 'external' || recipe === 'internal' ? recipe : 'single')
     await panel
       .getByRole('button', { name: 'Resize panel Resize Panel from e', exact: true })
       .hover()
@@ -182,6 +173,14 @@ async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: Te
       }
     }
     expect(await box(panel)).toEqual(originalBox)
+    if (recipe === 'external') {
+      await page.screenshot({
+        path: resolve(
+          process.cwd(),
+          '../../output/resize-evidence/resize-handle-controls-desktop.png',
+        ),
+      })
+    }
     await testInfo.attach(`resize-handles-${recipe}`, {
       body: await page.screenshot({
         path: resolve(process.cwd(), `../../output/resize-evidence/resize-handles-${recipe}.png`),
@@ -195,7 +194,28 @@ async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: Te
       contentType: 'image/png',
     })
   }
-  await panel.evaluate((element, classes) => element.classList.remove(...classes), classes)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await edges.selectOption('parallel')
+  await corners.selectOption('external')
+  await corners.scrollIntoViewIfNeeded()
+  for (const control of [edges, corners]) {
+    const bounds = await box(control)
+    expect(bounds.x).toBeGreaterThanOrEqual(0)
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(390)
+    expect(bounds.height).toBeGreaterThanOrEqual(44)
+  }
+  await page.screenshot({
+    path: resolve(process.cwd(), '../../output/resize-evidence/resize-handle-controls-mobile.png'),
+  })
+  await panel.getByRole('button', { name: 'Resize panel Resize Panel from e', exact: true }).hover()
+  await expect(panel.getByRole('heading', { name: 'Resize Panel', exact: true })).toBeInViewport()
+  await page.screenshot({
+    path: resolve(process.cwd(), '../../output/resize-evidence/resize-handle-panel-mobile.png'),
+  })
+  await page.setViewportSize({ width: 1600, height: 1100 })
+  await expect.poll(async () => (await box(panel)).width).toBe(originalBox.width)
+  await edges.selectOption('single')
+  await corners.selectOption('single')
 }
 
 test('retains manual intent through resize, contracted reload, expansion and header restoration', async ({
@@ -240,7 +260,9 @@ test('retains manual intent through resize, contracted reload, expansion and hea
   await page.getByLabel('Requested manual height').fill('320')
   await page.getByRole('button', { name: 'Set manual size', exact: true }).click()
   await expect(page.getByLabel('Manual panel size')).toHaveText('480 × 320')
+  const beforeHandleThemes = await metadata(bridge.client, session)
   await assertResizeHandleThemes(page, panel, testInfo)
+  expect(await metadata(bridge.client, session)).toEqual(beforeHandleThemes)
   const restore = panel.getByRole('button', { name: 'Restore preferred size', exact: true })
   const actions = panel.getByRole('button', { name: 'Actions for Resize Panel', exact: true })
   expect((await box(restore)).x).toBeLessThan((await box(actions)).x)
@@ -376,12 +398,24 @@ test('retains manual intent through resize, contracted reload, expansion and hea
   })
   expect(resizeEvents.every(({ source }) => source.scopeId === scopeId)).toBe(true)
   const full = await box(panel)
+  await page
+    .getByRole('combobox', { name: 'Edge handle style', exact: true })
+    .selectOption('parallel')
+  await page
+    .getByRole('combobox', { name: 'Corner handle style', exact: true })
+    .selectOption('internal')
   await page.getByRole('button', { name: 'Shrink container', exact: true }).click()
   await expect.poll(async () => (await box(panel)).width).toBeLessThan(full.width)
   expect(await metadata(bridge.client, session)).toEqual(saved)
   await page.reload()
   await expect(page.getByLabel('Resize measurement readiness')).toHaveText('Ready')
   await expect(page.getByRole('button', { name: 'Restore container', exact: true })).toBeVisible()
+  await expect(page.getByRole('combobox', { name: 'Edge handle style', exact: true })).toHaveValue(
+    'parallel',
+  )
+  await expect(
+    page.getByRole('combobox', { name: 'Corner handle style', exact: true }),
+  ).toHaveValue('internal')
   await expect(page.getByLabel('Manual panel size')).toHaveText('528 × 320')
   const restoredSession = await bridge.session()
   expect(restoredSession.generation).toBeGreaterThan(session.generation)

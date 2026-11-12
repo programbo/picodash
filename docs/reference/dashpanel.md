@@ -1132,6 +1132,10 @@ internal corner strokes. Load the example CSS after the package stylesheet and a
 example classes restores the single-line defaults. The recipes use the existing offset token for
 external target placement and add no resize props or state.
 
+In the Contract Lab, open **Placement → Resize lab** and use the **Handle appearance** selectors.
+Edge and corner styles apply immediately, independently of the sizing form. The Lab retains the
+choices in its session configuration; **Reset resize example** restores single-line handles.
+
 Magnetic motion is independent of the live transform rather than a transition on Panel position.
 Duration accepts a non-negative CSS time. Bounce accepts a unitless value from `0` through `0.25`;
 the runtime clamps larger finite values and treats invalid values as zero. A zero duration disables

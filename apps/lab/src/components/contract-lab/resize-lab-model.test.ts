@@ -1,12 +1,34 @@
-import { describe, expect, it } from 'vite-plus/test'
+// @vitest-environment jsdom
+import { afterEach, describe, expect, it } from 'vite-plus/test'
 import {
   defaultResizeConfiguration,
+  RESIZE_LAB_CONFIGURATION,
+  readResizeConfiguration,
   parseResizeConfiguration,
   resizePlacement,
   resizeRecipes,
 } from './resize-lab-model'
 
+afterEach(() => window.sessionStorage.clear())
+
 describe('Resize Lab configuration', () => {
+  it('restores handle appearance from session storage and rejects unsupported styles', () => {
+    const configuration = {
+      ...defaultResizeConfiguration,
+      edgeHandles: 'parallel',
+      cornerHandles: 'external',
+    }
+    window.sessionStorage.setItem(RESIZE_LAB_CONFIGURATION, JSON.stringify(configuration))
+    expect(readResizeConfiguration()).toEqual(configuration)
+    for (const unsupported of [{ edgeHandles: 'triple' }, { cornerHandles: 'round' }]) {
+      window.sessionStorage.setItem(
+        RESIZE_LAB_CONFIGURATION,
+        JSON.stringify({ ...configuration, ...unsupported }),
+      )
+      expect(readResizeConfiguration()).toBe(defaultResizeConfiguration)
+    }
+  })
+
   it('admits every visible recipe and distinguishes automatic height from finite dimensions', () => {
     for (const recipe of Object.values(resizeRecipes))
       expect(parseResizeConfiguration(recipe.configuration).ok).toBe(true)

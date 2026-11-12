@@ -137,6 +137,9 @@ export interface ResizeLabControlsProps {
     value: ResizeLabConfiguration[Key],
   ) => void
   readonly onApply: () => void
+  readonly onHandleAppearanceChange: (
+    appearance: Pick<ResizeLabConfiguration, 'edgeHandles' | 'cornerHandles'>,
+  ) => void
   readonly onRecipe: (id: ResizeRecipeId) => void
   readonly onReset: () => void
   readonly onAddItem: (paragraphs: number) => void
@@ -151,6 +154,7 @@ export function ResizeLabControls({
   error,
   onEdit,
   onApply,
+  onHandleAppearanceChange,
   onRecipe,
   onReset,
   onAddItem,
@@ -184,6 +188,32 @@ export function ResizeLabControls({
           Reset resize example
         </button>
       </div>
+      <fieldset className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+        <legend className="mb-3 text-sm font-semibold">Handle appearance</legend>
+        <ResizeSelect
+          label="Edge handle style"
+          value={draft.edgeHandles}
+          options={[
+            { value: 'single', label: 'Single line' },
+            { value: 'parallel', label: 'Parallel lines' },
+          ]}
+          onChange={(edgeHandles) =>
+            onHandleAppearanceChange({ edgeHandles, cornerHandles: draft.cornerHandles })
+          }
+        />
+        <ResizeSelect
+          label="Corner handle style"
+          value={draft.cornerHandles}
+          options={[
+            { value: 'single', label: 'Single line' },
+            { value: 'external', label: 'External perpendicular lines' },
+            { value: 'internal', label: 'Internal asymmetric lines' },
+          ]}
+          onChange={(cornerHandles) =>
+            onHandleAppearanceChange({ edgeHandles: draft.edgeHandles, cornerHandles })
+          }
+        />
+      </fieldset>
       <form
         onSubmit={(event) => {
           event.preventDefault()

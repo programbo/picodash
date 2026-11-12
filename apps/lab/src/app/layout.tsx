@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import '@picodash/ui/style.css'
 import '@picodash/dashpanel/style.css'
 import '@picodash/dashlist/style.css'
+import '../../../../docs/examples/dashpanel-resize-handles.css'
 import '../style.css'
 
 export const metadata: Metadata = {

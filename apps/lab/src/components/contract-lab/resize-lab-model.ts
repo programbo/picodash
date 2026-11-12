@@ -39,6 +39,8 @@ export interface ResizeLabConfiguration {
   readonly maxHeight: string
   readonly enabled: boolean
   readonly handles: 'auto' | 'always' | 'hidden'
+  readonly edgeHandles: 'single' | 'parallel'
+  readonly cornerHandles: 'single' | 'external' | 'internal'
   readonly targets: readonly ResizeTarget[]
   readonly moveHandle: 'header' | 'grip' | 'both'
   readonly boundary: 'element' | 'viewport'
@@ -75,6 +77,8 @@ export const defaultResizeConfiguration: ResizeLabConfiguration = {
   maxHeight: '800',
   enabled: true,
   handles: 'auto',
+  edgeHandles: 'single',
+  cornerHandles: 'single',
   targets: RESIZE_TARGETS,
   moveHandle: 'header',
   boundary: 'element',
@@ -360,6 +364,8 @@ export function readResizeConfiguration(): ResizeLabConfiguration {
       return defaultResizeConfiguration
     if (
       !['auto', 'always', 'hidden'].includes(String(raw.handles)) ||
+      !['single', 'parallel'].includes(String(raw.edgeHandles)) ||
+      !['single', 'external', 'internal'].includes(String(raw.cornerHandles)) ||
       !['header', 'grip', 'both'].includes(String(raw.moveHandle)) ||
       !['element', 'viewport'].includes(String(raw.boundary)) ||
       !['free', 'snap-top-right', 'snap-top', 'dock-top-right', 'dock-right', 'dock-top'].includes(

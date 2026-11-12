@@ -281,6 +281,14 @@ Local captures are `output/resize-evidence/resize-handles-{single,parallel,exter
 All 240 Panel tests, the Panel check/artifact gate, and all three Resize Lab journeys pass for this
 change. The browser test count remains unchanged.
 
+The Resize Lab imports the same example stylesheet and exposes immediate Edge handle style and
+Corner handle style selectors above the sizing form. The retained-intent journey drives these
+public controls rather than injecting CSS or mutating classes, verifies unchanged Nexus metadata,
+and reloads the selected styles through session configuration. The Lab model test rejects unknown
+stored style values. Four Lab model tests, all three Resize Lab journeys, workspace checks, and
+the production Lab build pass.
+Desktop/narrow control captures are under `output/resize-evidence/resize-handle-controls-*.png`.
+
 Two final findings now have isolated fixes: movement event publication coalesces to frames and
 flushes before the terminal event; commands merge from authoritative public scoped metadata instead
 of an effect-delayed cache. Synchronous scoped observation and a final snapshot fence prevent
