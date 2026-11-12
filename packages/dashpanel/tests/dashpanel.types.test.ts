@@ -60,6 +60,13 @@ describe('@picodash/dashpanel public types', () => {
     }
     const viewportProviderProps: DashPanelProviderProps = { ...providerProps, boundary: null }
     void viewportProviderProps
+    const invalidIndicator: DashPanelProps = {
+      id: 'invalid',
+      title: 'Invalid',
+      // @ts-expect-error The diagnostic indicator is a boolean opt-in.
+      showSizeConstraintIndicator: 'yes',
+    }
+    void invalidIndicator
     const panelProps: DashPanelProps = {
       id: 'inspector',
       title: 'Inspector',
@@ -79,6 +86,7 @@ describe('@picodash/dashpanel public types', () => {
       defaultVisible: false,
       collapsible: true,
       showCloseButton: false,
+      showSizeConstraintIndicator: true,
       onVisibilityChange: () => {},
       onRequestRemove: (details: DashPanelRemoveRequest) => details.scopeId,
       actionMenu: [],

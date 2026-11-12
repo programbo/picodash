@@ -577,3 +577,31 @@ and owner review gate. This supersedes earlier blanket stable claims for all 22 
 
 The owner approved M7 on 2026-09-17 with no blockers. Remaining UI fixes carry forward to M8
 integrated prototype parity and polish; this approval does not promote the deferred controls.
+
+## Local package consumption
+
+The size-constraint header indicator is opt-in through `showSizeConstraintIndicator=false` by
+default. The [resize component test](../../packages/dashpanel/src/resize.test.tsx) verifies default absence, enabled presence immediately before
+the action menu, live disabling, inactive-constraint absence, menu-less placement, and unchanged
+Nexus state. All 247 Panel tests pass.
+
+The workspace format, lint, type, export-manifest, and motion-policy checks also pass. The affected
+Lab browser rerun is not green: the combined resize journey exceeds its 30-second budget. A
+diagnostic split also exceeded that budget and the accordion animation sampled only three distinct
+Panel heights where four were required. No timeout or frame-count threshold was relaxed; the
+existing browser journeys remain intact. These failures limit fresh browser evidence for this
+change; they do not establish a cause in the indicator or packaging work.
+
+`package:local` builds and artifact-checks the five production packages, validates packed export
+files and resolved dependency protocols, and creates revision-stamped archives outside the
+worktree. The optional handle stylesheet is now a DashPanel export consumed by the Lab itself.
+`package:local:verify` installs those archives in a temporary app through the bundled installer,
+which supplies local overrides for transitive unpublished packages. The consumer typechecks public
+React APIs, bundles JS/CSS, mounts standalone and integrated compositions, verifies the facade's
+Panel identity, then unmounts and releases the Nexus. It imports no workspace source.
+
+The [fixture](../../packages/picodash/tests/local-consumer/) and
+[operational guide](../development/local-packages.md) own the verification instructions. Generated
+bundle manifests and `verification.json` record archive hashes, revision, and consumer evidence.
+These local checks establish installability of the current pre-v1 packages, not the remaining
+product stability or cross-browser release gates.

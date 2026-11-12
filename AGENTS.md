@@ -41,6 +41,8 @@ them. Re-read the routes when the task expands into another package.
   [`docs/reference/contract-conformance.md`](docs/reference/contract-conformance.md).
 - Tests or browser evidence: [`docs/agents/testing.md`](docs/agents/testing.md),
   [`TESTING.md`](TESTING.md), and the matching product reference.
+- Local package distribution: [`docs/development/local-packages.md`](docs/development/local-packages.md)
+  and the matching package guides.
 - Apps, servers, or ports: [`docs/agents/apps.md`](docs/agents/apps.md). For `apps/web`, also read
   [`apps/web/AGENTS.md`](apps/web/AGENTS.md) explicitly.
 - Roadmap decisions: [`docs/ROADMAP.md`](docs/ROADMAP.md) and all affected package guides.

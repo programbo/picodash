@@ -293,6 +293,16 @@ Movement consumes the release event's coordinates before commit, including when 
 has not arrived. It must not depend on a rendered preview frame or a drag hold to retain the final
 position.
 
+## Optional size-constraint feedback and local handle recipes
+
+`showSizeConstraintIndicator` defaults to `false`. An enabled indicator appears only for active
+constraints, immediately before the action menu and after the restore-size control. It may remain
+without a menu and does not change controller diagnostics or persisted state.
+
+The optional `@picodash/dashpanel/resize-handles.css` entrypoint publishes the executable edge and
+corner recipes from their owning package, so installed apps need no stylesheet from repository
+documentation or the Contract Lab. It is loaded after the required main stylesheet.
+
 ## Related decisions
 
 - [ADR 0004: DashPanel launcher item identity](../adr/0004-dashpanel-launcher-item-identity.md)

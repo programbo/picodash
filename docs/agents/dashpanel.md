@@ -44,3 +44,9 @@ the needed safe observation, improve it before building a DashPanel-specific ins
 Pure product tests own geometry and allocation. Component tests own React wiring, DOM, ARIA, and
 deterministic events. Contract Lab owns real pointer capture, layout, focus, portals, viewport,
 zoom, and cohesive browser seams.
+
+## Installed styles and local packages
+
+The required stylesheet is `@picodash/dashpanel/style.css`; optional handle recipes are published
+through `@picodash/dashpanel/resize-handles.css`. Keep their build/export artifact checks together.
+For local distribution, follow [the local package guide](../development/local-packages.md).

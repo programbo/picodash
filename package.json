@@ -69,7 +69,9 @@
     "artifacts:phone": "bun run --filter @picodash/lab artifacts:phone",
     "port:reserve": "node scripts/worktree-ports.mjs reserve",
     "port:release": "node scripts/worktree-ports.mjs release",
-    "prepare": "vp config"
+    "prepare": "vp config",
+    "package:local": "node scripts/package-local.mjs",
+    "package:local:verify": "node scripts/verify-local-packages.mjs"
   },
   "devDependencies": {
     "@testing-library/react": "catalog:",

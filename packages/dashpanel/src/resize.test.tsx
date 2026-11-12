@@ -589,6 +589,35 @@ describe('DashPanel manual sizing integration', () => {
     expect(panel.getBoundingClientRect().height).toBe(300)
   })
 
+  it('makes size-constraint feedback opt-in immediately before the action menu', async () => {
+    const { panel, rerender, getController, nexus } = await setup({ minHeight: 300 })
+    expect(getController().sizing?.constraints.length).toBeGreaterThan(0)
+    expect(panel.querySelector('[data-picodash-panel-size-limit]')).toBeNull()
+    const saved = nexus.getState()
+    await rerender({ minHeight: 300, showSizeConstraintIndicator: true })
+    const indicator = panel.querySelector('[data-picodash-panel-size-limit]')
+    const menu = panel.querySelector('[aria-label="Actions for Resize test"]')
+    expect(indicator?.getAttribute('aria-label')).toBe('Panel size is constrained')
+    expect(menu?.previousElementSibling).toBe(indicator)
+    expect(indicator?.closest('[data-slot="dash-header-actions"]')).not.toBeNull()
+    await rerender({ minHeight: 300, showSizeConstraintIndicator: false })
+    expect(panel.querySelector('[data-picodash-panel-size-limit]')).toBeNull()
+    await rerender({ showSizeConstraintIndicator: true })
+    expect(panel.querySelector('[data-picodash-panel-size-limit]')).toBeNull()
+    await rerender({
+      minHeight: 300,
+      showSizeConstraintIndicator: true,
+      actionMenu: false,
+      showCloseButton: false,
+      resize: false,
+    })
+    expect(
+      panel.querySelector('[data-slot="dash-header-actions"] [data-picodash-panel-size-limit]'),
+    ).not.toBeNull()
+    expect(panel.querySelector('[data-slot="dash-header-trailing"]')).toBeNull()
+    expect(nexus.getState()).toBe(saved)
+  })
+
   it('reports the final full-dock rectangle while retaining a dormant manual height', async () => {
     const { getController, panel, nexus } = await setup({
       defaultLayout: {

@@ -166,6 +166,7 @@ interface DashPanelProps<CustomTheme extends string = never> extends Omit<
   defaultCollapsed?: boolean
   collapsible?: boolean
   showCloseButton?: boolean
+  showSizeConstraintIndicator?: boolean
 
   onVisibilityChange?: (visible: boolean) => void
   onCollapsedChange?: (collapsed: boolean) => void
@@ -244,6 +245,12 @@ A non-text `title` requires an explicit `aria-label`. `collapsible={false}` with
 no reveal operation. Projecting an already collapsed Panel as a drawer or sheet temporarily renders
 its body expanded without mutating collapse state; returning to `panel` restores the same collapse
 state.
+
+`showSizeConstraintIndicator` defaults to `false`. When enabled and a sizing constraint is active,
+the noninteractive indicator appears immediately before the action menu, after Restore preferred
+size when present. Its tooltip lists active limits. It remains available without an action menu;
+controller sizing diagnostics remain available regardless of the prop. This is presentation only
+and never creates a durable preference.
 
 ## Scope and declarative lifecycle
 
@@ -1150,10 +1157,10 @@ The segments remain `aria-hidden` and `pointer-events: none`, and inherit the sa
 hover/focus/grab color, and forced-color rules. Keep those rules when changing their geometry so
 the button remains the single named, focusable drag target.
 
-The [executable CSS examples](../examples/dashpanel-resize-handles.css) provide independently
+The [packaged CSS recipes](../../packages/dashpanel/src/resize-handles.css) provide independently
 composable single/parallel external edge strokes, parallel internal edge strokes, perpendicular
-external corner brackets, and unequal parallel internal corner strokes. Load the example CSS after
-the package stylesheet. `resize-edges-parallel` adds a second edge stroke, and
+external corner brackets, and unequal parallel internal corner strokes. Import `@picodash/dashpanel/resize-handles.css` after
+`@picodash/dashpanel/style.css`. `resize-edges-parallel` adds a second edge stroke, and
 `resize-edges-external` positions either edge style outside. Combine them with either
 `resize-corners-external` or `resize-corners-internal` through `className`. The selectors can also be adapted to an application's named theme. Removing these
 example classes restores the single-line defaults. The recipes use the existing offset token for
@@ -1386,12 +1393,13 @@ does not create another equality or value-subscription API.
 
 ## Public package surfaces
 
-| Surface                           | Contract | Implementation | Purpose                                             |
-| --------------------------------- | -------- | -------------- | --------------------------------------------------- |
-| `@picodash/dashpanel`             | Accepted | Partial        | Provider, Panel, controller, actions, UI reexports. |
-| `@picodash/dashpanel/integration` | Accepted | Implemented    | Narrow default-action contribution seam.            |
-| `@picodash/dashpanel/catalog`     | Accepted | Planned        | Static accepted-component metadata.                 |
-| `@picodash/dashpanel/style.css`   | Accepted | Partial        | UI foundation plus Panel structural styles.         |
+| Surface                                  | Contract | Implementation | Purpose                                             |
+| ---------------------------------------- | -------- | -------------- | --------------------------------------------------- |
+| `@picodash/dashpanel`                    | Accepted | Partial        | Provider, Panel, controller, actions, UI reexports. |
+| `@picodash/dashpanel/integration`        | Accepted | Implemented    | Narrow default-action contribution seam.            |
+| `@picodash/dashpanel/catalog`            | Accepted | Planned        | Static accepted-component metadata.                 |
+| `@picodash/dashpanel/style.css`          | Accepted | Partial        | UI foundation plus Panel structural styles.         |
+| `@picodash/dashpanel/resize-handles.css` | Accepted | Verified       | Optional edge and corner handle recipes.            |
 
 There is no initial `@picodash/dashpanel/advanced` or `@picodash/dashpanel/ui` surface. Generic UI
 primitives remain canonically imported from `@picodash/ui`; DashPanel explicitly reexports only the
@@ -1421,3 +1429,10 @@ action ownership without an explicit contract revision.
 - [Component catalog target reference](catalog.md)
 - [Contract conformance](contract-conformance.md)
 - [Roadmap](../ROADMAP.md)
+
+## Local distribution
+
+`@picodash/dashpanel/resize-handles.css` is an optional public stylesheet entrypoint alongside the
+required main stylesheet. Its recipes are opt-in through the documented classes and use the same
+public segment hooks. The [local package guide](../development/local-packages.md) describes
+revision-stamped archives, installation, and isolated-consumer verification.

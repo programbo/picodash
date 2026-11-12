@@ -242,6 +242,7 @@ export interface DashPanelProps<CustomTheme extends string = never> extends Omit
   onCollapsedChange?: (collapsed: boolean) => void
   defaultVisible?: boolean
   showCloseButton?: boolean
+  showSizeConstraintIndicator?: boolean
   onVisibilityChange?: (visible: boolean) => void
   onRequestRemove?: (details: DashPanelRemoveRequest) => void
   actionMenu?: false | readonly ReactElement[]
@@ -810,6 +811,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
     defaultCollapsed,
     defaultVisible,
     showCloseButton = true,
+    showSizeConstraintIndicator = false,
     collapsible,
     onVisibilityChange,
     onRequestRemove,
@@ -3230,7 +3232,9 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                       </div>
                     ),
                     actions:
-                      durableLayout?.manualSize || renderActionMenu ? (
+                      durableLayout?.manualSize ||
+                      renderActionMenu ||
+                      (showSizeConstraintIndicator && renderedSizing?.constraints.length) ? (
                         <>
                           {durableLayout?.manualSize ? (
                             <Tooltip>
@@ -3268,6 +3272,25 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                               <TooltipContent>Restore preferred size</TooltipContent>
                             </Tooltip>
                           ) : null}
+                          {showSizeConstraintIndicator && renderedSizing?.constraints.length ? (
+                            <span
+                              data-picodash-panel-size-limit
+                              role="img"
+                              aria-label="Panel size is constrained"
+                              title={renderedSizing.constraints
+                                .map((reason) => `${reason.axis}: ${reason.code}`)
+                                .join(', ')}
+                            >
+                              <svg viewBox="0 0 16 16" aria-hidden="true">
+                                <path
+                                  d="M3 2v12M13 2v12M5 8h6M7 6 5 8l2 2m2-4 2 2-2 2"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  strokeWidth="1.5"
+                                />
+                              </svg>
+                            </span>
+                          ) : null}
                           {renderActionMenu ? (
                             <ActionMenu label={`Actions for ${panelName}`}>
                               {actionMenuChildren}
@@ -3276,7 +3299,7 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                         </>
                       ) : undefined,
                     trailing:
-                      showCloseButton || renderedSizing?.constraints.length || resize !== false ? (
+                      showCloseButton || resize !== false ? (
                         <div data-picodash-panel-actions>
                           {resize !== false ? (
                             <Tooltip>
@@ -3304,25 +3327,6 @@ const DashPanelImpl = forwardRef<HTMLElement, DashPanelProps<string>>(function D
                               </TooltipTrigger>
                               <TooltipContent>Resize panel</TooltipContent>
                             </Tooltip>
-                          ) : null}
-                          {renderedSizing?.constraints.length ? (
-                            <span
-                              data-picodash-panel-size-limit
-                              role="img"
-                              aria-label="Panel size is constrained"
-                              title={renderedSizing.constraints
-                                .map((reason) => `${reason.axis}: ${reason.code}`)
-                                .join(', ')}
-                            >
-                              <svg viewBox="0 0 16 16" aria-hidden="true">
-                                <path
-                                  d="M3 2v12M13 2v12M5 8h6M7 6 5 8l2 2m2-4 2 2-2 2"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  strokeWidth="1.5"
-                                />
-                              </svg>
-                            </span>
                           ) : null}
                           {showCloseButton ? (
                             <Button

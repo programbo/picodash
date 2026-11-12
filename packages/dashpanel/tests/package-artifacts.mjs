@@ -9,6 +9,7 @@ const expectedExports = {
   './integration': './dist/integration.mjs',
   './package.json': './package.json',
   './style.css': './dist/style.css',
+  './resize-handles.css': './dist/resize-handles.css',
 }
 
 async function exists(filePath) {
@@ -33,6 +34,7 @@ async function main() {
     'dist/integration.mjs',
     'dist/integration.d.mts',
     'dist/style.css',
+    'dist/resize-handles.css',
   ])
     assert.equal(await exists(path.join(packageRoot, file)), true, `missing ${file}`)
 
