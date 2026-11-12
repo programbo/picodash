@@ -243,7 +243,10 @@ parallel edges, perpendicular external corners, asymmetric parallel internal cor
 one/two-stroke designs. Both segments retain the common visibility and interaction-color policy.
 Visibility changes use reversible opacity, scale, and translation transitions from the nearest
 edge or corner, with shared theme timing and no layout or hit-target changes. Individual `scale`
-and `translate` leave theme-owned stroke transforms intact. Reduced motion removes these transitions.
+and `translate` leave theme-owned stroke transforms intact. Offset-derived travel reverses for
+external handles, so their reveal moves outward from the Panel. Straight edges scale only their
+line length around the centre; perpendicular example corners keep their shared intersection fixed
+while each stroke scales along its own length. Reduced motion removes these transitions.
 Decoration does not add another control, operation, or durable state.
 
 The supplementary border targets remain compact precision controls, with 20px corners and the

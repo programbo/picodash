@@ -341,7 +341,12 @@ function ResizeLabWorkspace({
           maxHeight: configuration.contentMaxHeight,
         }}
         className={cn('pointer-events-auto', {
-          'resize-edges-parallel': configuration.edgeHandles === 'parallel',
+          'resize-edges-parallel':
+            configuration.edgeHandles === 'parallel' ||
+            configuration.edgeHandles === 'external-parallel',
+          'resize-edges-external':
+            configuration.edgeHandles === 'external-single' ||
+            configuration.edgeHandles === 'external-parallel',
           'resize-corners-external': configuration.cornerHandles === 'external',
           'resize-corners-internal': configuration.cornerHandles === 'internal',
         })}

@@ -128,7 +128,7 @@ async function assertReversibleCueMotion(
   await expect(indicator).toHaveCSS('opacity', '0')
   const hidden = await readPose()
   const shown: CuePose = { opacity: [1], scale: [1, 1], translate: [...settledTranslate] }
-  expect(hidden.scale[0]).toBeLessThan(1)
+  expect(Math.min(...hidden.scale)).toBeLessThan(1)
   expect(
     Math.hypot(...hidden.translate.map((value, index) => value - shown.translate[index])),
   ).toBeGreaterThan(0)
@@ -211,8 +211,8 @@ async function assertReversibleCueMotion(
     }
     expect(sample.opacity.current[0]).toBeGreaterThan(0)
     expect(sample.opacity.current[0]).toBeLessThan(1)
-    expect(sample.scale.current[0]).toBeGreaterThan(hidden.scale[0])
-    expect(sample.scale.current[0]).toBeLessThan(1)
+    expect(Math.min(...sample.scale.current)).toBeGreaterThan(Math.min(...hidden.scale))
+    expect(Math.min(...sample.scale.current)).toBeLessThan(1)
     previous = {
       opacity: sample.opacity.current,
       scale: sample.scale.current,
@@ -235,6 +235,64 @@ async function assertReversibleCueMotion(
   }
 }
 
+async function sampleHandleReveal(panel: Locator, show: () => Promise<unknown>) {
+  const observation = panel.locator('[data-picodash-panel-resize-layer]').evaluate((layer) => {
+    const sample = () =>
+      Array.from(layer.querySelectorAll('[data-picodash-panel-resize-target]')).map((button) => ({
+        target: button.getAttribute('data-picodash-panel-resize-target') ?? '',
+        kind: button.getAttribute('data-picodash-panel-resize-kind'),
+        hit: [button.getBoundingClientRect().width, button.getBoundingClientRect().height],
+        strokes: Array.from(button.querySelectorAll('[data-picodash-panel-resize-segment]'))
+          .filter((segment) => getComputedStyle(segment).display !== 'none')
+          .map((segment) => {
+            const style = getComputedStyle(segment)
+            const rect = segment.getBoundingClientRect()
+            const scale = style.scale.split(/\s+/).map(Number.parseFloat)
+            const sx = scale[0],
+              sy = scale[1] ?? scale[0]
+            const translation = style.translate.split(/\s+/).map(Number.parseFloat)
+            const origin = style.transformOrigin.split(/\s+/).map(Number.parseFloat)
+            return {
+              width: rect.width,
+              height: rect.height,
+              scale: [sx, sy],
+              translation: [translation[0], translation[1] ?? 0],
+              anchor: [rect.left + origin[0] * sx, rect.top + origin[1] * sy],
+            }
+          }),
+      }))
+    return new Promise<ReturnType<typeof sample>[]>((resolve, reject) => {
+      const cleanup = () => {
+        clearTimeout(timeout)
+        layer.removeEventListener('transitionrun', inspect)
+      }
+      const inspect = (event: Event) => {
+        if (!(event instanceof TransitionEvent) || event.propertyName !== 'opacity') return
+        const animations = layer.getAnimations({ subtree: true }).flatMap((animation) => {
+          const duration = animation.effect?.getTiming().duration
+          return typeof duration === 'number' ? [{ animation, duration }] : []
+        })
+        for (const { animation } of animations) animation.pause()
+        const frames = [0, 0.5, 1].map((progress) => {
+          for (const { animation, duration } of animations)
+            animation.currentTime = duration * progress
+          return sample()
+        })
+        for (const { animation } of animations) animation.finish()
+        cleanup()
+        resolve(frames)
+      }
+      const timeout = setTimeout(() => {
+        cleanup()
+        reject(new Error('Expected resize cue reveal motion.'))
+      }, 3000)
+      layer.addEventListener('transitionrun', inspect)
+    })
+  })
+  await show()
+  return observation
+}
+
 async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: TestInfo) {
   await panel.evaluate((element) => element.scrollIntoView({ block: 'center' }))
   const originalBox = await box(panel)
@@ -250,16 +308,56 @@ async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: Te
       await page.mouse.move(0, 0)
     },
   )
-  for (const recipe of ['single', 'parallel', 'external', 'internal']) {
-    await edges.selectOption(recipe === 'single' ? 'single' : 'parallel')
-    await corners.selectOption(recipe === 'external' || recipe === 'internal' ? recipe : 'single')
-    await panel
-      .getByRole('button', { name: 'Resize panel Resize Panel from e', exact: true })
-      .hover()
+  for (const { recipe, edgeStyle, cornerStyle } of [
+    { recipe: 'single', edgeStyle: 'single', cornerStyle: 'single' },
+    { recipe: 'parallel', edgeStyle: 'parallel', cornerStyle: 'single' },
+    { recipe: 'external', edgeStyle: 'parallel', cornerStyle: 'external' },
+    { recipe: 'internal', edgeStyle: 'parallel', cornerStyle: 'internal' },
+    { recipe: 'external-single', edgeStyle: 'external-single', cornerStyle: 'single' },
+    { recipe: 'external-parallel', edgeStyle: 'external-parallel', cornerStyle: 'external' },
+  ]) {
+    await edges.selectOption(edgeStyle)
+    await corners.selectOption(cornerStyle)
+    await edges.focus()
+    await page.mouse.move(0, 0)
     await expect(edge.locator('[data-picodash-panel-resize-segment="primary"]')).toHaveCSS(
       'opacity',
-      '1',
+      '0',
     )
+    const frames = await sampleHandleReveal(panel, () => edge.hover())
+    const settled = frames[frames.length - 1]
+    for (const frame of frames)
+      for (const handle of frame) {
+        const rest = settled.find((candidate) => candidate.target === handle.target)
+        if (!rest) throw new Error('Expected the same resize target throughout motion.')
+        const external =
+          handle.kind === 'edge' ? edgeStyle.startsWith('external') : cornerStyle === 'external'
+        expect(handle.hit).toEqual(rest.hit)
+        for (const [index, stroke] of handle.strokes.entries()) {
+          const final = rest.strokes[index]
+          if (handle.kind === 'edge' || cornerStyle === 'external') {
+            for (const axis of [0, 1])
+              expect(stroke.anchor[axis] - stroke.translation[axis]).toBeCloseTo(
+                final.anchor[axis],
+                2,
+              )
+            if (final.width > final.height) expect(stroke.height).toBeCloseTo(final.height, 2)
+            else expect(stroke.width).toBeCloseTo(final.width, 2)
+          }
+        }
+        if (handle.kind === 'corner' && cornerStyle === 'external') {
+          const [horizontal, vertical] = handle.strokes
+          expect(horizontal.anchor[0]).toBeCloseTo(vertical.anchor[0], 2)
+          expect(horizontal.anchor[1]).toBeCloseTo(vertical.anchor[1], 2)
+        }
+        if (frame !== frames[0]) continue
+        const [x, y] = handle.strokes[0].translation
+        const direction = external ? -1 : 1
+        if (handle.target.includes('e')) expect(x * direction).toBeGreaterThan(0)
+        if (handle.target.includes('w')) expect(x * direction).toBeLessThan(0)
+        if (handle.target.includes('s')) expect(y * direction).toBeGreaterThan(0)
+        if (handle.target.includes('n')) expect(y * direction).toBeLessThan(0)
+      }
     const handles = await panel
       .locator('[data-picodash-panel-resize-target]')
       .evaluateAll((buttons) =>
@@ -298,7 +396,8 @@ async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: Te
         }),
       )
     for (const handle of handles) {
-      const dual = recipe !== 'single' && (handle.kind === 'edge' || recipe !== 'parallel')
+      const dual =
+        handle.kind === 'edge' ? edgeStyle.includes('parallel') : cornerStyle !== 'single'
       expect(handle.strokes).toHaveLength(dual ? 2 : 1)
       for (const stroke of handle.strokes) {
         expect(stroke.opacity).toBe('1')
@@ -306,12 +405,14 @@ async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: Te
         expect(stroke.translate).toBe('0px')
         expect(stroke.pointerEvents).toBe('none')
         expect(stroke.reachable).toBe(true)
-        expect(stroke.outside).toBe(recipe === 'external' && handle.kind === 'corner')
+        expect(stroke.outside).toBe(
+          handle.kind === 'edge' ? edgeStyle.startsWith('external') : cornerStyle === 'external',
+        )
       }
       if (!dual) continue
       const [primary, secondary] = handle.strokes
       if (!primary || !secondary) throw new Error('Expected two rendered resize segments.')
-      if (recipe === 'external' && handle.kind === 'corner') {
+      if (cornerStyle === 'external' && handle.kind === 'corner') {
         expect([primary.width, primary.height, secondary.width, secondary.height]).toEqual([
           14, 2, 2, 14,
         ])
@@ -347,7 +448,7 @@ async function assertResizeHandleThemes(page: Page, panel: Locator, testInfo: Te
     })
   }
   await page.setViewportSize({ width: 390, height: 844 })
-  await edges.selectOption('parallel')
+  await edges.selectOption('external-parallel')
   await corners.selectOption('external')
   await corners.scrollIntoViewIfNeeded()
   for (const control of [edges, corners]) {
@@ -1014,6 +1115,10 @@ test('supports numeric and keyboard sizing, placement-aware grips, and retained 
     await dimensions.click()
   await page.getByRole('combobox', { name: 'Declared placement', exact: true }).selectOption('free')
   await page.getByLabel('Preferred height', { exact: true }).fill('50%')
+  await page.getByRole('combobox', { name: 'Resize grips', exact: true }).selectOption('hidden')
+  await page
+    .getByRole('combobox', { name: 'Corner handle style', exact: true })
+    .selectOption('external')
   await page.getByRole('button', { name: 'Apply configuration', exact: true }).click()
   await expect(panel).toHaveAttribute('data-picodash-placement', 'floating-free')
   await expect(page.getByLabel('Manual panel size')).toHaveText('Automatic on both axes')
@@ -1023,6 +1128,21 @@ test('supports numeric and keyboard sizing, placement-aware grips, and retained 
   await expect
     .poll(async () => (await box(panel)).height)
     .toBeCloseTo((percentageBoundary.height - 2 * 16) / 2, 1)
+  const hiddenCorner = panel.getByRole('button', {
+    name: 'Resize panel Resize Panel from ne',
+    exact: true,
+  })
+  await expect(hiddenCorner.locator('[data-picodash-panel-resize-segment="primary"]')).toHaveCSS(
+    'opacity',
+    '0',
+  )
+  await hiddenCorner.press('Enter')
+  for (const segment of ['primary', 'secondary']) {
+    await expect(
+      hiddenCorner.locator(`[data-picodash-panel-resize-segment="${segment}"]`),
+    ).toHaveCSS('scale', '1')
+  }
+  await hiddenCorner.press('Escape')
   await expect(page.getByRole('region', { name: 'Contract Lab status', exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Take specimen offline', exact: true }).click()
   await expect(

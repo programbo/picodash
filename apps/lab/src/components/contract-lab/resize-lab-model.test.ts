@@ -18,8 +18,11 @@ describe('Resize Lab configuration', () => {
       edgeHandles: 'parallel',
       cornerHandles: 'external',
     }
-    window.sessionStorage.setItem(RESIZE_LAB_CONFIGURATION, JSON.stringify(configuration))
-    expect(readResizeConfiguration()).toEqual(configuration)
+    for (const edgeHandles of ['single', 'parallel', 'external-single', 'external-parallel']) {
+      const appearance = { ...configuration, edgeHandles }
+      window.sessionStorage.setItem(RESIZE_LAB_CONFIGURATION, JSON.stringify(appearance))
+      expect(readResizeConfiguration()).toEqual(appearance)
+    }
     for (const unsupported of [{ edgeHandles: 'triple' }, { cornerHandles: 'round' }]) {
       window.sessionStorage.setItem(
         RESIZE_LAB_CONFIGURATION,

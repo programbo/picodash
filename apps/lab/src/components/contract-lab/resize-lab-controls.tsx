@@ -196,6 +196,8 @@ export function ResizeLabControls({
           options={[
             { value: 'single', label: 'Single line' },
             { value: 'parallel', label: 'Parallel lines' },
+            { value: 'external-single', label: 'External single line' },
+            { value: 'external-parallel', label: 'External parallel lines' },
           ]}
           onChange={(edgeHandles) =>
             onHandleAppearanceChange({ edgeHandles, cornerHandles: draft.cornerHandles })

@@ -766,8 +766,11 @@ changes placement, or saves peer allocation. Dock resizing updates relevant allo
 
 Resize is enabled by default on eligible axes. `handles='auto'` reveals grips on hover/focus and
 keeps them visible on coarse pointers; `always` keeps decoration visible; `hidden` hides only
-decoration. Grip segments fade and scale from 80% while sliding 4px from their nearest edge; corner
-grips slide along both adjoining axes. Shared theme duration and easing keep all three properties
+decoration. Grip segments fade and scale from 80% while sliding up to 4px from their nearest edge;
+corner grips slide along both adjoining axes. The resolved offset controls travel direction, so
+external handles emerge away from the Panel rather than moving toward it. Edge line lengths scale
+from their centres without changing stroke thickness. Perpendicular example strokes scale from
+their shared intersection; diagonal corner strokes preserve their angles. Shared theme duration and easing keep all three properties
 together. Reversing hover/focus state continues from the current pose without restarting. Reduced
 motion makes these changes immediate. Hit targets remain active throughout. Directional cursors,
 focus feedback, keyboard access, and the non-drag control remain.
@@ -1139,22 +1142,27 @@ hooks:
 Both spans share one grid cell. The primary span draws the existing single line; the secondary
 span starts with `display: none`. A theme can reveal it with `display: block` and set each segment's
 size, transform, or self-alignment. Show/hide motion uses the individual `scale` and `translate`
-properties, leaving theme-owned `transform` geometry intact. Edge percentages continue to resolve against the button's length.
+properties, leaving theme-owned `transform` geometry intact. Straight edge strokes use centre origins
+and scale only along their long axis. The perpendicular corner recipe sets each stroke's origin
+at the shared centreline intersection. Edge percentages continue to resolve against the button's
+length.
 The segments remain `aria-hidden` and `pointer-events: none`, and inherit the same handle visibility,
 hover/focus/grab color, and forced-color rules. Keep those rules when changing their geometry so
 the button remains the single named, focusable drag target.
 
 The [executable CSS examples](../examples/dashpanel-resize-handles.css) provide independently
-composable parallel edge strokes, perpendicular external corner brackets, and unequal parallel
-internal corner strokes. Load the example CSS after the package stylesheet and apply
-`resize-edges-parallel` with either `resize-corners-external` or `resize-corners-internal` through
-`className`. The selectors can also be adapted to an application's named theme. Removing these
+composable single/parallel external edge strokes, parallel internal edge strokes, perpendicular
+external corner brackets, and unequal parallel internal corner strokes. Load the example CSS after
+the package stylesheet. `resize-edges-parallel` adds a second edge stroke, and
+`resize-edges-external` positions either edge style outside. Combine them with either
+`resize-corners-external` or `resize-corners-internal` through `className`. The selectors can also be adapted to an application's named theme. Removing these
 example classes restores the single-line defaults. The recipes use the existing offset token for
 external target placement and add no resize props or state.
 
 In the Contract Lab, open **Placement → Resize lab** and use the **Handle appearance** selectors.
-Edge and corner styles apply immediately, independently of the sizing form. The Lab retains the
-choices in its session configuration; **Reset resize example** restores single-line handles.
+Edge choices include internal and external single/parallel lines. Edge and corner styles apply
+immediately, independently of the sizing form. The Lab retains the choices in its session
+configuration; **Reset resize example** restores single-line handles.
 
 Magnetic motion is independent of the live transform rather than a transition on Panel position.
 Duration accepts a non-negative CSS time. Bounce accepts a unitless value from `0` through `0.25`;

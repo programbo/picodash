@@ -1,8 +1,19 @@
 /*
  * Optional application/theme recipes, loaded after @picodash/dashpanel/style.css.
- * Apply resize-edges-parallel plus either corner class to a DashPanel, or replace
+ * Compose resize-edges-parallel, resize-edges-external, and a corner class, or replace
  * those classes with your named theme selector. Omit them for single-line grips.
  */
+
+/* Exterior single or parallel edges. The shell derives reveal direction from this offset. */
+.resize-edges-external [data-picodash-panel-resize-kind='edge'] {
+  --picodash-panel-resize-offset: 12px;
+}
+
+@media (pointer: coarse) {
+  .resize-edges-external [data-picodash-panel-resize-kind='edge'] {
+    --picodash-panel-resize-offset: 16px;
+  }
+}
 
 /* Parallel edge strokes share one hit target and keep percentage grip lengths. */
 .resize-edges-parallel
@@ -38,6 +49,9 @@
 /* Outward corner brackets. The complete button moves with its two strokes. */
 .resize-corners-external [data-picodash-panel-resize-kind='corner'] {
   --picodash-panel-resize-offset: 8px;
+  --handle-stroke-width: 2px;
+  --handle-junction-x: calc(var(--handle-stroke-width) / 2);
+  --handle-junction-y: calc(var(--handle-stroke-width) / 2);
 }
 
 .resize-corners-external
@@ -45,15 +59,24 @@
   > [data-picodash-panel-resize-segment] {
   display: block;
   inline-size: 14px;
-  block-size: 2px;
+  block-size: var(--handle-stroke-width);
   transform: none;
 }
 
 .resize-corners-external
   [data-picodash-panel-resize-kind='corner']
+  > [data-picodash-panel-resize-segment='primary'] {
+  scale: 0.8 1;
+  transform-origin: var(--handle-junction-x) center;
+}
+
+.resize-corners-external
+  [data-picodash-panel-resize-kind='corner']
   > [data-picodash-panel-resize-segment='secondary'] {
-  inline-size: 2px;
+  inline-size: var(--handle-stroke-width);
   block-size: 14px;
+  scale: 1 0.8;
+  transform-origin: center var(--handle-junction-y);
 }
 
 .resize-corners-external
@@ -66,6 +89,7 @@
   :is([data-picodash-panel-resize-target='ne'], [data-picodash-panel-resize-target='se'])
   > [data-picodash-panel-resize-segment] {
   justify-self: end;
+  --handle-junction-x: calc(100% - var(--handle-stroke-width) / 2);
 }
 
 .resize-corners-external
@@ -78,6 +102,7 @@
   :is([data-picodash-panel-resize-target='sw'], [data-picodash-panel-resize-target='se'])
   > [data-picodash-panel-resize-segment] {
   align-self: end;
+  --handle-junction-y: calc(100% - var(--handle-stroke-width) / 2);
 }
 
 /* Two parallel diagonals: the shorter stroke sits nearer each inside corner. */

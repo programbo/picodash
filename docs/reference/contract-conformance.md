@@ -168,7 +168,14 @@ targets retain their existing geometry checks. Reduced-motion changes are immedi
 portal regression checks that decorative opacity/scale/translation end/cancel events never cause
 intrinsic measurement. The three Resize Lab journeys pass in 18.7 seconds
 (`output/scroll-fade/scale-translate-browser.log`), with no added
-browser test. A dark-theme visual capture is `output/scroll-fade/dark-indicators.png`. These are local browser
+browser test. The same appearance journey also samples all resize cues at the start, midpoint,
+and end of reveal. It checks inward/outward travel on all eight targets, fixed edge centres and
+stroke thickness, and coincident perpendicular intersections throughout scaling. Both external
+single and parallel edge choices are driven through the public Lab selector; configuration tests
+verify their session restoration. The keyboard journey also checks both perpendicular strokes
+reach full size when a hidden-decoration corner is picked up, then cancels without resizing. All
+three Resize Lab journeys pass in 22.0 seconds (`output/scroll-fade/external-handles-browser.log`);
+the four Lab configuration tests, Panel stylesheet tests, workspace checks, and artifact gates pass. A dark-theme visual capture is `output/scroll-fade/dark-indicators.png`. These are local browser
 results, not cross-browser or owner hands-on acceptance.
 
 M3 owner hands-on approval was recorded on 2026-09-09. The persistence journey also covers Console
