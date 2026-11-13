@@ -116,3 +116,7 @@ The combined Linux browser run exhausted the default 30-second whole-test budget
 Each spans hundreds of lines of independent actions, reloads or presentation checks. They now use the same 60-second journey budget
 as the other long composed scenario; ordinary assertion deadlines remain unchanged, with no retries, skips or extra test lane.
 Both targeted journeys passed together locally (12.1 and 17.4 seconds).
+
+The next Linux run passed both complete browser suites. The combined workspace unit run measured 5.7 seconds for the 10,000-event move
+stress case, beyond its default five-second deadline. Both intentional 10,000-event stress cases now have a ten-second budget;
+their 600-frame coalescing, event order, preview, atomic-write and cleanup assertions remain unchanged.

@@ -2233,18 +2233,18 @@
       ]
     },
     "source:docs/internal/consolidation-audit.md": {
-      "fingerprint": "b101880ebd47e05d5e2e591f454a6290b9e90a00d455b50d782217be9a04101f",
+      "fingerprint": "3b9d8e8e991cac2e487d749a4878fd867a3adbdd7af4c47255fea9bb3a7be1b7",
       "snapshot": {
-        "docs/internal/consolidation-audit.md": "abd029f873fde124f9be883516ce5e615b34a204e836ab3a267fdeb299c2346c"
+        "docs/internal/consolidation-audit.md": "1a2d6a06743de981b3cc38310116dbb79c336a93a0c1911b86c89a5a239211ca"
       },
-      "head": "7ef73bd063e1aa3bfe7e730056115e734faaa665",
+      "head": "158aa6904987fa60a1c6c58907df295d184e4db6",
       "outcome": "no-change",
-      "reason": "Two cohesive browser journeys exhausted their default 30-second whole-test budget late in Linux CI. They now use the established 60-second long-journey budget while preserving individual assertion deadlines, all behaviors, normal suite admission and zero retries. Both targeted journeys passed together locally at 12.1 and 17.4 seconds. The integration evidence records this distinction. Both public consumer recipes and all three planning documents remain accurate.",
+      "reason": "The Linux combined workspace run measured 5.7 seconds for 10000 real DOM pointer dispatches and 600 controlled frames, exceeding the inherited five-second test deadline. Both explicit stress scenarios now have ten-second budgets with identical sample counts, coalescing, terminal event, single-write and cleanup assertions. All 27 resize tests pass. Public behavior, both consumer task guides and all three planning documents are unchanged.",
       "evidence": [
         "docs/internal/consolidation-audit.md",
-        "/tmp/picodash-long-journeys.log: 2/2 passed.",
-        "vp check: zero formatting, lint or type errors. docs:check and Lab 23-test cap passed.",
-        "GitHub Actions run 43360881476: whole-test deadline expired late at reset-dialog cancellation and style-lab reveal focus; no individual-assertion deadline was extended."
+        "GitHub Actions run 43361424741, quality job: stress case timed out after 5749 ms; complete Lab and website suites passed.",
+        "bun run --cwd packages/dashpanel test src/resize.test.tsx: 27/27 passed.",
+        "vp check and docs:check passed. No new guidance or independent consumer task is claimed."
       ]
     },
     "source:docs/internal/d1-nexus-dashpanel-decision.md": {
@@ -3028,18 +3028,18 @@
       ]
     },
     "source:packages/dashpanel/src/resize.test.tsx": {
-      "fingerprint": "41a57e072a7c20fb20cbef04295b98266b8044838d42ce3c162f39d60c19bd5d",
+      "fingerprint": "4a41ef3b3d41888011b210e6711525ff981668ecda5130c5ada7a91237e5a0a2",
       "snapshot": {
-        "packages/dashpanel/src/resize.test.tsx": "1ee118a28f8cf2c8952a1883fdc6379753ac538b89959c9b34a0a406453dfa7f"
+        "packages/dashpanel/src/resize.test.tsx": "7d0b6233fc18d94a9ce95bf2b095ffa7121ef5529b9a84d2f7ebcdf1f5016813"
       },
-      "head": "6d8710efc4cb5ce3ba18be9faa24a87972284b94",
+      "head": "158aa6904987fa60a1c6c58907df295d184e4db6",
       "outcome": "no-change",
-      "reason": "The manually driven 600-frame telemetry test now uses synchronous act for each controlled frame instead of 1200 unnecessary scheduler waits. It still sends 10000 inputs, verifies exactly 600 updates and one terminal commit, and all 27 resize tests pass. No public behavior or task guidance changes.",
+      "reason": "The Linux combined workspace run measured 5.7 seconds for 10000 real DOM pointer dispatches and 600 controlled frames, exceeding the inherited five-second test deadline. Both explicit stress scenarios now have ten-second budgets with identical sample counts, coalescing, terminal event, single-write and cleanup assertions. All 27 resize tests pass. Public behavior, both consumer task guides and all three planning documents are unchanged.",
       "evidence": [
         "packages/dashpanel/src/resize.test.tsx",
-        "Full bun run ready: passed; Lab 23/23 and website 3/3.",
-        "Cold CI-equivalent facade release: passed 35 tests; resize suite: 27/27; focused help browser journey: 1/1.",
-        "vp check: zero warnings, lint errors or type errors; docs:check: 6 packages, 244 archive files and 38 current Markdown files verified."
+        "GitHub Actions run 43361424741, quality job: stress case timed out after 5749 ms; complete Lab and website suites passed.",
+        "bun run --cwd packages/dashpanel test src/resize.test.tsx: 27/27 passed.",
+        "vp check and docs:check passed. No new guidance or independent consumer task is claimed."
       ]
     },
     "source:packages/dashpanel/src/runtime/class-name.ts": {

@@ -478,7 +478,7 @@ describe('DashPanel manual sizing integration', () => {
     expect(writes).toHaveBeenCalledTimes(1)
     expect(captures.size).toBe(0)
     unsubscribe()
-  })
+  }, 10_000)
 
   it('cancels a started gesture when declared bounds change without committing stale geometry', async () => {
     const { panel, nexus, rerender } = await setup()
@@ -772,7 +772,7 @@ describe('DashPanel manual sizing integration', () => {
     expect(nexus.scope('test').getState().scope?.dashPanel?.manualSize).toEqual({ width: 280 })
     expect(captures.size).toBe(0)
     unsubscribe()
-  })
+  }, 10_000)
 
   it('publishes one cancellation before entity release and leaves repeated sessions clean', async () => {
     const { nexus, panel } = await setup()
