@@ -41,11 +41,11 @@
       ]
     },
     "planning:_artifacts": {
-      "fingerprint": "99e7d7874c72d8633d4ae8fbcfba31d0878ed1b6a1a5383102a6fbc5bf63d216",
+      "fingerprint": "2a4aa29a2ca25218dc4d529784529f6c8059f17fb3ea37ab78414acbacbfb961",
       "snapshot": {
         "_artifacts/domain_map.yaml": "d3bd35d720876c43178081faa0acd96b1a960ef86c87dfc8012d827e4eeec2f2",
         "_artifacts/skill_spec.md": "b1442cc3190a0d79b29bab3c936f47a6093a3bd18c7e4f74874c97a11a422da1",
-        "_artifacts/skill_tree.yaml": "6cfbc72e869d9172b0f6ccd5e739c05ed0480618061def309e8b1b96c8871eed",
+        "_artifacts/skill_tree.yaml": "37b4ca7e246a4708e1c299c9529c7af56d7f041f6d68d38882b3e7a9ec511a5c",
         "docs/development/consumer-recipes.md": "ab82a3d53783e68487399446ae2e16f4403016a5d3fe6f881e0b82df2a948999",
         "docs/reference/dashpanel.md": "e3051310c329dc0f346d2d888ad80833e8523c3f611c0b0f1f808c85e397c9ac",
         "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md": "568707e728b31c8938b3af014f5a9adb028701515704aee8e4922af47463af52",
@@ -57,14 +57,14 @@
         "packages/picodash/tests/dogfood/ContextualShortcuts.tsx": "307436a18730d56472fd82801077689cb1ccebb13d637e484831981e5ff4229c",
         "packages/picodash/tests/dogfood/Controls.tsx": "e7d5be9fe8ab927c4518179a7a07f787b4cff657186426e982a9e13927b10e8a"
       },
-      "head": "e72ae6fff7ea458f09c10f9ee5383d53c013f4b2",
+      "head": "6d8710efc4cb5ce3ba18be9faa24a87972284b94",
       "outcome": "updated",
-      "reason": "Reviewed and retained the two agreed consumer tasks across domain_map.yaml, skill_spec.md and skill_tree.yaml. Added consolidation history and excluded inert archival records; no generic Nexus extension or new skill is claimed.",
+      "reason": "Reviewed all three planning documents. The domain map and task specification still cover the same two public consumer tasks. The tree now excludes generated Playwright results from source review; archived documentation remains excluded. No consumer guidance or task scope changed.",
       "evidence": [
         "_artifacts",
-        "docs/internal/consolidation-audit.md records 493 Nexus, 88 UI, 263 Panel, 330 Stack, 33 facade, 62 Bridge and 30 Lab model/driver tests; final complete Lab 23/23 and website 3/3 passed.",
-        "Isolated trial 0.1.0-dogfood.56 passed install, repeat/frozen install, typechecking, component interactions and Vite/Next builds; no new independent task implementation was generated in this run.",
-        "bun run docs:check verifies six package inventories, 32 generated files, 244 byte-exact archived files and current Markdown links. Source/guidance diffs and all three planning records reviewed."
+        "Full bun run ready: passed; Lab 23/23 and website 3/3.",
+        "Cold CI-equivalent facade release: passed 35 tests; resize suite: 27/27; focused help browser journey: 1/1.",
+        "vp check: zero warnings, lint errors or type errors; docs:check: 6 packages, 244 archive files and 38 current Markdown files verified."
       ]
     },
     "source:apps/lab/src/components/contract-lab/specimen.tsx": {
@@ -83,18 +83,18 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "b22a9f11902e0a6014b5ab313ed806398692c113f8fcf07ded6a6cab1f5d9751",
+      "fingerprint": "95c8f6e597a17a9a8a5676dc1cf22305cdd93c5f6ae42acddfb966c54c09cd90",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "c8702f6ccdcd768cd586b38ee4af72fd4d6f984fb383e44b36e4d198ab8594c0"
+        "apps/lab/tests/contract-lab.spec.ts": "0ddca0d6baa3e43113e8ba48baa6dd89964f91d97c230bf635cbe2d3fae20a6f"
       },
-      "head": "e72ae6fff7ea458f09c10f9ee5383d53c013f4b2",
+      "head": "6d8710efc4cb5ce3ba18be9faa24a87972284b94",
       "outcome": "no-change",
-      "reason": "Reviewed workspace, application and tooling changes as verification/delivery support for the existing two consumer tasks. Port loading, sequential builds and archive/API checks introduce no new guide-level application API or required task step.",
+      "reason": "The help journey now asserts dialog focus and completed dismissal between keyboard actions, preventing subsequent keys from racing autofocus or retained exits. Public behavior and the two binding/shortcut task recipes are unchanged; focused Chromium help journey passed.",
       "evidence": [
         "apps/lab/tests/contract-lab.spec.ts",
-        "docs/internal/consolidation-audit.md records 493 Nexus, 88 UI, 263 Panel, 330 Stack, 33 facade, 62 Bridge and 30 Lab model/driver tests; final complete Lab 23/23 and website 3/3 passed.",
-        "Isolated trial 0.1.0-dogfood.56 passed install, repeat/frozen install, typechecking, component interactions and Vite/Next builds; no new independent task implementation was generated in this run.",
-        "bun run docs:check verifies six package inventories, 32 generated files, 244 byte-exact archived files and current Markdown links. Source/guidance diffs and all three planning records reviewed."
+        "Full bun run ready: passed; Lab 23/23 and website 3/3.",
+        "Cold CI-equivalent facade release: passed 35 tests; resize suite: 27/27; focused help browser journey: 1/1.",
+        "vp check: zero warnings, lint errors or type errors; docs:check: 6 packages, 244 archive files and 38 current Markdown files verified."
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -1467,18 +1467,18 @@
       ]
     },
     "source:.github/workflows/ci.yml": {
-      "fingerprint": "b88ebf24b6d5bc1af801b644153bd9879855f9c2ca5841d6210373a942ea4738",
+      "fingerprint": "c359bbdfdf13fd002e9c0e685b84779e8b6184909811f7308a87c28d2cb91b85",
       "snapshot": {
-        ".github/workflows/ci.yml": "7d30acd386be7c1dab4ec2a2a848817e6fbe6e41f1a6e69db9404222d33d1fbb"
+        ".github/workflows/ci.yml": "83b6c7f91c772f4031e6876bc602790f23d7d5f51018b3334e2b52c9cfb64d7b"
       },
-      "head": "e72ae6fff7ea458f09c10f9ee5383d53c013f4b2",
+      "head": "6d8710efc4cb5ce3ba18be9faa24a87972284b94",
       "outcome": "no-change",
-      "reason": "Reviewed workspace, application and tooling changes as verification/delivery support for the existing two consumer tasks. Port loading, sequential builds and archive/API checks introduce no new guide-level application API or required task step.",
+      "reason": "The standalone facade CI prebuild now includes its already-declared Bridge development dependency used by dogfood fixtures. Product runtime dependencies and both public task recipes are unchanged. Cold facade and Bridge outputs were moved aside; the exact CI foundation setup and facade release passed all checks and 35 tests.",
       "evidence": [
         ".github/workflows/ci.yml",
-        "docs/internal/consolidation-audit.md records 493 Nexus, 88 UI, 263 Panel, 330 Stack, 33 facade, 62 Bridge and 30 Lab model/driver tests; final complete Lab 23/23 and website 3/3 passed.",
-        "Isolated trial 0.1.0-dogfood.56 passed install, repeat/frozen install, typechecking, component interactions and Vite/Next builds; no new independent task implementation was generated in this run.",
-        "bun run docs:check verifies six package inventories, 32 generated files, 244 byte-exact archived files and current Markdown links. Source/guidance diffs and all three planning records reviewed."
+        "Full bun run ready: passed; Lab 23/23 and website 3/3.",
+        "Cold CI-equivalent facade release: passed 35 tests; resize suite: 27/27; focused help browser journey: 1/1.",
+        "vp check: zero warnings, lint errors or type errors; docs:check: 6 packages, 244 archive files and 38 current Markdown files verified."
       ]
     },
     "source:.gitignore": {
@@ -2142,18 +2142,18 @@
       ]
     },
     "source:docs/design/nexus-api-audit.md": {
-      "fingerprint": "12dddb79b5f5418ed15d85a3b2d2e1fa91f1971249206a7b014be8a260bd5c2f",
+      "fingerprint": "94e906cca6eb443c6ca176dc766f4594741508b435fe793aa42c90981afa1133",
       "snapshot": {
-        "docs/design/nexus-api-audit.md": "8712f81be334404f23bdd343853d8ea08ad802e9a7c9c4fdf20025a3358d86a5"
+        "docs/design/nexus-api-audit.md": "56588f7d85f509d5e2cc57a4216c43a00bdfd4c345f18cb65fcd37d38da218c2"
       },
-      "head": "e72ae6fff7ea458f09c10f9ee5383d53c013f4b2",
+      "head": "6d8710efc4cb5ce3ba18be9faa24a87972284b94",
       "outcome": "no-change",
-      "reason": "This source documents or verifies the consolidated implementation and archival reset. Current references and API inventories replace stale target/status claims; the two existing task guides keep valid imports and link to their current owning references. No additional independently useful task guide is required by this change.",
+      "reason": "Repaired a malformed Markdown table cell for the two closed entity kind names. Ownership findings and proposed-versus-implemented distinctions are unchanged. Neither retained consumer task needs revised guidance.",
       "evidence": [
         "docs/design/nexus-api-audit.md",
-        "docs/internal/consolidation-audit.md records 493 Nexus, 88 UI, 263 Panel, 330 Stack, 33 facade, 62 Bridge and 30 Lab model/driver tests; final complete Lab 23/23 and website 3/3 passed.",
-        "Isolated trial 0.1.0-dogfood.56 passed install, repeat/frozen install, typechecking, component interactions and Vite/Next builds; no new independent task implementation was generated in this run.",
-        "bun run docs:check verifies six package inventories, 32 generated files, 244 byte-exact archived files and current Markdown links. Source/guidance diffs and all three planning records reviewed."
+        "Full bun run ready: passed; Lab 23/23 and website 3/3.",
+        "Cold CI-equivalent facade release: passed 35 tests; resize suite: 27/27; focused help browser journey: 1/1.",
+        "vp check: zero warnings, lint errors or type errors; docs:check: 6 packages, 244 archive files and 38 current Markdown files verified."
       ]
     },
     "source:docs/development/dashlet-motion.md": {
@@ -2232,18 +2232,18 @@
       ]
     },
     "source:docs/internal/consolidation-audit.md": {
-      "fingerprint": "b20974509f6b411940747c846ae84df17c77b47ce93b7cfa40bbd8f81627312a",
+      "fingerprint": "5cd576c9f738d09f640094f1396d53f7e892c44f61229b739c5645fca3a3e7c4",
       "snapshot": {
-        "docs/internal/consolidation-audit.md": "a1319bc7a59c3d35cf0878effb65c6b83db1f80cab1ce61d688458c926cedb8e"
+        "docs/internal/consolidation-audit.md": "6a69c42f338ce182feb739a1d31f32e6d08a56a70d568851d00078420bf7b240"
       },
-      "head": "bf13b5a68b97ba667ab49ba1ae53b74d8eb93e4c",
+      "head": "6d8710efc4cb5ce3ba18be9faa24a87972284b94",
       "outcome": "no-change",
-      "reason": "Fresh-checkout CI correction builds the facade before public example typechecks and moves Motion engine/keyframe assertions into deterministic owning tests. Browser tests retain phase, transfer, editor identity, focus, drag and responsive outcomes. Removed an accidentally tracked generated last-run result; it is ignored and carries no guidance. The two task guides and the three planning records remain accurate without a new consumer API.",
+      "reason": "Recorded the successful complete release gate, cold facade/Bridge dependency proof, and targeted CI test corrections. This updates verification evidence without changing the two public consumer recipes or claiming independent agent task authorship.",
       "evidence": [
         "docs/internal/consolidation-audit.md",
-        "Deleted facade dist; its release check passed build, lint/types, 35 tests, artifact assertions and pack dry-run.",
-        "Focused retained-group browser journey passed; docs/internal/consolidation-audit.md records Linux failures and replacement evidence.",
-        "Generated last-run JSON is excluded by .gitignore; no task guide or public source was removed."
+        "Full bun run ready: passed; Lab 23/23 and website 3/3.",
+        "Cold CI-equivalent facade release: passed 35 tests; resize suite: 27/27; focused help browser journey: 1/1.",
+        "vp check: zero warnings, lint errors or type errors; docs:check: 6 packages, 244 archive files and 38 current Markdown files verified."
       ]
     },
     "source:docs/internal/d1-nexus-dashpanel-decision.md": {
@@ -3027,18 +3027,18 @@
       ]
     },
     "source:packages/dashpanel/src/resize.test.tsx": {
-      "fingerprint": "aea792ed58825874ca48906334153bb5aee5f74c21ba81b0a38ea05b70c6b08a",
+      "fingerprint": "41a57e072a7c20fb20cbef04295b98266b8044838d42ce3c162f39d60c19bd5d",
       "snapshot": {
-        "packages/dashpanel/src/resize.test.tsx": "0fcd492ea8cffa69e4492da478f6fb38a42a7d2dd0729b61f6cb09933fb5ab5e"
+        "packages/dashpanel/src/resize.test.tsx": "1ee118a28f8cf2c8952a1883fdc6379753ac538b89959c9b34a0a406453dfa7f"
       },
-      "head": "e72ae6fff7ea458f09c10f9ee5383d53c013f4b2",
+      "head": "6d8710efc4cb5ce3ba18be9faa24a87972284b94",
       "outcome": "no-change",
-      "reason": "Reviewed sizing, shortcut chrome, detached transfer and shared presentation seams. These preserve the guide tasks and public lifetime/ownership rules. Browser and package evidence exercise their composition; no new consumer setup is needed.",
+      "reason": "The manually driven 600-frame telemetry test now uses synchronous act for each controlled frame instead of 1200 unnecessary scheduler waits. It still sends 10000 inputs, verifies exactly 600 updates and one terminal commit, and all 27 resize tests pass. No public behavior or task guidance changes.",
       "evidence": [
         "packages/dashpanel/src/resize.test.tsx",
-        "docs/internal/consolidation-audit.md records 493 Nexus, 88 UI, 263 Panel, 330 Stack, 33 facade, 62 Bridge and 30 Lab model/driver tests; final complete Lab 23/23 and website 3/3 passed.",
-        "Isolated trial 0.1.0-dogfood.56 passed install, repeat/frozen install, typechecking, component interactions and Vite/Next builds; no new independent task implementation was generated in this run.",
-        "bun run docs:check verifies six package inventories, 32 generated files, 244 byte-exact archived files and current Markdown links. Source/guidance diffs and all three planning records reviewed."
+        "Full bun run ready: passed; Lab 23/23 and website 3/3.",
+        "Cold CI-equivalent facade release: passed 35 tests; resize suite: 27/27; focused help browser journey: 1/1.",
+        "vp check: zero warnings, lint errors or type errors; docs:check: 6 packages, 244 archive files and 38 current Markdown files verified."
       ]
     },
     "source:packages/dashpanel/src/runtime/class-name.ts": {

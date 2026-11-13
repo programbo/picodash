@@ -50,3 +50,4 @@ distribution:
 review:
   ignore:
     - docs/archive/**
+    - '**/test-results/**'

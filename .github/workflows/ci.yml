@@ -164,8 +164,8 @@ jobs:
           run-install: |
             args: ['--frozen-lockfile']
 
-      - name: Build Picodash foundations
-        run: bun run --filter @picodash/nexus build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashstack build
+      - name: Build Picodash foundations and fixture dependencies
+        run: bun run --filter @picodash/nexus build && bun run --filter @picodash/ui build && bun run --filter @picodash/dashpanel build && bun run --filter @picodash/dashstack build && bun run --filter @picodash/dev-bridge build
 
       - name: Check Picodash alpha release
         run: bun run --filter @picodash/picodash release:check

@@ -449,7 +449,7 @@ describe('DashPanel manual sizing integration', () => {
     let samples = 0
     let lastX = 20
     for (let tick = 0; tick < 600; tick += 1) {
-      await act(async () => {
+      act(() => {
         const end = Math.floor(((tick + 1) * 1000) / 60)
         while (samples < end) {
           samples += 1
@@ -457,7 +457,7 @@ describe('DashPanel manual sizing integration', () => {
           handle.dispatchEvent(pointer('pointermove', lastX, 30))
         }
       })
-      await act(async () => {
+      act(() => {
         const pending = Array.from(frames.entries())
         frames.clear()
         for (const [, callback] of pending) callback((tick + 1) * (1000 / 60))

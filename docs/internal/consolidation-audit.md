@@ -66,8 +66,8 @@ No generic Nexus extension extraction is claimed by this consolidation.
 | Public API inventory and agent/motion artifacts        | Passed after documentation rebuild                                                                                     |
 
 The final complete Lab rerun passed all 23 tests and the website suite passed all 3 tests.
-The release command passed the audit, six package release checks, artifact/document checks, workspace checks, all unit suites,
-both app builds and all three clean evaluation-seed builds. One earlier Lab run stopped at a help-overlay keyboard-toggle assertion;
+The final full `bun run ready` passed the audit, six package release checks, artifact/document checks, workspace checks, all unit suites,
+both app builds, all three clean evaluation-seed builds and both complete browser suites. One earlier Lab run stopped at a help-overlay keyboard-toggle assertion;
 that assertion passed its focused rerun and the subsequent complete Lab run. No retry lane, skip or quarantine was added.
 
 An isolated installed consumer of trial `0.1.0-dogfood.56` passed install, repeat install, frozen reinstall, typechecking,
@@ -98,3 +98,12 @@ The Linux browser run also rejected an assumption that every Motion flight appea
 Flight direction, keyframes, cancellation fencing, cleanup and reduced-motion behavior now have two deterministic owning tests.
 The browser journey retains phase, real transfer, retained editor, focus, pointer and responsive outcomes without depending on Motion's native/JS engine.
 No skip, retry-only lane or quarantined test was introduced.
+
+The next fresh job found that the standalone facade release omitted its already-declared Bridge development dependency from the prebuild.
+That job now builds Bridge alongside its product foundations. Moving both Bridge and facade output aside, then executing the exact setup
+and facade release command, passed all checks and 35 tests. Bridge remains a development-only fixture dependency of the facade.
+
+Linux also exposed scheduler overhead in the 10,000-input telemetry stress test and an unsettled help keyboard journey.
+The telemetry test still advances 600 frames and verifies 600 updates followed by one commit, using synchronous `act` for each manually driven frame.
+Help keyboard actions now wait for the dialog's focus handoff and completed dismissal before the next action. These assertions exercise the focus contract
+rather than racing pending autofocus and exit work. No product behavior, timeout or retry budget changed for either correction.
