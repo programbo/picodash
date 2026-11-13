@@ -1,0 +1,28 @@
+export interface PicodashDevBridgeHostOptions {
+  readonly origin: string;
+  readonly command: Readonly<{
+    file: string;
+    args: readonly string[];
+    cwd: string;
+  }>;
+  readonly credentialDirectory?: string;
+  readonly browserCredentialEnv?: string;
+  readonly signal?: AbortSignal;
+  /** Optional explicit maximum session duration; normal lifetime follows its owner. */
+  readonly lifetimeMs?: number;
+}
+export type PicodashDevBridgeHostStatus = 'idle' | 'starting' | 'running' | 'stopping' | 'stopped' | 'failed';
+export declare function createPicodashDevBridgeHost(options: PicodashDevBridgeHostOptions): {
+  start: () => Promise<Readonly<{
+    credentialPath: string;
+    origin: string;
+    childPid: number;
+  }>>;
+  stop: () => Promise<void>;
+  finished: Promise<Readonly<{
+    code: number;
+    signal: NodeJS.Signals | null;
+  }>>;
+  readonly status: PicodashDevBridgeHostStatus;
+};
+//# sourceMappingURL=host.d.mts.map

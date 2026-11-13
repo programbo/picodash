@@ -10,8 +10,8 @@
     "catalog": {
       "@types/node": "^26.5.0",
       "typescript": "^7.0.2",
-      "vite": "npm:@voidzero-dev/vite-plus-core@1.0.0",
-      "vite-plus": "1.0.0",
+      "vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
+      "vite-plus": "1.6.0",
       "react": "^19.2.8",
       "react-dom": "^19.2.8",
       "react-json-view-lite": "^2.5.0",
@@ -23,7 +23,7 @@
       "@testing-library/react": "^16.3.3",
       "highlight.js": "^11.12.0",
       "zustand": "^5.0.15",
-      "zod": "^4.5.4",
+      "zod": "^4.6.7",
       "clsx": "^2.1.1",
       "tailwindcss": "^4.3.3",
       "@tailwindcss/postcss": "^4.3.3",
@@ -50,10 +50,10 @@
   "scripts": {
     "lint": "vp lint packages/nexus/src packages/ui/src packages/dashpanel/src packages/dashstack/src packages/picodash/src apps/web/src apps/lab/src --fix",
     "format": "vp fmt . --write",
-    "ready": "bun run audit:high && bun run release:check && bun run artifacts:check && bun run evaluations:check && vp check && vp run -r test && vp run -r build && bun run evaluations:build && bun run test:e2e:lab:cap && bun run test:e2e:lab && bun run test:e2e:web",
+    "ready": "bun run audit:high && bun run release:check && bun run artifacts:check && bun run evaluations:check && vp check && vp run -r test && bun run --cwd apps/web build && bun run --cwd apps/lab build && bun run evaluations:build && bun run test:e2e:lab:cap && bun run test:e2e:lab && bun run test:e2e:web",
     "audit:high": "bun audit --audit-level=high",
     "release:check": "bun run --filter @picodash/nexus release:check && bun run --filter @picodash/dev-bridge release:check && bun run --filter @picodash/ui release:check && bun run --filter @picodash/dashstack release:check && bun run --filter @picodash/dashpanel release:check && bun run --filter @picodash/picodash release:check",
-    "artifacts:check": "node scripts/check-agent-artifacts.mjs && bun run motion:check",
+    "artifacts:check": "node scripts/check-agent-artifacts.mjs && bun run motion:check && bun run docs:check",
     "motion:check": "node scripts/check-motion-policy.mjs",
     "evaluations:check": "node scripts/check-evaluations.mjs",
     "evaluations:build": "node scripts/build-evaluation-seeds.mjs",
@@ -78,7 +78,9 @@
     "skills:check": "intent maintainer check",
     "skills:sync": "intent maintainer sync",
     "package:local": "node scripts/package-local.mjs",
-    "package:local:verify": "node scripts/verify-local-packages.mjs"
+    "package:local:verify": "node scripts/verify-local-packages.mjs",
+    "docs:generate": "node scripts/generate-api-docs.mjs",
+    "docs:check": "node scripts/generate-api-docs.mjs --check && node scripts/check-documentation.mjs"
   },
   "devDependencies": {
     "@tanstack/intent": "0.5.5",
@@ -99,7 +101,7 @@
     "postcss": "catalog:",
     "sharp": "0.35.5",
     "source-map-js": "1.2.2",
-    "undici": "8.10.2",
+    "undici": "8.12.4",
     "vite": "catalog:",
     "vitest": "catalog:"
   },

@@ -41,3 +41,6 @@ dist-ssr
 # Generated browser evidence
 /output/
 .vitest/
+
+# Browser runner output
+**/test-results/

@@ -13,249 +13,55 @@ Use intent maintainer setup to initialize missing records, maintainer add to reg
 
 # Picodash agent guide
 
-This file is the repository's guaranteed instruction entrypoint. It contains workspace-wide rules
-and explicit routes to narrower instructions. Do not assume a package-level `AGENTS.md` or linked
-document was loaded automatically.
+Read [the documentation index](docs/index.md), the matching package reference under `docs/reference`,
+and [the Nexus audit](docs/design/nexus-api-audit.md) before changing state ownership or public contracts.
+For Bridge work read [its current guide](docs/development/agent-dev-bridge.md).
+For tests read [TESTING.md](TESTING.md); for servers read [development](docs/development/index.md).
+For `apps/web`, also read [its AGENTS.md](apps/web/AGENTS.md). These routes are explicit, not transcluded.
 
-## Required instruction loading
+## Authority
 
-Before editing files, match every affected route below and read every listed document. These are
-mandatory instructions, not optional background. If a change crosses several routes, read all of
-them. Re-read the routes when the task expands into another package.
+The user requested the old documentation be archived and the active docs rebuilt from code on 2026-11-13.
+Current references describe implemented behavior. Proposed architecture is recorded separately; do not claim a proposal has shipped.
+Old ADRs, completion statuses and target contracts live under `docs/archive` and are historical evidence, not active instructions.
+Do not modify archived bytes. Legal notices, executable evaluation fixtures and Intent records retain their owners.
 
-- Nexus implementation or contracts: [`docs/agents/nexus.md`](docs/agents/nexus.md),
-  [`docs/reference/nexus-contract-decisions.md`](docs/reference/nexus-contract-decisions.md),
-  [`docs/reference/nexus.md`](docs/reference/nexus.md), and
-  [`docs/adr/0005-picodash-nexus-name-and-public-identity.md`](docs/adr/0005-picodash-nexus-name-and-public-identity.md),
-  plus [`docs/adr/0007-panel-manual-sizing-and-interaction-events.md`](docs/adr/0007-panel-manual-sizing-and-interaction-events.md)
-  for Panel metadata or interaction events.
-- Dev Bridge or agent-facing inspection: [`docs/agents/dev-bridge.md`](docs/agents/dev-bridge.md),
-  [`docs/development/agent-dev-bridge.md`](docs/development/agent-dev-bridge.md), and
-  [`packages/dev-bridge/README.md`](packages/dev-bridge/README.md).
-- Shared UI maintenance: [`docs/agents/ui.md`](docs/agents/ui.md),
-  [`docs/adr/0003-shared-ui-foundation.md`](docs/adr/0003-shared-ui-foundation.md), and
-  [`docs/reference/ui.md`](docs/reference/ui.md).
-- DashPanel behavior or docs: [`docs/agents/dashpanel.md`](docs/agents/dashpanel.md),
-  [`docs/reference/dashpanel-contract-decisions.md`](docs/reference/dashpanel-contract-decisions.md),
-  [`docs/reference/dashpanel.md`](docs/reference/dashpanel.md), and
-  [`docs/adr/0004-dashpanel-launcher-item-identity.md`](docs/adr/0004-dashpanel-launcher-item-identity.md).
-- DashStack or Dashlet behavior or docs: [`docs/agents/dashstack.md`](docs/agents/dashstack.md),
-  [`docs/reference/dashstack.md`](docs/reference/dashstack.md), and
-  [`docs/adr/0006-dashstack-responsive-measurement.md`](docs/adr/0006-dashstack-responsive-measurement.md), and
-  [`docs/adr/0007-dashstack-name-and-public-identity.md`](docs/adr/0007-dashstack-name-and-public-identity.md).
-- Picodash or cross-product integration: [`docs/agents/picodash.md`](docs/agents/picodash.md) and
-  [`docs/reference/picodash.md`](docs/reference/picodash.md).
-- Product copy, examples, or package READMEs: the matching package route,
-  [`docs/product/value-propositions.md`](docs/product/value-propositions.md), and
-  [`docs/agents/copy.md`](docs/agents/copy.md).
-- Catalog work: [`docs/reference/catalog.md`](docs/reference/catalog.md) and the matching product
-  reference.
-- Contract status: [`docs/reference/document-status.md`](docs/reference/document-status.md) and
-  [`docs/reference/contract-conformance.md`](docs/reference/contract-conformance.md).
-- Tests or browser evidence: [`docs/agents/testing.md`](docs/agents/testing.md),
-  [`TESTING.md`](TESTING.md), and the matching product reference.
-- Local package distribution: [`docs/development/local-packages.md`](docs/development/local-packages.md)
-  and the matching package guides.
-- Apps, servers, or ports: [`docs/agents/apps.md`](docs/agents/apps.md). For `apps/web`, also read
-  [`apps/web/AGENTS.md`](apps/web/AGENTS.md) explicitly.
-- Roadmap decisions: [`docs/ROADMAP.md`](docs/ROADMAP.md) and all affected package guides.
+## Boundaries and conventions
 
-For questions that do not map cleanly, start with the smallest authoritative document in
-`docs/reference/` and expand only when it links to an owning decision or ADR. External files are
-loaded on demand through the explicit rules above; they are not transcluded into this file.
+Nexus is intended to be a generic typed data/state foundation, independently usable in any application.
+It currently embeds consumer concepts; use the audit to identify them before extending those contracts.
+Consumers should own orientation, named interactions and presentation policies. No extraction is implied merely by documenting the current coupling.
+Nexus must make persisted and ephemeral state easy to expose without baking in application-specific names.
 
-## Authority and contract discipline
+UI owns shared presentation, DashPanel owns hosting/placement, DashStack owns composition and bindings, Picodash integrates them,
+and Dev Bridge consumes public Nexus APIs for development inspection. Foundation packages must not depend on the Bridge.
+No blanket exports, cross-package source imports or edits to generated `dist` output.
 
-When documents conflict, use this precedence:
+Use Bun and the installed Vite+. Use `rg` for search, `vp lint` and `vp fmt`, and the owning typechecker.
+Keep JSON values and payloads strict. Validate complete candidate batches before canonical mutation.
+Keep pointer previews, resolved geometry, visibility, focus, activation and z-order ephemeral.
+Persist only settled consumer preferences and application-authorized values.
+Use the project's variant convention and `cn` helper instead of interpolated className strings.
+Use semantic tokens, keyboard/pointer parity and accessible names. Preserve portal, theme, focus and overlay ownership.
 
-1. Accepted ADRs and accepted decisions.
-2. Accepted sections of target references.
-3. The roadmap and documentation-status rules.
-4. Current code, tests, and package READMEs as prototype evidence.
-5. Historical documents, including superseded ADR 0001 and unreconciled `PRODUCT.md` or
-   `CONTEXT.md`.
+Identify emergent protocols and model their states, events, guards and cleanup explicitly.
+Recommend XState v5 when appropriate, otherwise use the project's trusted state model.
+The worst state machine is the one you don't know you're writing.
 
-Do not silently revise an accepted contract to match an implementation shortcut. Record a genuine
-constraint and revise the decision explicitly. Current code remains prototype evidence, not an
-implicit compatibility requirement. Prefer clean pre-v1 breaks over aliases unless compatibility
-is explicitly required.
+Run the narrow owning check first. `bun run ready` is for release/integration boundaries.
+After public source changes build packages, run `bun run docs:generate`, update behavioral references, and run `bun run docs:check`.
+Run Intent's recorded review workflow before handoff. Make a scoped commit after appropriate QA and leave unrelated work untouched.
 
-Implementation follows the accepted Nexus, shared UI, DashPanel, DashStack, and Picodash roadmap.
-Do not skip ahead through private cross-package APIs. A higher product may reveal a foundation gap,
-but it must not solve that gap through a private bypass.
+## Servers
 
-## Package value propositions
+Reserve the worktree's Hermes port with `bun run port:reserve`, use that port for web apps, and release it after merge.
+One web app per worktree runs at a time; Bridge relays may use ephemeral loopback ports.
+Never print credentials. Close only task-owned browser/server processes; preserve personal browsers and other active worktrees.
+Use `AGENT_BROWSER_IDLE_TIMEOUT_MS=900000` for agent-browser and close the owned session on completion.
 
-Use these propositions to guide scope, API decisions, examples, and documentation. Read the fuller
-accepted explanation in [`docs/product/value-propositions.md`](docs/product/value-propositions.md)
-before changing product behavior or public copy.
+## Repository
 
-### `@picodash/nexus`
-
-Picodash Nexus is the typed state hub behind settings panels, inspectors, and control dashboards.
-It can own application values or adapt an existing synchronous state store while providing one
-contract for typed fields, valid atomic changes, drafts, scoped Panel and Stack preferences,
-persistence, repair, documents, and diagnostics.
-
-Nexus is independently useful and renders no UI. It owns state meaning and valid changes, not
-Panel placement, Stack composition, authentication, or authorization.
-
-### `@picodash/ui`
-
-UI is the shared presentation foundation that lets DashPanel and DashStack look and behave
-consistently without duplicating theme, density, overlay, token, and generic accessibility work.
-It exists so product packages can concentrate on their distinct behavior while applications can
-provide one coherent visual contract.
-
-UI supports the products; it is not a separately marketed control-interface product and owns no
-Nexus, Panel, Stack, Dashlet, placement, ordering, or persistence behavior.
-
-### `@picodash/dashpanel`
-
-DashPanel is a standalone React panel shell for adding movable, resizable, dockable, dismissible arbitrary UI
-without rebuilding window management, boundaries, portals, accessible actions, adaptive modal
-presentation, and durable placement. Its decisions should make application-owned tools, previews,
-and readouts reliable wherever they are placed—not assume that their content is a DashStack.
-
-DashPanel determines where UI lives. It owns Panel hosting and placement behavior, not the
-content's form, ordering, field bindings, or application-value model.
-
-### `@picodash/dashstack`
-
-DashStack is a standalone React composition system for ordered, groupable controls, readouts,
-visualizations, previews, and actions backed by typed Nexus fields. It saves applications from
-rebuilding binding drafts, accessible reordering, grouping, collapse behavior, durable user order,
-and the relationship between canonical values and compound controls.
-
-DashStack determines how Dashlets are organized and operated. It owns Stack and Dashlet composition,
-not floating placement, Panel hosting, portals, routing, or application transport.
-
-### `@picodash/picodash`
-
-Picodash is the integrated control and monitoring interface built from Nexus, DashPanel, DashStack,
-and UI. It lets a developer or coding agent add configurable controls, live readouts,
-visualizations, previews, and actions to an existing application without inventing the state,
-Panel, and Stack infrastructure separately.
-
-Picodash is an integration facade, not a monolithic Dashboard component or application framework.
-Applications retain routing, transport, authentication, authorization, exposure policy, and JSX
-composition.
-
-### `@picodash/dev-bridge`
-
-Dev Bridge is a private development adapter over the public Nexus contract. It lets coding agents
-discover an explicitly disclosed browser session, inspect state, make allowlisted writes, and wait
-for observable changes without receiving arbitrary runtime authority. Its value is a short,
-verifiable feedback loop between an agent's intent, Nexus behavior, and the real browser UI.
-
-Dev Bridge is development tooling, not a production product or alternate state authority. It must
-preserve Nexus validation, disclosure, generation, and security boundaries.
-
-## Concurrent Nexus-consumer dogfooding
-
-Treat Dev Bridge, DashPanel, and DashStack as three concurrent consumers of the public Nexus
-contract. Improvements discovered by one consumer must strengthen the shared public contract when
-the need is general; they must not create consumer-specific private access.
-
-When developing DashPanel or DashStack:
-
-1. Use Dev Bridge in the Contract Lab whenever the behavior can be observed through disclosed
-   Nexus state, mutation results, diagnostics, or browser-visible effects.
-2. Keep the other UI consumer in mind when changing Nexus contracts. A convenience that only fits
-   one package is not automatically a Nexus abstraction.
-3. If missing or awkward Dev Bridge behavior makes the DashPanel or DashStack task harder to inspect,
-   automate, or verify, prioritize the smallest safe Dev Bridge improvement before continuing the
-   product workaround.
-4. Exercise the new Bridge capability against a real public Nexus consumer before relying on it.
-5. Feed genuine Nexus contract gaps back into Nexus with its tests and documentation; do not add a
-   Bridge-only Nexus bypass.
-
-This priority does not broaden Bridge authority. Production refusal, loopback binding,
-authentication, explicit disclosure and write allowlists, generation fencing, and redacted errors
-remain mandatory. The one-port-per-worktree rule applies to web application servers; Dev Bridge may
-use as many ephemeral loopback ports as its relay and browser broker require.
-
-## Package and ownership boundaries
-
-- `@picodash/nexus` owns values, scopes, transactions, adapters, persistence, documents, durable
-  metadata, diagnostics, React selectors, and its public integration lease protocol.
-- `@picodash/ui` owns product-neutral theme, density, tokens, structural CSS, overlays, and generic
-  accessible primitives used unchanged by both UI products.
-- `@picodash/dashpanel` owns Panel and Provider composition, placement, hosting, and Panel actions.
-- `@picodash/dashstack` owns Stacks, groups, Dashlets, bindings, ordering, collapse, Stack actions,
-  unbound DashStack controls, and package-owned catalog entries.
-- `@picodash/picodash` integrates and explicitly reexports stable foundation contracts. A component
-  belongs here only when it necessarily coordinates DashPanel and DashStack behavior.
-- `@picodash/dev-bridge` consumes public Nexus behavior for local agent tooling. Nexus never depends
-  on it.
-
-DashPanel and DashStack depend on compatible Nexus and UI foundations, not on one another. Do not
-use blanket exports or cross-package source imports. Generated `dist/` output is never edited
-directly. The exact accepted entrypoints and component surfaces live in the matching target
-references and must be read before package work.
-
-## Roadmap boundaries
-
-1. Complete Nexus contracts and reach a useful Nexus alpha.
-2. Establish the shared UI foundation needed by both UI products.
-3. Dogfood Nexus, UI, and Dev Bridge independently through DashPanel and DashStack.
-4. Feed consumer findings back into their owning foundations before stability.
-5. Stabilize DashPanel and DashStack against their own release gates.
-6. Build Picodash integration after the three products are stable.
-
-A vertical slice stays within the product currently being developed. A small cross-package smoke
-harness may detect public-contract incompatibility, but it must not become premature Picodash
-implementation or duplicate lower-layer tests.
-
-## Workspace rules
-
-- Keep canonical values and persisted payloads strict JSON data.
-- Validate complete candidate batches before canonical mutation.
-- Keep high-frequency pointer and visual state outside persisted Nexus snapshots.
-- Persist settled placement, manual-size, and ordering overrides, not declared defaults, previews,
-  resolved geometry, visibility, focus, activation, or z-order. Observe interactions through the
-  separate public Nexus event contract.
-- Preserve pointer and keyboard outcome parity for reordering and placement.
-- Use semantic `--picodash-*` tokens and public variants instead of internal classes.
-- Preserve Provider portal, z-index, theme, focus, and accessible overlay contracts.
-- Treat invalid or obsolete prototype persistence as current-default recovery; do not invent silent
-  compatibility migrations.
-- Keep public React 19 examples framework-neutral. Limit Next.js guidance to the client boundary
-  and global stylesheet import unless a separate host contract is accepted.
-
-The workspace uses Bun and Vite+ (`vp`). Use `rg` for search. Run the narrowest owning check first;
-do not run broad suites merely because they exist. Use `bun run ready` only for a release boundary
-or when explicitly requested. If toolchain setup is wrong, run `vp env doctor` and retain its
-output.
-
-For local servers, reserve the worktree's Hermes range with `bun run port:reserve` and release it
-with `bun run port:release` after the work is merged. Do not invent web-server ports outside the
-allocated range. Read [`docs/agents/apps.md`](docs/agents/apps.md) before starting or changing a
-server.
-
-## Documentation maintenance
-
-- Contract changes update the decision ledger and affected target reference.
-- Ownership, identity, persistence, or package-boundary changes require an ADR amendment or new
-  ADR.
-- Implementation changes update status and conformance evidence in the same change.
-- Public commands, package entrypoints, or workspace topology changes update the relevant agent
-  route and operational or package README.
-- Normative examples should be typechecked or exercised as fixtures.
-- Do not copy complete API references into agent guides, READMEs, skills, or `llms.txt`; link to the
-  owner instead.
-
-## Repository map
-
-- `packages/nexus`: Nexus prototype and tests.
-- `packages/dev-bridge`: private authenticated loopback Nexus inspection bridge.
-- `packages/ui`: shared theme, density, token, and generic accessible UI foundation.
-- `packages/dashpanel`: standalone DashPanel prototype.
-- `packages/dashstack`: standalone DashStack prototype.
-- `packages/picodash`: integrated facade prototype.
-- `apps/web`: production Next.js evaluation website; `/` is the only public route.
-- `apps/lab`: Contract Lab at `/lab` plus checked-in audit report rendering.
-- `docs/agents`: focused instructions loaded through the routing table in this file.
-- `docs/adr`: architectural decisions.
-- `docs/reference`: target contracts, status, decisions, and conformance.
-- `docs/product`: product positioning and value.
+`packages/{nexus,ui,dashpanel,dashstack,picodash,dev-bridge}` contain the six packages.
+`apps/lab` contains the gallery, Contract Lab and application examples; `apps/web` contains the evaluation site.
+`docs/reference/api` is generated from actual package artifacts. `docs/design` contains proposals and audits.
+`docs/internal/consolidation-audit.md` records the integration evidence. `docs/archive` preserves superseded documentation.

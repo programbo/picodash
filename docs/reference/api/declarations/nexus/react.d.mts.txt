@@ -1,0 +1,23 @@
+import { P as PicodashFieldDefinitions, Z as RootNexus, it as ScopedNexus, r as CoreTransactionResult } from "./index-HD_xyHBR.mjs";
+type AnyNexus = RootNexus<PicodashFieldDefinitions, CoreTransactionResult> | ScopedNexus<PicodashFieldDefinitions, CoreTransactionResult>;
+type SnapshotOf<Nexus extends AnyNexus> = ReturnType<Nexus['getState']>;
+type RootContextNexus = RootNexus<PicodashFieldDefinitions, CoreTransactionResult>;
+type ScopedContextNexus = ScopedNexus<PicodashFieldDefinitions, CoreTransactionResult>;
+type RootContextSnapshot = ReturnType<RootContextNexus['getState']>;
+type ScopedContextSnapshot = ReturnType<ScopedContextNexus['getState']>;
+export declare function usePicodashNexus(): RootContextNexus | ScopedContextNexus;
+export declare function usePicodashNexus(scopeId: string): ScopedContextNexus;
+export declare function usePicodashRootNexus(): RootContextNexus;
+export declare function usePicodashScope(): ScopedContextNexus;
+/**
+ * Selects a value from an explicit root or scoped Nexus and subscribes to the
+ * Nexus's own notification channel. The selected reference is retained when
+ * the equality function reports that a new selection is equivalent.
+ */
+export declare function usePicodashNexusSelector<Nexus extends AnyNexus, Selection>(nexus: Nexus, selector: (state: SnapshotOf<Nexus>) => Selection, equalityFn?: (left: Selection, right: Selection) => boolean): Selection;
+export declare function usePicodashRootSelector<Selection>(selector: (state: RootContextSnapshot) => Selection, equalityFn?: (left: Selection, right: Selection) => boolean): Selection;
+export declare function usePicodashScopeSelector<Selection>(selector: (state: ScopedContextSnapshot) => Selection, equalityFn?: (left: Selection, right: Selection) => boolean): Selection;
+/** Compares one-level records or arrays/tuples using Object.is. */
+export declare function shallowEqual(left: unknown, right: unknown): boolean;
+export {};
+//# sourceMappingURL=react.d.mts.map

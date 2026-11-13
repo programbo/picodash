@@ -1,0 +1,47 @@
+import { r as useDashPanelHostId } from "./panel-controller-BCfpvTn5.mjs";
+import { ComponentType, ReactNode } from "react";
+import { PicodashFieldDefinitions, ScopedNexus } from "@picodash/nexus";
+type DashPanelTransferPoint = {
+  readonly pointerId: number;
+  readonly clientX: number;
+  readonly clientY: number;
+};
+interface DashPanelTransferDriver {
+  place(left: number, top: number): void;
+  begin(point: DashPanelTransferPoint): void;
+  cancel(): void;
+}
+interface DashPanelTransfer {
+  readonly layoutNexus: ScopedNexus<PicodashFieldDefinitions>;
+  readonly returnLabel: string;
+  readonly returnIcon?: ReactNode;
+  readonly returnHome: () => void;
+  readonly register: (driver: DashPanelTransferDriver) => () => void;
+  /** True reserves the gesture for the host's return target instead of Panel docking. */
+  readonly pointer: (phase: 'move' | 'drop' | 'cancel', point: DashPanelTransferPoint) => boolean;
+}
+export declare function DashPanelTransferBoundary({ transfer, children }: {
+  readonly transfer: DashPanelTransfer;
+  readonly children: ReactNode;
+}): import("react").JSX.Element;
+interface DashPanelContextHotkeyProps {
+  binding: string | undefined;
+  panelName: string;
+  enabled: boolean;
+  description?: string;
+  onCommit: (binding: string | null) => string | undefined;
+  onToggle: () => void;
+}
+/** Bounded integration seam: eligibility follows the nearest original Panel, not DOM relocation. */
+export declare function DashPanelContextHotkey(props: DashPanelContextHotkeyProps): import("react").JSX.Element | null;
+export interface DashPanelDefaultActionItemsProps {
+  readonly scopeId: string;
+}
+export type DashPanelDefaultActionItems = ComponentType<DashPanelDefaultActionItemsProps>;
+export interface DashPanelIntegrationProviderProps {
+  readonly children: ReactNode;
+  readonly defaultActionItems?: DashPanelDefaultActionItems;
+}
+export declare function DashPanelIntegrationProvider({ children, defaultActionItems }: DashPanelIntegrationProviderProps): import("react").JSX.Element;
+export { type DashPanelContextHotkeyProps, type DashPanelTransfer, type DashPanelTransferDriver, type DashPanelTransferPoint, useDashPanelHostId };
+//# sourceMappingURL=integration.d.mts.map

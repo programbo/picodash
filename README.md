@@ -1,136 +1,30 @@
 # Picodash
 
-Picodash is a React package family for adding configurable controls, readouts, visualizations, and
-tool panels to an existing application. Use the panel and stack products independently, or combine
-them through the Picodash facade when an application needs both.
+Picodash provides typed application state and React controls for settings, inspectors, and dashboards.
+The workspace currently contains six packages at version `0.0.0`.
 
-## Project status
+| Package                | Implemented role                                                                     | Reference                                          |
+| ---------------------- | ------------------------------------------------------------------------------------ | -------------------------------------------------- |
+| `@picodash/nexus`      | Typed JSON values, validation, adapters, drafts, metadata, persistence and documents | [Nexus](docs/reference/nexus.md)                   |
+| `@picodash/ui`         | Shared theme, density, overlays and accessible presentation                          | [UI](docs/reference/ui.md)                         |
+| `@picodash/dashpanel`  | Movable, resizable, dockable React Panels                                            | [DashPanel](docs/reference/dashpanel.md)           |
+| `@picodash/dashstack`  | Ordered, groupable Dashlets and bound controls                                       | [DashStack](docs/reference/dashstack.md)           |
+| `@picodash/picodash`   | Integration facade, including detachable groups                                      | [Picodash](docs/reference/picodash.md)             |
+| `@picodash/dev-bridge` | Private development relay, browser connector, client and CLI                         | [Dev Bridge](docs/development/agent-dev-bridge.md) |
 
-> Contract: Initial Nexus, UI, DashPanel, DashStack, and Picodash targets accepted
->
-> Implementation: Working prototypes
->
-> Release status: Public preview
+Start with [the documentation index](docs/index.md). The [Nexus design audit](docs/design/nexus-api-audit.md)
+distinguishes current behavior from proposed changes to make Nexus consumer-neutral.
+The [consolidation record](docs/internal/consolidation-audit.md) records source revisions and verification.
 
-The contract-review phase is complete. After the documentation baseline is committed, implementation
-begins with Nexus and follows the accepted roadmap. Existing source and tests remain prototype
-evidence, not automatic compatibility requirements. Issues remain open for feedback; pull requests
-are disabled until the contribution workflow reopens.
-
-## Products and supporting foundations
-
-| Package               | What it provides                                                                   |
-| --------------------- | ---------------------------------------------------------------------------------- |
-| `@picodash/nexus`     | Typed state, valid changes, saved UI preferences, persistence, and import/export.  |
-| `@picodash/dashpanel` | A movable Panel shell with configurable docking and durable layout.                |
-| `@picodash/dashstack` | Ordered, groupable Dashlet composition with typed bindings and durable ordering.   |
-| `@picodash/picodash`  | The integrated facade for applications that need DashPanel and DashStack together. |
-| `@picodash/ui`        | Shared theme, density, tokens, and generic accessible UI primitives.               |
-
-Nexus, DashPanel, and DashStack are planned as loosely independent products. UI is their shared
-presentation foundation, not a fourth product. Nexus and UI are dogfooded by the two UI products;
-Picodash integration follows after all three products are stable.
-
-## Try it in an application
-
-Use a versioned local bundle to install and update the public packages together. The
-[dogfooding guide](docs/development/dogfooding.md) covers installation, a first control,
-updates, rollback, and returning findings to Picodash. The [developer task index](docs/development/index.md)
-links copyable recipes, including [dock-reactive readouts](docs/development/dock-reactive-layout.md).
-No registry publication is required.
-
-## Start with the contract
-
-- [Product value propositions](docs/product/value-propositions.md)
-- [Contract-led roadmap](docs/ROADMAP.md)
-- [Nexus architecture decision](docs/adr/0002-provider-level-nexus-and-scoped-views.md)
-- [Shared UI architecture decision](docs/adr/0003-shared-ui-foundation.md)
-- [Nexus target API](docs/reference/nexus.md)
-- [Nexus API inventory from source](docs/internal/nexus-api-inventory.md) (audited implementation snapshot)
-- [Shared UI target reference](docs/reference/ui.md)
-- [DashPanel target reference](docs/reference/dashpanel.md)
-- [DashStack naming decision](docs/adr/0007-dashstack-name-and-public-identity.md)
-- [DashStack target reference](docs/reference/dashstack.md)
-- [Picodash target reference](docs/reference/picodash.md)
-- [Component catalog target reference](docs/reference/catalog.md)
-- [Contract and implementation status rules](docs/reference/document-status.md)
-- [Conformance matrix and release gates](docs/reference/contract-conformance.md)
-- [Testing policy](TESTING.md)
-
-The target references annotate intended behavior separately from current implementation status.
-Package source and package READMEs may describe prototype behavior only when clearly labeled.
-
-## Target composition
-
-One root Nexus owns canonical field values and durable scope metadata. `root.scope(scopeId)` returns
-an immutable organizational view of that same authority; it does not create a second value authority
-or restrict field access.
-
-`DashPanelProvider` consumes a root Nexus for durable layout; each `DashPanel` supplies its scoped
-view to descendants. Standalone DashStack accepts a root or scoped Nexus and establishes the resolved
-scope for its Dashlets. The integrated Picodash facade composes both products over one compatible
-Nexus contract.
-
-`PicodashThemeProvider` resolves color theme and density, while `PicodashOverlayProvider` supplies
-portal and layer defaults to detached UI primitives. Product Providers compose these independent,
-Nexus-free UI contexts and detached roots repeat their resolved theme and density.
-
-Color theme and density are separate axes: `light | dark | system | CustomTheme` and
-`regular | compact`. The Picodash stylesheet aggregates the owning foundation styles once; it does
-not add integrated theme names or publish the website's example themes.
-
-DashStack exports `useDashStackActions(scopeId?)` plus standard action-menu items for expand,
-collapse, and the two reset domains. Standalone headers and Picodash menus compose those same
-exports; DashPanel does not copy Stack behavior. Headless execution distinguishes a command that did
-not run from an executed Nexus transaction result.
-
-Picodash reexports the initial DashStack-owned ready-made Dashlets without facade wrappers and owns
-no additional component family at launch. Future dependency-heavy families use separate optional
-packages rather than enlarging the core facade dependency contract.
-
-Its optional document actions export or import one current-scope JSON document through Nexus-owned
-plans. DashStack owns the browser dialog, clipboard, and file workflow. Initial Picodash reuses that
-primary-Stack workflow without implicitly aggregating additional Stacks; any future multi-target
-document UI requires a separate Picodash contract.
-
-## Workspace
-
-- `packages/nexus`: framework-independent Nexus prototype.
-- `packages/ui`: shared theme, density, token, and generic accessible UI foundation.
-- `packages/dashpanel`: standalone DashPanel prototype.
-- `packages/dashstack`: standalone DashStack prototype.
-- `packages/picodash`: integrated facade prototype.
-- `apps/web`: production Next.js evaluation site; `/` is its only public route.
-- `apps/lab`: local Contract Lab and checked-in audit report viewer.
-- `docs/adr`: architectural decisions.
-- `docs/reference`: aspirational contracts, status, and conformance.
-
-## Development
-
-The repository uses Bun 1.3.14 and Vite+ 1.0 (`vp`). Development and CI require
-Node.js `^22.18.0 || ^24.11.0 || >=26.0.0`. The workspace disables Bun's global virtual
-store so Next.js can resolve dependencies within the repository filesystem root.
-
-```bash
-bun install
-vp check
-vp run -r test
-vp run -r build
-```
-
-Run the narrowest package check that owns a documentation or implementation change. Use
-`bun run ready` only for the full release gate or when explicitly requested.
-
-Build installable archives for other local React apps with `bun run package:local`. The output
-includes an install command and survives removal of this worktree. Run `bun run package:local:verify`
-to check the latest bundle in an isolated consumer. See [local package consumption](docs/development/local-packages.md).
-
-Local development commands:
-
-```bash
-bun run web
+```sh
+bun install --frozen-lockfile
+bun run port:reserve
 bun run lab
 ```
 
-See [AGENTS.md](AGENTS.md) for current workspace rules, port allocation, documentation precedence,
-and QA guidance.
+The Lab opens `/lab`; **Contract tools** opens its test harness. `bun run web` runs the evaluation website.
+Use the allocated port printed into `.env.local`; stop one app before starting another in the same worktree.
+See [development](docs/development/index.md), [local packages](docs/development/local-packages.md), and [testing](TESTING.md).
+
+The previous documentation and READMEs are [archived with revision and byte-level provenance](docs/archive/2026-11-13/README.md).
+Current reference pages describe implemented code. They do not carry forward historical completion percentages or release claims.

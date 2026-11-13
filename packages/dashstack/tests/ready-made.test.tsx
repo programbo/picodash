@@ -451,6 +451,100 @@ describe('@picodash/dashstack ready-made Dashlets', () => {
     nexus.destroy()
   })
 
+  it('keeps an exact tiny-step number value editable', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: { tiny: { defaultValue: 1e-308 } },
+    })
+    const view = render(
+      createElement(
+        DashStack,
+        { id: 'tiny-step', nexus },
+        createElement(NumberDashlet, {
+          id: 'tiny',
+          field: nexus.fields.tiny,
+          label: 'Tiny number',
+          step: 1e-308,
+          formatOptions: { notation: 'scientific', maximumFractionDigits: 3 },
+        }),
+      ),
+    )
+
+    const input = view.root.element.querySelector<HTMLInputElement>(
+      '[data-picodash-dashlet="tiny"] input',
+    )!
+    expect(input.value).toBe('1E-308')
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet-presentation-warning]'),
+    ).toBeNull()
+    fireEvent.keyDown(input, { key: 'ArrowUp' })
+    expect(nexus.getState().values.tiny).toBe(2e-308)
+    expect(input.value).toBe('2E-308')
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
+  it('falls back before Slider and Range controls materialize unsafe tiny steps', () => {
+    const nexus = createPicodashNexus({
+      valueOwner: 'nexus',
+      fields: {
+        slider: { defaultValue: 1e-308 },
+        range: { defaultValue: { start: 1e-308, end: 2e-308 } },
+      },
+    })
+    const view = render(
+      createElement(
+        DashStack,
+        { id: 'tiny-step-fallbacks', nexus },
+        createElement(SliderDashlet, {
+          id: 'slider',
+          field: nexus.fields.slider,
+          label: 'Tiny slider',
+          min: 0,
+          max: 1e-307,
+          step: 1e-308,
+        }),
+        createElement(RangeDashlet, {
+          id: 'range',
+          field: nexus.fields.range,
+          label: 'Tiny range',
+          min: 0,
+          max: 1e-307,
+          step: 1e-308,
+        }),
+      ),
+    )
+
+    expect(view.root.element.querySelector('[data-picodash-dashlet="slider"] input')).toBeNull()
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="slider"] output')?.textContent,
+    ).toBe('1e-308')
+    expect(view.root.element.querySelector('[data-picodash-dashlet="range"] input')).toBeNull()
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="range"] output')?.textContent,
+    ).toBe('{"start":1e-308,"end":2e-308}')
+    expect(
+      view.root.element.querySelectorAll('[data-picodash-dashlet-presentation-warning]'),
+    ).toHaveLength(2)
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="slider"] [role="note"]')
+        ?.textContent,
+    ).toBe(
+      'The current value (1e-308) cannot be represented safely with the configured slider step (1e-308).',
+    )
+    expect(
+      view.root.element.querySelector('[data-picodash-dashlet="range"] [role="note"]')?.textContent,
+    ).toBe(
+      'The current range ({ start: 1e-308, end: 2e-308 }) cannot be represented safely with the configured step (1e-308).',
+    )
+    expect(nexus.getState().values).toEqual({
+      slider: 1e-308,
+      range: { start: 1e-308, end: 2e-308 },
+    })
+    act(() => view.unmount())
+    nexus.destroy()
+  })
+
   it('falls back exactly for off-step numeric values without invoking a snapping control', () => {
     const nexus = createPicodashNexus({
       valueOwner: 'nexus',

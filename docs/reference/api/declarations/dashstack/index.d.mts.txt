@@ -1,0 +1,382 @@
+import { n as DashGroupPresentation } from "./group-host-u6J5kraE.mjs";
+import { A as DateRangeFieldProps, B as RangeSliderProps, C as TargetNumberResult, E as ColorFormat, F as MeterProps, H as StatusOption, I as NumberRangeValue, K as TimeFieldProps, N as DateTimeFieldProps, O as DateFieldProps, Q as ComboboxProps, R as ProgressBarProps, S as TargetNumberProps, _ as TextFieldProps, a as NumberFieldProps, at as SliderDetent, b as TargetSliderResult, et as MultiSelectProps, f as SliderMark, it as SearchFieldProps, l as SelectOption, nt as RadioGroupProps, p as SliderProps, y as TargetSliderProps } from "./ui-D9-niY8j.mjs";
+import { CSSProperties, ComponentPropsWithRef, ReactElement, ReactNode, RefAttributes, RefObject } from "react";
+import { NexusBindingMode } from "@picodash/nexus/integration";
+import { CoreTransactionResult, NumericGesture, NumericGestureOptions, PersistentTransactionResult, PicodashExactFieldOf, PicodashField, PicodashFieldDefinitions, PicodashFieldOf, PicodashJsonValue, RootNexus, ScopedNexus, TransactionIssue, ValueGesture, ValueGestureOptions } from "@picodash/nexus";
+import { ActionMenu, ActionMenuConfirmation, ActionMenuConfirmationGuard, ActionMenuItem, ActionMenuItemProps, ActionMenuItemVariant, ActionMenuProps, ActionMenuSeparator, ActionMenuSeparatorProps, ActionSubmenu, ActionSubmenuProps, DashHeader, DashHeaderProps, DashHeaderSlots, PicodashDensity, PicodashDensity as PicodashDensity$1, PicodashThemeOption, PicodashThemeOption as PicodashThemeOption$1 } from "@picodash/ui";
+type DashStackNode = Readonly<{
+  id: string;
+  kind: 'group' | 'dashlet';
+  parentId: string | null;
+  depth: number;
+  children: readonly string[];
+  fieldKeys: readonly string[];
+  visible: boolean;
+  collapsible: boolean;
+  presentation?: DashGroupPresentation;
+  collapsed: boolean;
+}>;
+type DashStackStructure = Readonly<{
+  rootIds: readonly string[];
+  /** Preorder traversal of committed effective order, including hidden descendants. */
+  nodes: readonly DashStackNode[];
+}>;
+/** Supply a scoped Nexus outside the Stack, or inherit the nearest Stack within its content. */
+export declare function useDashStackStructure<Fields extends PicodashFieldDefinitions>(scope?: ScopedNexus<Fields>): DashStackStructure;
+/** Read one group's committed child order without being inside that group. */
+export declare function useDashStackGroupOrder<Fields extends PicodashFieldDefinitions>(scope: ScopedNexus<Fields>, groupId: string): readonly string[];
+/** Effective mounted JSX structure; unlike durable metadata, this includes declared defaults. */
+export declare function getDashStackStructure<Fields extends PicodashFieldDefinitions>(scope: ScopedNexus<Fields>): DashStackStructure;
+export declare function subscribeDashStackStructure<Fields extends PicodashFieldDefinitions>(scope: ScopedNexus<Fields>, listener: () => void): () => void;
+type DashletRevealResult = Readonly<{
+  ok: true;
+} | {
+  ok: false;
+  reason: 'not-found' | 'rejected' | 'unavailable';
+}>;
+/** Explicit user intent only: expand ancestors, then focus a registered control, never a CSS selector. */
+export declare function revealDashlet<Fields extends PicodashFieldDefinitions>(scope: ScopedNexus<Fields>, id: string): Promise<DashletRevealResult>;
+type DashletBindingMode = NexusBindingMode;
+type DashletFieldBinding<TValues extends object> = { [TKey in Extract<keyof TValues, string>]: PicodashField<TValues, TKey> | {
+  readonly field: PicodashField<TValues, TKey>;
+  readonly mode?: DashletBindingMode;
+}; }[Extract<keyof TValues, string>];
+type DashletFields<TValues extends object = Record<string, PicodashJsonValue>> = Readonly<Record<string, DashletFieldBinding<TValues>>>;
+interface DashletRenderContext {
+  readonly id: string;
+  readonly disabled: boolean;
+  readonly readOnly: boolean;
+  readonly labelId: string;
+  readonly descriptionId?: string;
+  readonly issues: readonly TransactionIssue[];
+  readonly issuesId?: string;
+}
+interface DashletBindingContext<TValue extends PicodashJsonValue> {
+  readonly alias: string;
+  readonly field: PicodashField<Record<string, TValue>, string>;
+  readonly value: TValue;
+  readonly controlId: string;
+  readonly invalid: boolean;
+  readonly issues: readonly TransactionIssue[];
+  readonly issuesId?: string;
+}
+interface DashletInputBindingContext<TValue extends PicodashJsonValue> extends DashletBindingContext<TValue> {
+  readonly mode: 'input';
+  readonly dirty: boolean;
+  readonly draftValue?: PicodashJsonValue;
+  readonly touched: boolean;
+  readonly stale: boolean;
+  createValueGesture(options?: ValueGestureOptions): ValueGesture;
+  createNumericGesture(this: DashletInputBindingContext<number>, options?: NumericGestureOptions): NumericGesture;
+  setInput(candidate: PicodashJsonValue): void;
+  discardInput(): void;
+  resetValue(): void;
+}
+interface DashletDisplayBindingContext<TValue extends PicodashJsonValue> extends DashletBindingContext<TValue> {
+  readonly mode: 'display';
+}
+type DashletBindingContextFor<T> = T extends {
+  readonly field: infer F;
+  readonly mode?: infer M;
+} ? M extends 'display' ? DashletDisplayBindingContext<FieldValue$1<F>> : DashletInputBindingContext<FieldValue$1<F>> : T extends PicodashField<infer _V, infer _K> ? DashletInputBindingContext<FieldValue$1<T>> : never;
+type FieldValue$1<T> = T extends PicodashField<infer V, infer K> ? K extends keyof V ? Extract<V[K], PicodashJsonValue> : PicodashJsonValue : PicodashJsonValue;
+interface SingleFieldDashletRenderContext<TValue extends PicodashJsonValue, TMode extends DashletBindingMode = 'input'> extends DashletRenderContext {
+  readonly binding: TMode extends 'display' ? DashletDisplayBindingContext<TValue> : DashletInputBindingContext<TValue>;
+}
+interface CompoundDashletRenderContext<TValues extends object, TFields extends DashletFields<TValues>> extends DashletRenderContext {
+  readonly bindings: { readonly [TAlias in keyof TFields]: DashletBindingContextFor<TFields[TAlias]>; };
+}
+type DashStackActionAvailability = 'unavailable' | 'disabled' | 'enabled';
+type DashStackActionNexusResult = CoreTransactionResult | PersistentTransactionResult;
+type DashStackActionExecutionResult = {
+  readonly status: 'not_executed';
+  readonly availability: 'unavailable' | 'disabled';
+} | {
+  readonly status: 'executed';
+  readonly result: DashStackActionNexusResult;
+};
+interface DashStackActionController {
+  readonly availability: DashStackActionAvailability;
+  execute(): DashStackActionExecutionResult;
+}
+interface DashStackActions {
+  readonly expandAll: DashStackActionController;
+  readonly collapseAll: DashStackActionController;
+  readonly resetValues: DashStackActionController;
+  readonly resetStack: DashStackActionController;
+}
+type DashStackActionProps = Readonly<{
+  scopeId?: string;
+}>;
+export declare function useDashStackActions(scopeId?: string): DashStackActions;
+export declare function DashStackExpandAllItem(props: DashStackActionProps): import("react").JSX.Element;
+export declare function DashStackCollapseAllItem(props: DashStackActionProps): import("react").JSX.Element;
+export declare function DashStackResetValuesItem(props: DashStackActionProps): import("react").JSX.Element;
+export declare function DashStackResetStackItem(props: DashStackActionProps): import("react").JSX.Element;
+export declare function DashStackResetSubmenu(props: DashStackActionProps): import("react").JSX.Element | null;
+export declare function DashStackActionItems(props: DashStackActionProps): import("react").JSX.Element;
+type IsAny<Value> = 0 extends 1 & Value ? true : false;
+type SafeField<Field> = IsAny<Field> extends true ? never : Field;
+type ScalarField<Value extends PicodashJsonValue> = PicodashFieldOf<Value>;
+type ExactField<Value extends PicodashJsonValue> = PicodashExactFieldOf<Value>;
+type FieldValue<Field> = Field extends PicodashExactFieldOf<infer Value> ? Value : Field extends PicodashFieldOf<infer Value> ? Value : never;
+type FieldProps<Field> = {
+  readonly field: SafeField<Field>;
+};
+type WritableScalarFieldProps<Field extends ScalarField<Output>, Output extends PicodashJsonValue> = FieldProps<Field> & (Output extends FieldValue<NoInfer<Field>> ? unknown : never);
+type WritableRootField<Key extends string, Output extends PicodashJsonValue, Values extends Record<Key, Output>> = Output extends Values[Key] ? PicodashField<Values, Key> : never;
+type ChoiceValue = string | number;
+type ChoiceField = PicodashFieldOf<string> | PicodashFieldOf<number>;
+type ArrayChoiceField = PicodashFieldOf<readonly string[]> | PicodashFieldOf<readonly number[]>;
+type ArrayChoiceFallbackField = PicodashExactFieldOf<readonly string[]> | PicodashExactFieldOf<readonly number[]>;
+type ChoiceOptionValue<Field extends ChoiceField, Option extends ChoiceValue> = [ChoiceValue] extends [Option] ? Extract<FieldValue<Field>, ChoiceValue> : Option;
+type CompatibleChoiceField<Field extends ChoiceField, Option extends ChoiceValue> = IsAny<Option> extends true ? never : ChoiceOptionValue<Field, Option> extends FieldValue<Field> ? Field : never;
+type ChoiceFieldProps<Field extends ChoiceField, Option extends ChoiceValue> = FieldProps<CompatibleChoiceField<Field, Option>>;
+type ArrayChoiceElement<Field extends ArrayChoiceField> = FieldValue<Field> extends readonly (infer Element)[] ? Element : never;
+type CompatibleArrayChoiceField<Field extends ArrayChoiceField, Option extends ChoiceValue> = Field extends ArrayChoiceField ? IsAny<Option> extends true ? never : ArrayChoiceElement<Field>[] extends FieldValue<Field> ? ArrayChoiceOptionValue<Field, Option> extends ArrayChoiceElement<Field> ? Field : never : never : never;
+type ArrayChoiceOptionValue<Field extends ArrayChoiceField, Option extends ChoiceValue> = [ChoiceValue] extends [Option] ? Extract<FieldValue<Field> extends readonly (infer Element)[] ? Element : never, ChoiceValue> : Option;
+type ArrayChoiceFieldProps<Field extends ArrayChoiceField, Option extends ChoiceValue> = FieldProps<CompatibleArrayChoiceField<Field, Option>>;
+type ExactCompoundValueMember<Candidate, Expected extends object> = Candidate extends object ? Exclude<keyof Candidate, keyof Expected> extends never ? Exclude<keyof Expected, keyof Candidate> extends never ? Candidate extends Expected ? Expected extends Candidate ? true : false : false : false : false : false;
+type IsExactCompoundValue<Candidate, Expected extends object> = IsAny<Candidate> extends true ? false : [Candidate] extends [never] ? false : false extends (Candidate extends unknown ? ExactCompoundValueMember<Candidate, Expected> : never) ? false : true;
+type CompatibleExactField<Field extends ScalarField<PicodashJsonValue>, Expected extends PicodashJsonValue & object> = IsExactCompoundValue<FieldValue<Field>, Expected> extends true ? Field : never;
+type ExactCompoundFieldProps<Field extends ScalarField<PicodashJsonValue>, Expected extends PicodashJsonValue & object> = FieldProps<CompatibleExactField<Field, Expected>>;
+type Shell$2 = Omit<DashletProps, 'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef' | 'defaultValue' | 'onChange'> & {
+  readonly label: ReactNode;
+};
+type RangeDashletProps<F extends ScalarField<PicodashJsonValue> = ExactField<NumberRangeValue>> = Shell$2 & ExactCompoundFieldProps<F, NumberRangeValue> & Pick<RangeSliderProps, 'min' | 'max' | 'step' | 'formatOptions' | 'startDetent' | 'endDetent' | 'result' | 'formatResult'> & {
+  readonly formatValue?: (value: NumberRangeValue) => ReactNode;
+};
+export declare const RangeDashlet: {
+  <F extends ScalarField<PicodashJsonValue>>(props: RangeDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: RangeDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type MeterDashletProps<F extends ScalarField<number> = ScalarField<number>> = Omit<Shell$2, 'readOnly' | 'disabled'> & FieldProps<F> & Pick<MeterProps, 'min' | 'max' | 'formatOptions'> & {
+  readonly formatValue?: (value: number) => ReactNode;
+};
+export declare const MeterDashlet: <F extends ScalarField<number>>(props: MeterDashletProps<F> & RefAttributes<HTMLDivElement>) => ReactElement | null;
+type ProgressDashletProps<F extends ScalarField<number> = ScalarField<number>> = Omit<Shell$2, 'readOnly' | 'disabled'> & FieldProps<F> & Pick<ProgressBarProps, 'min' | 'max' | 'formatOptions'> & {
+  readonly formatValue?: (value: number) => ReactNode;
+};
+export declare const ProgressDashlet: <F extends ScalarField<number>>(props: ProgressDashletProps<F> & RefAttributes<HTMLDivElement>) => ReactElement | null;
+type StatusChoice<T extends ChoiceValue> = StatusOption<T>;
+type StatusDashletProps<T extends ChoiceValue = ChoiceValue, F extends ChoiceField = ChoiceField> = F extends ChoiceField ? Omit<Shell$2, 'readOnly' | 'disabled'> & ChoiceFieldProps<F, T> & {
+  readonly options: readonly StatusChoice<ChoiceOptionValue<F, T>>[];
+} : never;
+export declare const StatusDashlet: {
+  <T extends ChoiceValue, F extends ChoiceField>(props: StatusDashletProps<T, F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: StatusDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type TemporalCommon = Pick<DateFieldProps, 'min' | 'max' | 'locale' | 'shouldForceLeadingZeros'>;
+type DateDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell$2 & WritableScalarFieldProps<F, string> & TemporalCommon;
+export declare const DateDashlet: {
+  <F extends ScalarField<string>>(props: DateDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: DateDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type TimeDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell$2 & WritableScalarFieldProps<F, string> & Pick<TimeFieldProps, 'min' | 'max' | 'locale' | 'granularity' | 'hourCycle' | 'shouldForceLeadingZeros'>;
+export declare const TimeDashlet: {
+  <F extends ScalarField<string>>(props: TimeDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: TimeDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type DateTimeDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell$2 & WritableScalarFieldProps<F, string> & Pick<DateTimeFieldProps, 'min' | 'max' | 'locale' | 'granularity' | 'hourCycle' | 'hideTimeZone' | 'shouldForceLeadingZeros'> & {
+  readonly timeZone: string;
+};
+export declare const DateTimeDashlet: {
+  <F extends ScalarField<string>>(props: DateTimeDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: DateTimeDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type DateRangeValue = {
+  readonly start: string;
+  readonly end: string;
+};
+type DateRangeDashletProps<F extends ScalarField<PicodashJsonValue> = ExactField<DateRangeValue>> = Shell$2 & ExactCompoundFieldProps<F, DateRangeValue> & Pick<DateRangeFieldProps, 'locale' | 'shouldForceLeadingZeros'>;
+export declare const DateRangeDashlet: {
+  <F extends ScalarField<PicodashJsonValue>>(props: DateRangeDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: DateRangeDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type ColorDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell$2 & WritableScalarFieldProps<F, string> & {
+  readonly format?: ColorFormat;
+};
+export declare const ColorDashlet: {
+  <F extends ScalarField<string>>(props: ColorDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: ColorDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type Shell$1 = Omit<DashletProps, 'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef' | 'defaultValue' | 'onChange'> & {
+  readonly label: ReactNode;
+};
+type ChoiceShell$1<T extends ChoiceValue> = Shell$1 & {
+  readonly options: readonly SelectOption<T>[];
+};
+type ArrayChoiceShell<T extends ChoiceValue> = ChoiceShell$1<T>;
+type CheckboxDashletProps<F extends ScalarField<boolean> = ExactField<boolean>> = Shell$1 & WritableScalarFieldProps<F, boolean>;
+export declare const CheckboxDashlet: {
+  <const F extends ExactField<boolean>>(props: CheckboxDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  <const Key extends string, const Values extends Record<Key, boolean>>(props: CheckboxDashletProps<WritableRootField<Key, boolean, Values>> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: CheckboxDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type RadioGroupDashletProps<T extends ChoiceValue = ChoiceValue, F extends ChoiceField = ChoiceField> = F extends ChoiceField ? ChoiceShell$1<ChoiceOptionValue<F, T>> & ChoiceFieldProps<F, T> & Pick<RadioGroupProps<ChoiceOptionValue<F, T>>, 'orientation'> : never;
+export declare const RadioGroupDashlet: {
+  <T extends ChoiceValue, F extends ChoiceField>(props: RadioGroupDashletProps<T, F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: RadioGroupDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type ComboboxDashletProps<T extends ChoiceValue = ChoiceValue, F extends ChoiceField = ChoiceField> = F extends ChoiceField ? ChoiceShell$1<ChoiceOptionValue<F, T>> & ChoiceFieldProps<F, T> & Pick<ComboboxProps<ChoiceOptionValue<F, T>>, 'placeholder'> : never;
+export declare const ComboboxDashlet: {
+  <T extends ChoiceValue, F extends ChoiceField>(props: ComboboxDashletProps<T, F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: ComboboxDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type CheckboxGroupDashletProps<T extends ChoiceValue = ChoiceValue, F extends ArrayChoiceField = ArrayChoiceFallbackField> = F extends ArrayChoiceField ? ArrayChoiceShell<ArrayChoiceOptionValue<F, T>> & ArrayChoiceFieldProps<F, T> : never;
+export declare const CheckboxGroupDashlet: {
+  <T extends ChoiceValue, F extends ArrayChoiceField>(props: CheckboxGroupDashletProps<T, F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: CheckboxGroupDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type MultiSelectDashletProps<T extends ChoiceValue = ChoiceValue, F extends ArrayChoiceField = ArrayChoiceFallbackField> = F extends ArrayChoiceField ? ArrayChoiceShell<ArrayChoiceOptionValue<F, T>> & ArrayChoiceFieldProps<F, T> & Pick<MultiSelectProps<ArrayChoiceOptionValue<F, T>>, 'placeholder'> : never;
+export declare const MultiSelectDashlet: {
+  <T extends ChoiceValue, F extends ArrayChoiceField>(props: MultiSelectDashletProps<T, F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: MultiSelectDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type SearchDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell$1 & WritableScalarFieldProps<F, string> & Pick<SearchFieldProps, 'placeholder'>;
+export declare const SearchDashlet: {
+  <F extends ScalarField<string>>(props: SearchDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: SearchDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type Shell = Omit<DashletProps, 'field' | 'children' | 'label' | 'mode' | 'primaryFocusRef' | 'defaultValue' | 'onChange'> & {
+  readonly label: ReactNode;
+};
+type DashletChoiceOption<T extends string | number> = SelectOption<T>;
+type SliderDashletMark = SliderMark;
+type TextDashletProps<F extends ScalarField<string> = ExactField<string>> = Shell & WritableScalarFieldProps<F, string> & Pick<TextFieldProps, 'multiline' | 'minRows' | 'placeholder'>;
+export declare const TextDashlet: {
+  <F extends ScalarField<string>>(props: TextDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: TextDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type NumberDashletProps<F extends ScalarField<number> = ExactField<number>> = Shell & WritableScalarFieldProps<F, number> & Pick<NumberFieldProps, 'min' | 'max' | 'step' | 'placeholder' | 'formatOptions' | 'unit'>;
+export declare const NumberDashlet: {
+  <F extends ScalarField<number>>(props: NumberDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: NumberDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type SliderDashletProps<F extends ScalarField<number> = ExactField<number>> = Shell & WritableScalarFieldProps<F, number> & Pick<SliderProps, 'min' | 'max' | 'step' | 'marks' | 'formatOptions' | 'allowedRange' | 'fillOrigin' | 'startDetent' | 'endDetent'> & {
+  readonly formatValue?: (canonical: number) => ReactNode;
+};
+export declare const SliderDashlet: {
+  <F extends ScalarField<number>>(props: SliderDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: SliderDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type SwitchDashletProps<F extends ScalarField<boolean> = ExactField<boolean>> = Shell & WritableScalarFieldProps<F, boolean>;
+export declare const SwitchDashlet: {
+  <const F extends ExactField<boolean>>(props: SwitchDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  <const Key extends string, const Values extends Record<Key, boolean>>(props: SwitchDashletProps<WritableRootField<Key, boolean, Values>> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: SwitchDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type ChoiceShell<T extends ChoiceValue> = Shell & {
+  readonly options: readonly SelectOption<T>[];
+};
+type SelectChoiceShell<T extends ChoiceValue> = ChoiceShell<T> & {
+  readonly placeholder?: string;
+};
+type SelectDashletProps<T extends ChoiceValue = ChoiceValue, F extends ChoiceField = ChoiceField> = F extends ChoiceField ? SelectChoiceShell<ChoiceOptionValue<F, T>> & ChoiceFieldProps<F, T> : never;
+export declare const SelectDashlet: {
+  <T extends ChoiceValue, F extends ChoiceField>(props: SelectDashletProps<T, F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: SelectDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type SegmentedDashletProps<T extends ChoiceValue = ChoiceValue, F extends ChoiceField = ChoiceField> = F extends ChoiceField ? ChoiceShell<ChoiceOptionValue<F, T>> & ChoiceFieldProps<F, T> : never;
+export declare const SegmentedDashlet: {
+  <T extends ChoiceValue, F extends ChoiceField>(props: SegmentedDashletProps<T, F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: SegmentedDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type DisplayDashletProps<F extends ScalarField<PicodashJsonValue> = ScalarField<PicodashJsonValue>> = Omit<Shell, 'readOnly' | 'disabled'> & FieldProps<F> & {
+  readonly formatValue?: (value: FieldValue<F>) => ReactNode;
+};
+export declare const DisplayDashlet: <F extends ScalarField<PicodashJsonValue>>(props: DisplayDashletProps<F> & RefAttributes<HTMLDivElement>) => ReactElement | null;
+type TargetSliderDashletProps<F extends ScalarField<number> = ExactField<number>> = Shell & WritableScalarFieldProps<F, number> & Pick<TargetSliderProps, 'min' | 'max' | 'step' | 'marks' | 'allowedRange' | 'formatOptions' | 'formatValue' | 'result' | 'unit'>;
+export declare const TargetSliderDashlet: {
+  <F extends ScalarField<number>>(props: TargetSliderDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: TargetSliderDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type TargetNumberDashletProps<F extends ScalarField<number> = ExactField<number>> = Shell & WritableScalarFieldProps<F, number> & Pick<TargetNumberProps, 'min' | 'max' | 'step' | 'placeholder' | 'formatOptions' | 'formatValue' | 'result' | 'unit' | 'targetLabel' | 'actualLabel'>;
+export declare const TargetNumberDashlet: {
+  <F extends ScalarField<number>>(props: TargetNumberDashletProps<F> & RefAttributes<HTMLDivElement>): ReactElement | null;
+  (props: TargetNumberDashletProps & RefAttributes<HTMLDivElement>): ReactElement | null;
+};
+type NeutralDivProps = Omit<ComponentPropsWithRef<'div'>, 'children' | 'id' | 'title' | 'role' | 'tabIndex' | 'aria-label' | 'aria-labelledby'>;
+type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6;
+type HeadingProps = {
+  readonly title?: undefined;
+  readonly headingLevel?: never;
+} | {
+  readonly title: ReactNode;
+  readonly headingLevel: HeadingLevel;
+};
+export type DashStackProps<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions, CustomTheme extends string = never> = NeutralDivProps & HeadingProps & {
+  readonly children?: ReactNode;
+  readonly theme?: PicodashThemeOption$1<CustomTheme>;
+  readonly density?: PicodashDensity$1;
+  readonly 'aria-label'?: string;
+  readonly 'aria-labelledby'?: string;
+  readonly reorderable?: boolean;
+  readonly stickyLanes?: 'start' | 'end' | 'both' | 'none';
+} & ({
+  readonly nexus: RootNexus<Fields>;
+  readonly id: string;
+} | {
+  readonly nexus: ScopedNexus<Fields>;
+  readonly id?: string;
+} | {
+  readonly nexus?: undefined;
+  readonly id?: string;
+});
+type RegisteredNodeNativeProps = Omit<ComponentPropsWithRef<'div'>, 'aria-describedby' | 'aria-errormessage' | 'aria-invalid' | 'aria-label' | 'aria-labelledby' | 'children' | 'id' | 'role' | 'tabIndex' | 'title'>;
+export type DashGroupProps = RegisteredNodeNativeProps & {
+  readonly detachable?: boolean | 'floating' | 'hybrid';
+  readonly recordableHotkey?: boolean;
+  readonly glow?: boolean | CSSProperties['color'];
+  readonly id: string;
+  readonly label?: ReactNode;
+  readonly labelColor?: CSSProperties['color'];
+  readonly 'aria-label'?: string;
+  readonly children?: ReactNode;
+  readonly collapsible?: boolean;
+  readonly defaultCollapsed?: boolean;
+  readonly reorderable?: boolean;
+  readonly pin?: 'start' | 'end';
+  readonly disabled?: boolean;
+  readonly readOnly?: boolean;
+};
+type DashletBaseProps = RegisteredNodeNativeProps & {
+  readonly pin?: 'start' | 'end';
+  readonly band?: boolean | CSSProperties['color'];
+  readonly glow?: boolean | CSSProperties['color'];
+  readonly tint?: boolean | CSSProperties['color'];
+  readonly id: string;
+  readonly label?: ReactNode;
+  readonly 'aria-label'?: string;
+  readonly description?: ReactNode;
+  readonly help?: ReactNode;
+  readonly layout?: 'inline' | 'block';
+  readonly disabled?: boolean;
+  readonly readOnly?: boolean;
+  readonly primaryFocusRef?: RefObject<HTMLElement | null>;
+};
+export type DashletProps<TValues extends object = Record<string, PicodashJsonValue>, TKey extends Extract<keyof TValues, string> = Extract<keyof TValues, string>, TMode extends DashletBindingMode = 'input'> = (DashletBaseProps & {
+  readonly field?: never;
+  readonly fields?: never;
+  readonly mode?: never;
+  readonly children?: ReactNode | ((context: DashletRenderContext) => ReactNode);
+}) | (DashletBaseProps & {
+  readonly field: PicodashField<TValues, TKey>;
+  readonly fields?: never;
+  readonly mode?: TMode;
+  readonly children?: ReactNode | ((context: SingleFieldDashletRenderContext<TValues[TKey] & PicodashJsonValue, TMode>) => ReactNode);
+});
+export type CompoundDashletProps<TValues extends object, TFields extends DashletFields<TValues>> = DashletBaseProps & {
+  readonly field?: never;
+  readonly fields: TFields;
+  readonly mode?: never;
+  readonly children?: ReactNode | ((context: CompoundDashletRenderContext<TValues, TFields>) => ReactNode);
+};
+/** Committed, reconciled order; drag previews never change this snapshot. */
+export declare function useDashStackOrder(container?: 'nearest' | 'root'): readonly string[];
+declare const DashGroupImpl: import("react").ForwardRefExoticComponent<Omit<DashGroupProps, "ref"> & import("react").RefAttributes<HTMLDivElement>>;
+export declare const DashStack: <Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions, CustomTheme extends string = never>(props: DashStackProps<Fields, CustomTheme>) => ReactElement | null;
+export declare const DashGroup: typeof DashGroupImpl;
+export declare const Dashlet: <TValues extends object = Record<string, PicodashJsonValue>, TKey extends Extract<keyof TValues, string> = Extract<keyof TValues, string>, TMode extends DashletBindingMode = 'input', TFields extends DashletFields<TValues> = DashletFields<TValues>>(props: DashletProps<TValues, TKey, TMode> | CompoundDashletProps<TValues, TFields>) => ReactElement | null;
+export { ActionMenu, type ActionMenuConfirmation, type ActionMenuConfirmationGuard, ActionMenuItem, type ActionMenuItemProps, type ActionMenuItemVariant, type ActionMenuProps, ActionMenuSeparator, type ActionMenuSeparatorProps, ActionSubmenu, type ActionSubmenuProps, type CheckboxDashletProps, type CheckboxGroupDashletProps, type ColorDashletProps, type ComboboxDashletProps, type CompoundDashletRenderContext, DashHeader, type DashHeaderProps, type DashHeaderSlots, type DashStackActionAvailability, type DashStackActionController, type DashStackActionExecutionResult, type DashStackActionNexusResult, type DashStackActionProps, type DashStackActions, type DashStackNode, type DashStackStructure, type DashletBindingContext, type DashletBindingContextFor, type DashletBindingMode, type DashletChoiceOption, type DashletDisplayBindingContext, type DashletFieldBinding, type DashletFields, type DashletInputBindingContext, type DashletRenderContext, type DashletRevealResult, type DateDashletProps, type DateRangeDashletProps, type DateTimeDashletProps, type DisplayDashletProps, type MeterDashletProps, type MultiSelectDashletProps, type NumberDashletProps, type PicodashDensity, type PicodashThemeOption, type ProgressDashletProps, type RadioGroupDashletProps, type RangeDashletProps, type SearchDashletProps, type SegmentedDashletProps, type SelectDashletProps, type SingleFieldDashletRenderContext, type SliderDashletMark, type SliderDashletProps, type SliderDetent, type StatusDashletProps, type SwitchDashletProps, type TargetNumberDashletProps, type TargetNumberResult, type TargetSliderDashletProps, type TargetSliderResult, type TextDashletProps, type TimeDashletProps };
+//# sourceMappingURL=index.d.mts.map

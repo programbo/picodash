@@ -1,0 +1,245 @@
+import { CoreTransactionResult, NexusInteractionEvent, NexusInteractionInput, PersistentTransactionResult, PicodashFieldDefinitions, PicodashJsonValue, RootNexus, TransactionIssue } from "@picodash/nexus";
+declare const PICODASH_DEV_BRIDGE_PROTOCOL_VERSION: 4;
+declare const PICODASH_DEV_BRIDGE_SUBPROTOCOL: 'picodash.dev-bridge.v4';
+type PicodashDevBridgeDisclosure = Readonly<{
+  valueFields: readonly string[];
+  scopeIds: readonly string[];
+  diagnostics: boolean;
+  observationNames?: readonly string[];
+  eventScopeIds?: readonly string[];
+  eventTypes?: readonly NexusInteractionInput['type'][];
+}>;
+type PicodashDevBridgePermissions = Readonly<{
+  writableFields: readonly string[];
+}>;
+type PicodashDevBridgeSnapshotScope = Readonly<{
+  id: string;
+  metadata?: PicodashJsonValue;
+}>;
+type PicodashDevBridgeSnapshotDiagnostic = Readonly<{
+  key: string;
+  code: string;
+  severity: 'error' | 'warning';
+  message: string;
+  identity: Readonly<Record<string, PicodashJsonValue>>;
+  count: number;
+  lastOccurrence: number;
+}>;
+type PicodashDevBridgeObservationSource = Readonly<{
+  getSnapshot(): Readonly<Record<string, import('@picodash/nexus').PicodashJsonValue>>;
+  subscribe(listener: () => void): () => void;
+}>;
+type PicodashDevBridgeObservation = Readonly<{
+  status: 'available';
+  value: PicodashJsonValue;
+}> | Readonly<{
+  status: 'unavailable';
+}>;
+type PicodashDevBridgeSnapshot = Readonly<{
+  observations?: Readonly<Record<string, PicodashDevBridgeObservation>>;
+  values?: Readonly<Record<string, PicodashJsonValue>>;
+  scopes?: readonly PicodashDevBridgeSnapshotScope[];
+  diagnostics?: readonly PicodashDevBridgeSnapshotDiagnostic[];
+}>;
+type PicodashDevBridgeSessionRef = Readonly<{
+  sessionId: string;
+  generation: number;
+  sequence: number;
+}>;
+type PicodashDevBridgeSessionDescriptor = PicodashDevBridgeSessionRef & Readonly<{
+  registrationId: string;
+  browserTabId: string;
+  label?: string;
+  buildId?: string;
+  disclosedObservationNames: readonly string[];
+  origin: string;
+  fieldKeys: readonly string[];
+  disclosedValueFields: readonly string[];
+  writableFields: readonly string[];
+  disclosedScopeIds: readonly string[];
+  diagnosticsDisclosed: boolean;
+  disclosedEventScopeIds: readonly string[];
+  disclosedEventTypes: readonly NexusInteractionInput['type'][];
+  eventSequence: number;
+  capabilities: readonly ['inspect', 'set_values', 'wait', 'read_events'];
+}>;
+type PicodashDevBridgeEventCursor = Readonly<{
+  sessionId: string;
+  generation: number;
+  sequence: number;
+}>;
+type PicodashDevBridgeReadEventsCommand = Readonly<{
+  type: 'read_events';
+  requestId: string;
+  cursor?: PicodashDevBridgeEventCursor;
+  limit?: number;
+  timeoutMs?: number;
+}>;
+type PicodashDevBridgeEventEntry = Readonly<{
+  sequence: number;
+  event: NexusInteractionEvent;
+}>;
+type PicodashDevBridgeEventsResult = Readonly<{
+  type: 'events_result';
+  requestId: string;
+  outcome: 'available' | 'timed_out' | 'history_gap';
+  session: PicodashDevBridgeSessionRef;
+  cursor: PicodashDevBridgeEventCursor;
+  earliestAvailableSequence: number;
+  events: readonly PicodashDevBridgeEventEntry[];
+}>;
+type PicodashDevBridgeNexusOutcome<Result extends CoreTransactionResult | PersistentTransactionResult = CoreTransactionResult | PersistentTransactionResult> = Readonly<{
+  type: 'transaction_result';
+  result: Extract<Result, {
+    ok: true;
+  }>;
+}> | Readonly<{
+  type: 'transaction_result';
+  result: Extract<Result, {
+    ok: false;
+  }> extends {
+    error: infer E;
+  } ? {
+    ok: false;
+    issues: E extends {
+      issues: infer I;
+    } ? I : readonly TransactionIssue[];
+  } : {
+    ok: false;
+    issues: readonly TransactionIssue[];
+  };
+}> | Readonly<{
+  type: 'contract_error';
+  code: string;
+  context: Readonly<Record<string, string>>;
+}>;
+type PicodashDevBridgeSetValuesCommand = Readonly<{
+  type: 'set_values';
+  requestId: string;
+  values: Readonly<Record<string, PicodashJsonValue>>;
+}>;
+type PicodashDevBridgeWaitCondition = Readonly<{
+  type: 'observation_equals';
+  name: string;
+  value: PicodashJsonValue;
+  afterSequence?: number;
+}> | Readonly<{
+  type: 'sequence_after';
+  sequence: number;
+}> | Readonly<{
+  type: 'value_equals';
+  field: string;
+  value: PicodashJsonValue;
+  afterSequence?: number;
+}>;
+type PicodashDevBridgeWaitCommand = Readonly<{
+  type: 'wait';
+  requestId: string;
+  timeoutMs: number;
+  condition: PicodashDevBridgeWaitCondition;
+}>;
+type PicodashDevBridgeCommand = PicodashDevBridgeSetValuesCommand | PicodashDevBridgeWaitCommand;
+type PicodashDevBridgeCommandResult<Result extends CoreTransactionResult | PersistentTransactionResult = CoreTransactionResult | PersistentTransactionResult> = Readonly<{
+  type: 'command_result';
+  requestId: string;
+  session: PicodashDevBridgeSessionRef;
+  beforeSequence: number;
+  afterSequence: number;
+  outcome: PicodashDevBridgeNexusOutcome<Result>;
+}>;
+type PicodashDevBridgeWaitResult = Readonly<{
+  type: 'wait_result';
+  requestId: string;
+  outcome: 'satisfied' | 'timed_out';
+  session: PicodashDevBridgeSessionRef;
+  snapshot: PicodashDevBridgeSnapshot;
+}>;
+type PicodashDevBridgeErrorCode = 'invalid_request' | 'unauthorized' | 'capability_denied' | 'session_not_found' | 'generation_mismatch' | 'session_disconnected' | 'session_unsynchronized' | 'request_in_flight' | 'command_timed_out' | 'internal_error';
+type PicodashDevBridgeError = Readonly<{
+  type: 'bridge_error';
+  error: Readonly<{
+    code: PicodashDevBridgeErrorCode;
+    message: string;
+  }>;
+  requestId?: string;
+  session?: PicodashDevBridgeSessionRef;
+}>;
+type PicodashDevBridgeClientCredential = Readonly<{
+  baseUrl: string;
+  token: string;
+}>;
+type PicodashDevBridgeBrowserCredential = Readonly<{
+  webSocketUrl: string;
+  origin: string;
+  token: string;
+}>;
+type PicodashDevBridgeRelay = Readonly<{
+  baseUrl: string;
+  webSocketUrl: string;
+  agentCredential: PicodashDevBridgeClientCredential;
+  issueBrowserCredential(origin: string): PicodashDevBridgeBrowserCredential;
+  close(): Promise<void>;
+}>;
+type PicodashDevBridgeRelayOptions = Readonly<{
+  allowedBrowserOrigins: readonly string[];
+  port?: number;
+}>;
+type PicodashDevBridgeConnectOptions<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions, Result extends CoreTransactionResult | PersistentTransactionResult = CoreTransactionResult> = Readonly<{
+  nexus: RootNexus<Fields, Result>;
+  credential: PicodashDevBridgeBrowserCredential;
+  registrationId: string;
+  label?: string;
+  buildId?: string;
+  observations?: PicodashDevBridgeObservationSource;
+  disclosure?: Partial<PicodashDevBridgeDisclosure>;
+  permissions?: Partial<PicodashDevBridgePermissions>;
+  browserTabId?: string;
+  signal?: AbortSignal;
+}>;
+type PicodashDevBridgeBrowserConnection = Readonly<{
+  session: PicodashDevBridgeSessionDescriptor;
+  close(): Promise<void>;
+}>;
+type PicodashDevBridgeRegistration = Readonly<{
+  type: 'register';
+  protocolVersion: 4;
+  token: string;
+  registration: {
+    registrationId: string;
+    browserTabId: string;
+    label?: string;
+    buildId?: string;
+    fieldKeys: readonly string[];
+    disclosure: PicodashDevBridgeDisclosure;
+    permissions: PicodashDevBridgePermissions;
+  };
+}>;
+type PicodashDevBridgeWireFrame = PicodashDevBridgeRegistration | Readonly<{
+  type: 'registered';
+  session: PicodashDevBridgeSessionDescriptor;
+}> | Readonly<{
+  type: 'snapshot' | 'resync';
+  session: PicodashDevBridgeSessionRef;
+  sequence: number;
+  snapshot: PicodashDevBridgeSnapshot;
+}> | Readonly<{
+  type: 'command';
+  session: PicodashDevBridgeSessionRef;
+  command: PicodashDevBridgeCommand;
+}> | PicodashDevBridgeCommandResult | Readonly<{
+  type: 'interaction_event';
+  session: PicodashDevBridgeSessionRef;
+  eventSequence: number;
+  event: NexusInteractionEvent;
+}> | Readonly<{
+  type: 'event_gap';
+  session: PicodashDevBridgeSessionRef;
+  eventSequence: number;
+}> | Readonly<{
+  type: 'resync_request';
+  sessionId: string;
+  generation: number;
+  nextSequence: number;
+}> | PicodashDevBridgeError;
+export { PicodashDevBridgeWaitCondition as A, PicodashDevBridgeSessionDescriptor as C, PicodashDevBridgeSnapshotDiagnostic as D, PicodashDevBridgeSnapshot as E, PicodashDevBridgeWireFrame as M, PicodashDevBridgeSnapshotScope as O, PicodashDevBridgeRelayOptions as S, PicodashDevBridgeSetValuesCommand as T, PicodashDevBridgeObservationSource as _, PicodashDevBridgeClientCredential as a, PicodashDevBridgeRegistration as b, PicodashDevBridgeConnectOptions as c, PicodashDevBridgeErrorCode as d, PicodashDevBridgeEventCursor as f, PicodashDevBridgeObservation as g, PicodashDevBridgeNexusOutcome as h, PicodashDevBridgeBrowserCredential as i, PicodashDevBridgeWaitResult as j, PicodashDevBridgeWaitCommand as k, PicodashDevBridgeDisclosure as l, PicodashDevBridgeEventsResult as m, PICODASH_DEV_BRIDGE_SUBPROTOCOL as n, PicodashDevBridgeCommand as o, PicodashDevBridgeEventEntry as p, PicodashDevBridgeBrowserConnection as r, PicodashDevBridgeCommandResult as s, PICODASH_DEV_BRIDGE_PROTOCOL_VERSION as t, PicodashDevBridgeError as u, PicodashDevBridgePermissions as v, PicodashDevBridgeSessionRef as w, PicodashDevBridgeRelay as x, PicodashDevBridgeReadEventsCommand as y };
+//# sourceMappingURL=types-YBNWPd-9.d.mts.map

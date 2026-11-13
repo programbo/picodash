@@ -1,0 +1,23 @@
+import { P as PicodashFieldDefinitions, S as InvalidPruneOptionsReason, Sr as publishNexusInteraction, Y as RootDashStackPruneOptions, Z as RootNexus, _r as acquireBindingLease, ar as AcquireDashStackNodeOptions, br as acquireProviderLease, cr as EntityLease, d as DashStackPruneCandidate, dr as InvalidDashStackNodeOptionsReason, f as DashStackPruneEffect, fr as InvalidEntityOptionsReason, gr as RelationshipLease, hr as ProviderLease, ir as AcquireBindingOptions, it as ScopedNexus, k as PicodashDashStackPrunePlan, kr as NexusInteractionPublisher, lr as EntityLeaseOptions, m as DashStackPruneSelection, mr as NexusEntityKind, or as BindingHandle, p as DashStackPruneReview, pr as NexusBindingMode, r as CoreTransactionResult, sr as DashStackNodeLease, ur as InvalidBindingHandleReason, vr as acquireDashStackNodeLease, xr as acquireRelationshipLease, yr as acquireEntityLease } from "./index-HD_xyHBR.mjs";
+import { ReactElement, ReactNode } from "react";
+interface PicodashNexusProviderBoundaryProps<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions, Result extends CoreTransactionResult = CoreTransactionResult> {
+  readonly children: ReactNode;
+  readonly nexus: RootNexus<Fields, Result>;
+  readonly providerId?: string;
+}
+type PicodashNexusEntityBoundaryProps<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions, Result extends CoreTransactionResult = CoreTransactionResult> = Readonly<{
+  readonly children: ReactNode;
+  readonly nexus: ScopedNexus<Fields, Result>;
+}> & (Readonly<{
+  readonly kind: 'dashPanel';
+  readonly allowStandalone?: never;
+}> | Readonly<{
+  readonly kind: 'dashStack';
+  readonly allowStandalone?: boolean;
+}>);
+export declare function PicodashNexusProviderBoundary<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions, Result extends CoreTransactionResult = CoreTransactionResult>({ children, nexus, providerId }: PicodashNexusProviderBoundaryProps<Fields, Result>): ReactElement;
+export declare function PicodashNexusEntityBoundary<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions, Result extends CoreTransactionResult = CoreTransactionResult>({ children, nexus, kind, allowStandalone }: PicodashNexusEntityBoundaryProps<Fields, Result>): ReactElement;
+/** Resolve the existing nearest declarative entity's publisher; never acquires another entity. */
+export declare function useNexusInteractionPublisher(): NexusInteractionPublisher;
+export { type AcquireBindingOptions, type AcquireDashStackNodeOptions, type BindingHandle, type DashStackNodeLease, type DashStackPruneCandidate, type DashStackPruneEffect, type DashStackPruneReview, type DashStackPruneSelection, type EntityLease, type EntityLeaseOptions, type InvalidBindingHandleReason, type InvalidDashStackNodeOptionsReason, type InvalidEntityOptionsReason, type InvalidPruneOptionsReason, type NexusBindingMode, type NexusEntityKind, type NexusInteractionPublisher, type PicodashDashStackPrunePlan, type PicodashNexusEntityBoundaryProps, type PicodashNexusProviderBoundaryProps, type ProviderLease, type RelationshipLease, type RootDashStackPruneOptions, acquireBindingLease, acquireDashStackNodeLease, acquireEntityLease, acquireProviderLease, acquireRelationshipLease, publishNexusInteraction };
+//# sourceMappingURL=integration.d.mts.map

@@ -7,25 +7,19 @@ const legacyPackageName = ['@picodash', 'panel'].join('/')
 
 const artifactContracts = {
   'README.md': [
+    '@picodash/nexus',
     '@picodash/dashpanel',
     '@picodash/dashstack',
     '@picodash/picodash',
-    '@picodash/nexus',
   ],
-  'SKILL.md': ['@picodash/dashpanel', '@picodash/dashstack', '@picodash/picodash'],
-  'llms.txt': ['@picodash/dashpanel', '@picodash/dashstack', '@picodash/picodash'],
-  'PRODUCT.md': ['AI coding agent', 'WCAG 2.2 Level AA'],
-  'CONTEXT.md': ['Compound Dashlet', 'Picodash Nexus', 'Root Nexus', 'Scoped Nexus'],
-  'docs/agents/dashstack.md': [
-    '@picodash/dashstack/ui',
-    '@picodash/dashstack/catalog',
-    '@picodash/dashstack/charts',
+  'docs/index.md': ['reference/nexus.md', 'design/nexus-api-audit.md', 'reference/api/index.md'],
+  'docs/reference/nexus.md': [
+    'implemented API',
+    'ItemInteractionSource',
+    'PicodashInitializationError',
   ],
-  'packages/dashstack/README.md': [
-    '@picodash/dashstack/ui',
-    '@picodash/dashstack/catalog',
-    '@picodash/dashstack/charts',
-  ],
+  'AGENTS.md': ['docs/index.md', 'docs/design/nexus-api-audit.md', 'docs/archive'],
+  'llms.txt': ['docs/reference/api/index.md', 'docs/reference/nexus.md'],
 }
 
 const packageExportContracts = {

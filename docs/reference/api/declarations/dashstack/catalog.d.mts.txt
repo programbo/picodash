@@ -1,0 +1,31 @@
+export interface PicodashCatalogEntry {
+  readonly id: string;
+  readonly owner: '@picodash/dashpanel' | '@picodash/dashstack' | '@picodash/picodash';
+  readonly entrypoint: string;
+  readonly exportName: string;
+  readonly kind: 'provider' | 'panel' | 'stack' | 'group' | 'dashlet' | 'anatomy' | 'action-composition';
+  readonly summary: string;
+  readonly capabilities: readonly string[];
+  readonly field: {
+    readonly cardinality: 'none' | 'optional' | 'one' | 'many';
+    readonly valueKinds: readonly ('boolean' | 'number' | 'string' | 'string-or-number' | 'json')[];
+  };
+  readonly composition: {
+    readonly allowedParents: readonly string[];
+    readonly recommendedParents: readonly string[];
+  };
+  readonly accessibleName: 'visible-label' | 'required' | 'inherited' | 'none';
+  readonly reference: string;
+}
+export interface PicodashCatalogReexport {
+  readonly entryId: string;
+  readonly entrypoint: string;
+  readonly exportName: string;
+}
+export interface PicodashComponentCatalog {
+  readonly schemaVersion: 1;
+  readonly entries: readonly PicodashCatalogEntry[];
+  readonly reexports: readonly PicodashCatalogReexport[];
+}
+export declare const catalog: PicodashComponentCatalog;
+//# sourceMappingURL=catalog.d.mts.map

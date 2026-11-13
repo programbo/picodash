@@ -26,3 +26,13 @@ stable. Bindings remain opaque Nexus metadata, keyed by Stack/group identity; el
 derived from original Panel runtime. Visible duplicate contexts use active-parent arbitration.
 Task fixtures: ContextualShortcuts.tsx and contextual-shortcuts.test.tsx. Source baseline 9af52fa.
 Fresh consumer and browser evidence is recorded in tests/skills/README.md after execution.
+
+## 2026-11-13 consolidation
+
+The user requested an archive of old target contracts and a code-first documentation reset.
+Existing bind-controls and docked-panel-shortcuts tasks remain the selected batch. Their source paths
+now point to rebuilt implementation references; old ADRs/status claims are historical.
+Manual Panel sizing and contextual group detachment coexist; the latter retains session layout v2.
+No generic Nexus extension or new skill is claimed. The Nexus audit records consumer coupling and
+API consistency/completeness proposals separately from implemented behavior.
+Verification and any fresh-consumer limitation are recorded in docs/internal/consolidation-audit.md.

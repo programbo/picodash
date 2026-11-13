@@ -1,0 +1,2 @@
+export declare function runPicodashDevBridgeCli(argv?: string[]): Promise<number>;
+//# sourceMappingURL=cli.d.mts.map

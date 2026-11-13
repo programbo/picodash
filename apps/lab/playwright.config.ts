@@ -1,4 +1,15 @@
 import { defineConfig, devices } from '@playwright/test'
+import { fileURLToPath } from 'node:url'
+
+// Bun does not automatically load .env.local for test commands.
+if (!process.env.LAB_PORT) {
+  try {
+    process.loadEnvFile(fileURLToPath(new URL('../../.env.local', import.meta.url)))
+  } catch (error) {
+    if (!(error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT'))
+      throw error
+  }
+}
 
 const labPort = servicePort('LAB_PORT', '6032')
 const labURL = `http://127.0.0.1:${labPort}`

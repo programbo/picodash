@@ -28,7 +28,13 @@ export default defineConfig({
     '*': 'vp check --fix',
   },
   fmt: {
-    ignorePatterns: ['apps/web/next-env.d.ts', 'apps/lab/next-env.d.ts', '**/test-results/**'],
+    ignorePatterns: [
+      'apps/web/next-env.d.ts',
+      'apps/lab/next-env.d.ts',
+      '**/test-results/**',
+      'docs/archive/**',
+      'docs/reference/api/**',
+    ],
     singleQuote: true,
     semi: false,
     sortTailwindcss: {

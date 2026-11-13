@@ -36,3 +36,6 @@ skills:
     },
   ]
 gaps: []
+
+# 2026-11-13: retain these two consumer tasks through consolidation and the documentation reset.
+# Generic Nexus extension design remains outside the implemented task batch.

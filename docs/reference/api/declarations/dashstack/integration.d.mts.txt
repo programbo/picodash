@@ -1,0 +1,2 @@
+import { n as DashGroupPresentation, r as DashStackIntegrationProvider, t as DashGroupHostProps } from "./group-host-u6J5kraE.mjs";
+export { type DashGroupHostProps, type DashGroupPresentation, DashStackIntegrationProvider };

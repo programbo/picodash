@@ -1,0 +1,16 @@
+import { A as PicodashDevBridgeWaitCondition, C as PicodashDevBridgeSessionDescriptor, D as PicodashDevBridgeSnapshotDiagnostic, E as PicodashDevBridgeSnapshot, M as PicodashDevBridgeWireFrame, O as PicodashDevBridgeSnapshotScope, T as PicodashDevBridgeSetValuesCommand, _ as PicodashDevBridgeObservationSource, b as PicodashDevBridgeRegistration, c as PicodashDevBridgeConnectOptions, d as PicodashDevBridgeErrorCode, f as PicodashDevBridgeEventCursor, g as PicodashDevBridgeObservation, h as PicodashDevBridgeNexusOutcome, i as PicodashDevBridgeBrowserCredential, j as PicodashDevBridgeWaitResult, k as PicodashDevBridgeWaitCommand, l as PicodashDevBridgeDisclosure, m as PicodashDevBridgeEventsResult, o as PicodashDevBridgeCommand, p as PicodashDevBridgeEventEntry, r as PicodashDevBridgeBrowserConnection, s as PicodashDevBridgeCommandResult, u as PicodashDevBridgeError, v as PicodashDevBridgePermissions, w as PicodashDevBridgeSessionRef, y as PicodashDevBridgeReadEventsCommand } from "./types-YBNWPd-9.mjs";
+import { CoreTransactionResult, PersistentTransactionResult } from "@picodash/nexus";
+export declare function connectPicodashDevBridge(options: PicodashDevBridgeConnectOptions): Promise<PicodashDevBridgeBrowserConnection>;
+export declare function connectPicodashDevBridgeFromBroker<Fields extends import('@picodash/nexus').PicodashFieldDefinitions, Result extends CoreTransactionResult | PersistentTransactionResult = CoreTransactionResult>(options: Omit<PicodashDevBridgeConnectOptions<Fields, Result>, 'credential'> & {
+  readonly brokerUrl?: string;
+  readonly development: boolean;
+}): Promise<{
+  status: 'disabled';
+  close: () => Promise<void>;
+} | {
+  session: PicodashDevBridgeSessionDescriptor;
+  close: () => Promise<void>;
+  status: 'connected';
+}>;
+export type { PicodashDevBridgeBrowserCredential, PicodashDevBridgeCommand, PicodashDevBridgeCommandResult, PicodashDevBridgeDisclosure, PicodashDevBridgeError, PicodashDevBridgeErrorCode, PicodashDevBridgeEventCursor, PicodashDevBridgeEventEntry, PicodashDevBridgeEventsResult, PicodashDevBridgeNexusOutcome, PicodashDevBridgeObservation, PicodashDevBridgeObservationSource, PicodashDevBridgePermissions, PicodashDevBridgeReadEventsCommand, PicodashDevBridgeRegistration, PicodashDevBridgeSessionDescriptor, PicodashDevBridgeSessionRef, PicodashDevBridgeSetValuesCommand, PicodashDevBridgeSnapshot, PicodashDevBridgeSnapshotDiagnostic, PicodashDevBridgeSnapshotScope, PicodashDevBridgeWaitCommand, PicodashDevBridgeWaitCondition, PicodashDevBridgeWaitResult, PicodashDevBridgeWireFrame };
+//# sourceMappingURL=browser.d.mts.map

@@ -236,10 +236,13 @@
   display: flex;
   align-items: center;
   inline-size: 100%;
+  min-inline-size: 0;
   min-block-size: 100%;
 }
 
 .picodash-dashpanel [data-picodash-panel-title-drag-surface] > h2 {
+  min-inline-size: 0;
+  flex: 1 1 auto;
   position: relative;
   z-index: 1;
   pointer-events: none;
@@ -458,7 +461,9 @@
 [data-picodash-panel-hotkey] {
   position: static;
   z-index: 2;
-  flex: none;
+  flex: 0 1 auto;
+  min-inline-size: 0;
+  max-inline-size: 100%;
   margin-inline-start: 0.5em;
   display: inline-flex;
   align-items: center;
@@ -468,6 +473,9 @@
   display: none;
 }
 [data-picodash-panel-hotkey] > [data-slot='button'] {
+  min-inline-size: 24px;
+  max-inline-size: 100%;
+  overflow: hidden;
   min-block-size: 1.5em;
   padding: 0;
   gap: 0.4em;
@@ -490,6 +498,9 @@
   opacity: 1;
 }
 [data-picodash-hotkey-placeholder] {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-style: normal;
   font-weight: 300;
 }
@@ -879,5 +890,11 @@
   [data-picodash-panel-size-editor] [data-slot='button'] {
     min-inline-size: 44px;
     min-block-size: 44px;
+  }
+}
+
+@media (pointer: coarse) {
+  [data-picodash-panel-hotkey] > [data-slot='button'] {
+    min-inline-size: 44px;
   }
 }

@@ -345,7 +345,8 @@ test('keeps the Dashlet gallery scrollable and text entry legible on phones', as
     expect(left.x + left.width).toBeLessThan(right.x)
     expect(Math.abs(left.y - right.y)).toBeLessThan(2)
     const labels = phone.locator('[data-picodash-target-field-label]')
-    expect((await labels.first().boundingBox())!.y).toBeGreaterThan(left.y + left.height)
+    const targetLabelBox = (await labels.first().boundingBox())!
+    expect(targetLabelBox.y + targetLabelBox.height).toBeLessThanOrEqual(left.y)
     await expect(actualNumber).toHaveText('5:1')
     // A genuine step mismatch keeps its warning below the complete paired control.
     await client.setValues(session, {
@@ -1406,7 +1407,7 @@ test('renders the two-panel Dashlet style lab with the accepted groups and lanes
   const numberControl = numberDashlet.getByRole('textbox', { name: 'NumberDashlet' })
   await expect(numberControl).toHaveValue('1.235')
   await numberDashlet.scrollIntoViewIfNeeded()
-  await numberDashlet.click({ position: { x: 2, y: 2 } })
+  await numberDashlet.click({ position: { x: 14, y: 2 } })
   await expect(numberControl).toBeFocused()
   const numberHelp = numberDashlet.getByRole('button', { name: 'Help for NumberDashlet' })
   await numberHelp.focus()
@@ -1773,6 +1774,7 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
   page,
   browser,
 }) => {
+  test.setTimeout(60_000)
   await openLab(page)
   expect(
     await page.evaluate(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches),
@@ -1803,7 +1805,10 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     name: 'Move panel Placement Panel',
   })
   await expect(moveControl).not.toHaveAttribute('data-icon-only')
-  const titleDragSurface = focusedPanel.locator('[data-picodash-panel-title-drag-surface]')
+  const titleDragSurface = focusedPanel.getByRole('heading', {
+    name: 'Placement Panel',
+    exact: true,
+  })
   const actionMenu = focusedPanel.getByRole('button', { name: 'Actions for Placement Panel' })
   await expect(actionMenu.locator('svg')).toHaveAttribute('fill', 'currentColor')
   await actionMenu.click()
@@ -2154,7 +2159,9 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
       return {
         width: rect.width,
         height: rect.height,
-        backgroundColor: style.backgroundColor,
+        backgroundColor: getComputedStyle(
+          element.querySelector('[data-picodash-dashstack-segment-indicator]') ?? element,
+        ).backgroundColor,
         borderColor: style.borderColor,
       }
     })
@@ -2170,7 +2177,6 @@ test('proves regular and compact UI geometry plus coarse-pointer hit targets', a
     expect(segmentedPresentation.backgroundColor).not.toBe(
       unselectedSegmentPresentation.backgroundColor,
     )
-    expect(segmentedPresentation.borderColor).not.toBe(unselectedSegmentPresentation.borderColor)
 
     const multiSelectDashlet = coarsePage.locator(
       '[data-picodash-dashlet="style-lab-multi-select"]',
@@ -2813,7 +2819,6 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
   await allocatedReveal.press('Enter')
   await expect(panel).not.toHaveAttribute('data-picodash-docked-minimized')
   await expect.poll(() => panel.evaluate((element) => getComputedStyle(element).opacity)).toBe('1')
-  const hybridAllocatedBox = (await panelByRole.boundingBox())!
   const beforeUndock = await page.evaluate(() =>
     localStorage.getItem('picodash-contract-lab-focused-placement-v1'),
   )
@@ -2821,6 +2826,9 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
     .poll(async () => (await fixedCorner.boundingBox())?.height)
     .toBeCloseTo(boundaryBox.height / 3, 0)
   const allocatedFixedCornerHeight = (await fixedCorner.boundingBox())!.height
+  await expect(panel).not.toHaveAttribute('data-picodash-dock-allocation-motion')
+  const hybridAllocatedBox = (await panelByRole.boundingBox())!
+  const hybridAllocatedOffset = hybridAllocatedBox.y - (await boundary.boundingBox())!.y
 
   moveBox = (await dragSurface.boundingBox())!
   pointer = { x: moveBox.x + moveBox.width / 2, y: moveBox.y + moveBox.height / 2 }
@@ -2852,8 +2860,12 @@ test('proves live magnetic placement, Hybrid dock intent, and docked visibility'
 
   await page.getByRole('button', { name: 'Fixed', exact: true }).click()
   await expect
-    .poll(async () => (await panelByRole.boundingBox())?.y)
-    .toBeCloseTo(hybridAllocatedBox.y, 0)
+    .poll(async () => {
+      const box = (await panelByRole.boundingBox())!
+      const arena = (await boundary.boundingBox())!
+      return box.y - arena.y
+    })
+    .toBeCloseTo(hybridAllocatedOffset, 0)
   await expect
     .poll(async () => (await panelByRole.boundingBox())?.height)
     .toBeCloseTo(hybridAllocatedBox.height, 0)

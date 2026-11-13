@@ -91,13 +91,25 @@ export function measurePanelSizing(
     let shellMinimumWidth = 0
     if (header) {
       const inline = header.style.inlineSize
+      const title = header.querySelector<HTMLElement>("[data-slot='dash-header-title']")
+      const titleFlex = title?.style.flex
+      const shortcut = title?.querySelector<HTMLElement>(
+        "[data-picodash-panel-hotkey]:not([hidden]) > [data-slot='button']",
+      )
+      const shortcutMinimum = shortcut
+        ? Number.parseFloat(ownerWindow?.getComputedStyle(shortcut).minInlineSize ?? '0') || 24
+        : 0
       try {
+        // Long titles and recorder placeholders may truncate; their text is not a shell minimum.
+        if (title) title.style.flex = `0 0 ${shortcutMinimum}px`
         header.style.inlineSize = 'min-content'
         shellMinimumWidth = header.getBoundingClientRect().width
       } finally {
         header.style.inlineSize = inline
+        if (title) title.style.flex = titleFlex ?? ''
       }
     }
+
     const chrome = Math.max(0, preferredRect.height - (body?.getBoundingClientRect().height ?? 0))
     const projectionAllocation =
       panel.getAttribute('data-collapsed') === 'true' &&

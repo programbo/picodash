@@ -46,3 +46,7 @@ skills:
   ]
 distribution:
   mode: none
+
+review:
+  ignore:
+    - docs/archive/**

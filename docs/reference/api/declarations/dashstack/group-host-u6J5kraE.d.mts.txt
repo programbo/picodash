@@ -1,0 +1,37 @@
+import { ComponentType, ReactNode, RefObject } from "react";
+import { PicodashFieldDefinitions, ScopedNexus } from "@picodash/nexus";
+type DashGroupPresentation = {
+  readonly location: 'inline';
+} | {
+  readonly location: 'panel';
+  readonly hostId: string;
+  readonly visible: boolean;
+};
+interface DashGroupHostProps {
+  readonly id: string;
+  readonly name: string;
+  readonly label: ReactNode;
+  readonly recordableHotkey: boolean;
+  readonly mode: 'floating' | 'hybrid';
+  readonly scope: ScopedNexus<PicodashFieldDefinitions>;
+  readonly homeRef: RefObject<HTMLDivElement | null>;
+  readonly groupRef: RefObject<HTMLDivElement | null>;
+  readonly actionsRef: RefObject<HTMLDivElement | null>;
+  readonly contentRef: RefObject<HTMLDivElement | null>;
+  readonly collapsed: boolean;
+  readonly children: ReactNode;
+  readonly present: (presentation: DashGroupPresentation) => void;
+  readonly registerReveal: (reveal: () => void) => () => void;
+  readonly reorder: {
+    begin(event: PointerEvent, header: HTMLElement): void;
+    move(event: PointerEvent): void;
+    end(event: PointerEvent): void;
+    cancel(): void;
+  };
+}
+declare function DashStackIntegrationProvider({ groupHost, children }: {
+  readonly groupHost: ComponentType<DashGroupHostProps>;
+  readonly children: ReactNode;
+}): import("react").JSX.Element;
+export { DashGroupPresentation as n, DashStackIntegrationProvider as r, DashGroupHostProps as t };
+//# sourceMappingURL=group-host-u6J5kraE.d.mts.map

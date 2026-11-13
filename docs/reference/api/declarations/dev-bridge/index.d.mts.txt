@@ -1,0 +1,22 @@
+import { A as PicodashDevBridgeWaitCondition, C as PicodashDevBridgeSessionDescriptor, D as PicodashDevBridgeSnapshotDiagnostic, E as PicodashDevBridgeSnapshot, M as PicodashDevBridgeWireFrame, O as PicodashDevBridgeSnapshotScope, S as PicodashDevBridgeRelayOptions, T as PicodashDevBridgeSetValuesCommand, _ as PicodashDevBridgeObservationSource, a as PicodashDevBridgeClientCredential, b as PicodashDevBridgeRegistration, c as PicodashDevBridgeConnectOptions, d as PicodashDevBridgeErrorCode, f as PicodashDevBridgeEventCursor, g as PicodashDevBridgeObservation, h as PicodashDevBridgeNexusOutcome, i as PicodashDevBridgeBrowserCredential, j as PicodashDevBridgeWaitResult, k as PicodashDevBridgeWaitCommand, l as PicodashDevBridgeDisclosure, m as PicodashDevBridgeEventsResult, n as PICODASH_DEV_BRIDGE_SUBPROTOCOL, o as PicodashDevBridgeCommand, p as PicodashDevBridgeEventEntry, r as PicodashDevBridgeBrowserConnection, s as PicodashDevBridgeCommandResult, t as PICODASH_DEV_BRIDGE_PROTOCOL_VERSION, u as PicodashDevBridgeError, v as PicodashDevBridgePermissions, w as PicodashDevBridgeSessionRef, x as PicodashDevBridgeRelay, y as PicodashDevBridgeReadEventsCommand } from "./types-YBNWPd-9.mjs";
+export declare function startPicodashDevBridgeRelay(options: PicodashDevBridgeRelayOptions): Promise<PicodashDevBridgeRelay>;
+type PicodashDevBridgeClient = Readonly<{
+  listSessions(options?: Readonly<{
+    signal?: AbortSignal;
+  }>): Promise<readonly PicodashDevBridgeSessionDescriptor[]>;
+  inspect(session: PicodashDevBridgeSessionRef): Promise<Readonly<{
+    type: 'snapshot';
+    session: PicodashDevBridgeSessionDescriptor;
+    snapshot: PicodashDevBridgeSnapshot;
+  }>>;
+  setValues(session: PicodashDevBridgeSessionRef, command: PicodashDevBridgeSetValuesCommand): Promise<PicodashDevBridgeCommandResult | PicodashDevBridgeError>;
+  wait(session: PicodashDevBridgeSessionRef, command: PicodashDevBridgeWaitCommand, options?: Readonly<{
+    signal?: AbortSignal;
+  }>): Promise<PicodashDevBridgeWaitResult | PicodashDevBridgeError>;
+  readEvents(session: PicodashDevBridgeSessionRef, command: PicodashDevBridgeReadEventsCommand, options?: Readonly<{
+    signal?: AbortSignal;
+  }>): Promise<PicodashDevBridgeEventsResult | PicodashDevBridgeError>;
+}>;
+export declare function createPicodashDevBridgeClient(credential: PicodashDevBridgeClientCredential): PicodashDevBridgeClient;
+export { PICODASH_DEV_BRIDGE_PROTOCOL_VERSION, PICODASH_DEV_BRIDGE_SUBPROTOCOL, type PicodashDevBridgeBrowserConnection, type PicodashDevBridgeBrowserCredential, type PicodashDevBridgeClient, type PicodashDevBridgeClientCredential, type PicodashDevBridgeCommand, type PicodashDevBridgeCommandResult, type PicodashDevBridgeConnectOptions, type PicodashDevBridgeDisclosure, type PicodashDevBridgeError, type PicodashDevBridgeErrorCode, type PicodashDevBridgeEventCursor, type PicodashDevBridgeEventEntry, type PicodashDevBridgeEventsResult, type PicodashDevBridgeNexusOutcome, type PicodashDevBridgeObservation, type PicodashDevBridgeObservationSource, type PicodashDevBridgePermissions, type PicodashDevBridgeReadEventsCommand, type PicodashDevBridgeRegistration, type PicodashDevBridgeRelay, type PicodashDevBridgeRelayOptions, type PicodashDevBridgeSessionDescriptor, type PicodashDevBridgeSessionRef, type PicodashDevBridgeSetValuesCommand, type PicodashDevBridgeSnapshot, type PicodashDevBridgeSnapshotDiagnostic, type PicodashDevBridgeSnapshotScope, type PicodashDevBridgeWaitCommand, type PicodashDevBridgeWaitCondition, type PicodashDevBridgeWaitResult, type PicodashDevBridgeWireFrame };
+//# sourceMappingURL=index.d.mts.map

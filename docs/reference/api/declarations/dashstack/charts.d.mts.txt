@@ -1,0 +1,25 @@
+import { ComponentPropsWithRef, ReactNode } from "react";
+import { ChartCommonProps, ChartDefinition } from "@tanstack/charts/react";
+type DashletNativeProps = Omit<ComponentPropsWithRef<'div'>, 'aria-describedby' | 'aria-errormessage' | 'aria-invalid' | 'aria-label' | 'aria-labelledby' | 'children' | 'id' | 'role' | 'tabIndex' | 'title'>;
+export type ChartDashletProps = DashletNativeProps & {
+  readonly id: string;
+  readonly label: ReactNode;
+  readonly 'aria-label'?: string;
+  readonly description?: ReactNode;
+  readonly definition: ChartDefinition;
+  readonly chartProps?: Omit<ChartCommonProps, 'ariaLabel'>;
+};
+export declare function ChartDashlet({ id, label, 'aria-label': ariaLabel, description, definition, chartProps, ...nativeProps }: ChartDashletProps): import("react").JSX.Element;
+export type SparklineSource = (emit: (value: number) => void) => void | (() => void);
+export type SparklineDashletProps = DashletNativeProps & {
+  readonly id: string;
+  readonly label: ReactNode;
+  readonly 'aria-label'?: string;
+  readonly description?: ReactNode;
+  readonly source: SparklineSource;
+  readonly maxSamples?: number;
+  readonly chartProps?: Omit<ChartCommonProps, 'ariaLabel'>;
+};
+export declare function SparklineDashlet({ ref, id, label, description, source, maxSamples, chartProps, ...nativeProps }: SparklineDashletProps): import("react").JSX.Element;
+export {};
+//# sourceMappingURL=charts.d.mts.map

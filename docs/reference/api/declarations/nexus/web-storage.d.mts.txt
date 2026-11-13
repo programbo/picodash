@@ -1,0 +1,9 @@
+import { Nn as PicodashPersistenceDriver } from "./index-HD_xyHBR.mjs";
+export interface PicodashWebStorage {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
+export type PicodashWebStorageSource = 'local' | 'session' | PicodashWebStorage;
+export declare function createWebStoragePersistenceDriver(source: PicodashWebStorageSource): PicodashPersistenceDriver;
+//# sourceMappingURL=web-storage.d.mts.map

@@ -41,7 +41,7 @@ jobs:
         run: bun run release:check
 
       - name: Check workspace and run unit tests
-        run: vp check && vp run -r test && vp run -r build
+        run: vp check && vp run -r test && bun run --cwd apps/web build && bun run --cwd apps/lab build
 
       - name: Check documentation and agent artifacts
         run: bun run artifacts:check

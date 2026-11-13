@@ -1,18 +1,10 @@
-# Changelog
+# Changes
 
-All notable changes to the published `@picodash/picodash` package will be documented in
-this file. The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and releases follow the versioning policy in [RELEASING.md](RELEASING.md).
+## 2026-11-13 consolidation
 
-## [Unreleased]
+Integrated the current DashStack work and manual Panel resizing, interaction events, Bridge observations and consumer workflows.
+Reconciled the numeric compatibility branch with the evolved controls. Bridge protocol is v4 for the combined schema.
+The [consolidation record](docs/internal/consolidation-audit.md) records revisions, fixes and verification.
 
-No published package release exists yet.
-
-### Breaking preview changes
-
-- Rename DashStack to **DashStack** (`@picodash/dashstack`) across components, types, actions,
-  catalog identities, styles, and Nexus integration. `useDashStackActions` exposes `resetStack`;
-  the reset item is `DashStackResetStackItem`.
-- Durable scope metadata now uses `dashStack`. Preview documents and persistence containing
-  `dashStack` require replacement; no legacy aliases or automatic migration are provided.
-  See [ADR 0007](docs/adr/0007-dashstack-name-and-public-identity.md).
+Rebuilt active documentation from package manifests, public declarations, source and tests.
+[Historical changes and milestone claims](docs/archive/2026-11-13/README.md) are preserved without treating them as current completion status.

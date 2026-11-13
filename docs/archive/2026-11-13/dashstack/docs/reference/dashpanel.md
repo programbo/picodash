@@ -1,0 +1,1245 @@
+# DashPanel target reference
+
+DashPanel is a standalone React panel shell for movable, dockable, dismissible application UI. This
+page records the accepted `@picodash/dashpanel` launch contract. The prototype is evidence, not the
+source of truth.
+
+## Status
+
+> Contract: Accepted, with revised HTML portal-container type
+> Implementation: Partial
+> Evidence: The first standalone shell subset is covered by
+> `packages/dashpanel/tests/dashpanel.test.tsx`, `dashpanel.types.test.ts`, and
+> `package-artifacts.mjs`, `runtime/panel-runtime.test.ts`, and `portal.test.tsx`.
+> Notes: This cut implements Provider/Panel composition, rendered ordinary-Panel placement,
+> Nexus-backed durable layout, pointer and keyboard movement, portal ownership, actions, confirmed
+> removal, and the integration contribution entry. Drawer/sheet presentation, catalog coverage, and
+> exhaustive stabilization remain planned.
+
+## Package purpose
+
+DashPanel renders arbitrary React content in a host-coordinated Panel without requiring DashStack.
+It owns Panel composition, placement, portals, accessible actions, transient host runtime, and the
+translation between Panel behavior and Nexus-owned durable layout records.
+
+Nexus owns durable layout data and scope identity. `@picodash/ui` owns shared theme and density
+contracts, semantic tokens, and product-neutral primitives. DashPanel does not own application
+values, DashStack composition, routing, authorization, or permanent component removal.
+
+## Target composition
+
+```tsx
+const nexus = createPicodashNexus({
+  nexusId: 'tools',
+  schemaVersion: 1,
+  valueOwner: 'nexus',
+  fields: {},
+})
+
+function Tools() {
+  return (
+    <DashPanelProvider nexus={nexus}>
+      <DashPanel id="inspector" title="Inspector">
+        <Inspector />
+      </DashPanel>
+    </DashPanelProvider>
+  )
+}
+```
+
+| API                 | Contract | Implementation | Purpose                                                          |
+| ------------------- | -------- | -------------- | ---------------------------------------------------------------- |
+| `DashPanelProvider` | Accepted | Partial        | Hosts Panels over one explicit root Nexus.                       |
+| `DashPanel`         | Accepted | Partial        | Renders one Panel with arbitrary React content.                  |
+| `DashPanelTrigger`  | Accepted | Implemented    | Application-placed show/focus control for one Panel.             |
+| `DashPanelLauncher` | Accepted | Implemented    | Provider-level discovery/reopen control for its Panels.          |
+| `useDashPanel`      | Accepted | Implemented    | Controls visibility, collapse, activation, placement, and reset. |
+| `id`                | Accepted | Implemented    | Resolves immutable Nexus scope identity; not a DOM `id`.         |
+| `title`             | Accepted | Implemented    | Required accessible Panel name and visible heading.              |
+| `children`          | Accepted | Implemented    | Arbitrary React content.                                         |
+
+The package-native names are the target. `PicodashProvider` and `PicodashPanel` remain prototype
+and integrated-facade evidence, not a second standalone API.
+
+DashPanel does not accept an independent `nexus` prop. `DashPanelProvider` supplies a root Nexus,
+and each Panel supplies its scoped view to descendants. The integrated Picodash facade may reexport
+the stable foundational components and provides its own integration Provider composition.
+
+## Provider contract
+
+| Provider capability       | Contract | Implementation | Rule                                                                                                           |
+| ------------------------- | -------- | -------------- | -------------------------------------------------------------------------------------------------------------- |
+| Required root `nexus`     | Accepted | Implemented    | Scoped Nexuses are rejected.                                                                                   |
+| `providerId="default"`    | Accepted | Implemented    | Omission resolves to `default`; duplicates conflict.                                                           |
+| Hard Nexus/scope boundary | Accepted | Implemented    | No relationship or inferred scope crosses the Provider.                                                        |
+| Shared `boundary`         | Accepted | Partial        | Resolution, measurement, containment, and rendered ordinary-Panel geometry are wired.                          |
+| Shared `boundaryInset`    | Accepted | Partial        | Inheritance, normalization, measurement, and rendered ordinary-Panel geometry are wired.                       |
+| Dock-position policy      | Accepted | Implemented    | Provider resolves the maximum canonical set; Panels may narrow it without widening.                            |
+| Portal ownership          | Accepted | Implemented    | Shared overlay defaults are composed and ownership is provided through Provider `portalContainer`/`layerBase`. |
+| Theme                     | Accepted | Partial        | Inherits or resolves a named theme for descendants.                                                            |
+
+The root Nexus and `providerId` are immutable while mounted. Theme, boundary, inset, and enabled
+dock positions are runtime policy and may change through their declared props.
+
+More than one Provider may use a root Nexus, but each requires a distinct Provider ID. Provider IDs
+do not namespace scopes. The same Panel scope cannot be active in two Providers over one root.
+
+The exact Provider shape is:
+
+```ts
+type DashPanelBoundary = Element | RefObject<Element | null>
+
+type DashPanelBoundaryInset =
+  | number
+  | readonly [vertical: number, horizontal: number]
+  | readonly [top: number, horizontal: number, bottom: number]
+  | readonly [top: number, right: number, bottom: number, left: number]
+
+interface DashPanelProviderProps<TValues extends object, CustomTheme extends string = never> {
+  children: ReactNode
+  nexus: RootNexus<TValues>
+  providerId?: string
+  boundary?: DashPanelBoundary | null
+  boundaryInset?: DashPanelBoundaryInset
+  dockPositions?: readonly DashPanelDockPosition[]
+  portalContainer?: HTMLElement | null
+  layerBase?: number
+  theme?: PicodashThemeOption<CustomTheme>
+  density?: PicodashDensity
+}
+```
+
+- `providerId` defaults to `default`.
+- `dockPositions` defaults to every canonical dock position. It declares an unordered maximum set;
+  descendant Panels may narrow but not widen it, and each placement mode still filters positions it
+  does not support.
+- `portalContainer` and `layerBase` establish the shared overlay defaults as well as Panel portal
+  ownership. Geometry continues to resolve independently through `boundary` and `boundaryInset`.
+- Portal containers are HTML elements because they feed the shared React Aria portal context.
+  `boundary` remains the broader `Element` type because geometry may legitimately resolve from SVG.
+- The Provider owns no persistence configuration. Nexus construction supplies persistence policy,
+  driver, and storage identity.
+- The prototype props `panelBoundary`, `panelBoundaryInset`, `persistLayout`, and `storageKey` do not
+  enter the target API.
+
+Numeric `width` values are CSS pixels, matching React style semantics. String widths retain their
+units or CSS expression, for example `width="24rem"` or `width="min(760px, 90vw)"`.
+
+## DashPanel public API
+
+> Contract: Accepted
+> Implementation: Partial
+
+The current subset implements Provider/Panel composition, Nexus scope boundaries, theme/density,
+semantic naming, width-token styling, and the `boundary`, `boundaryInset`, and `dockPositions` Panel
+policy props. It also implements uncontrolled visibility, transient close/reopen, triggers, and the
+explicit launcher. Confirmed removal requests, Nexus-backed durable layout, placement options,
+and action menus are implemented for ordinary Panels. Drawer/sheet modal presentation remains
+planned; declaring either presentation currently throws. Applications choose responsive defaults
+and dock policy explicitly; there is no automatic mobile breakpoint.
+
+The exact launch prop surface is:
+
+```ts
+type DashPanelStyle = Omit<
+  CSSProperties,
+  | 'blockSize'
+  | 'inlineSize'
+  | 'maxBlockSize'
+  | 'maxInlineSize'
+  | 'minBlockSize'
+  | 'minHeight'
+  | 'minInlineSize'
+  | 'minWidth'
+  | 'width'
+>
+
+interface DashPanelProps<CustomTheme extends string = never> extends Omit<
+  ComponentPropsWithoutRef<'aside'>,
+  'children' | 'id' | 'style' | 'title'
+> {
+  id: string
+  title: ReactNode
+  children?: ReactNode
+  style?: DashPanelStyle
+
+  defaultVisible?: boolean
+  defaultCollapsed?: boolean
+  collapsible?: boolean
+  showCloseButton?: boolean
+
+  onVisibilityChange?: (visible: boolean) => void
+  onCollapsedChange?: (collapsed: boolean) => void
+  onRequestRemove?: (details: DashPanelRemoveRequest) => void
+
+  defaultLayout?: DashPanelDefaultLayout
+  placementOptions?: DashPanelPlacementOptions
+  dockPositions?: readonly DashPanelDockPosition[]
+
+  boundary?: DashPanelBoundary | null
+  boundaryInset?: DashPanelBoundaryInset
+  width?: CSSProperties['width']
+
+  actionMenu?: false | readonly ReactElement[]
+  theme?: PicodashThemeOption<CustomTheme>
+  density?: PicodashDensity
+  presentation?: DashPanelPresentation
+}
+
+interface DashPanelRemoveRequest {
+  readonly scopeId: string
+}
+
+interface DashPanelDefaultLayout {
+  readonly placement: DashPanelPlacement
+  readonly preferredPosition?: Readonly<{ x: number; y: number }>
+}
+
+interface DashPanelPlacementOptions {
+  readonly snapOffset?: number
+  readonly snapProximity?: number
+  readonly detachDistance?: number
+}
+```
+
+All three placement-option values are non-negative finite CSS pixels. They default to
+`snapOffset: 8`, `snapProximity: 16`, and `detachDistance: 40`. The prototype's
+`detachThresholdMultiplier` is an internal algorithm detail and does not enter the target API.
+
+The prop defaults are:
+
+- `defaultVisible: true`;
+- `defaultCollapsed: false`;
+- `collapsible: true`;
+- `showCloseButton: true`;
+- a floating placement snapped to `top-right`;
+- the Provider's complete currently enabled dock-position set; and
+- inherited theme and density; and
+- `{ kind: 'panel' }` presentation.
+
+When `preferredPosition` is omitted, the first transition to free placement uses the Panel's current
+contained rendered position. Declared defaults never become persisted overrides merely because a
+Panel mounts.
+
+`style.width`, logical-size, and physical/logical minimum-size properties are reserved so consumer
+styles cannot compete with the `width` prop or projected placement constraints. Width uses the
+`width` prop; maximum logical sizes and all minimum sizes are owned by placement geometry. Callers
+use `width` for one Panel or a `className`/stylesheet rule for selector-based sizing. Other ordinary
+`aside` attributes and styles remain available. DashPanel forwards an `HTMLAsideElement` ref.
+
+The prototype props `nexus`, `contentMode`, `close`, `onClose`, controlled visibility/collapse, and
+Motion-specific animation or drag props do not enter the target API. DashPanel exposes behavior
+through its accepted props and controller rather than leaking its animation implementation.
+
+A non-text `title` requires an explicit `aria-label`. `collapsible={false}` with
+`defaultCollapsed={true}` is a developer contract error because it would create hidden content with
+no reveal operation. Projecting an already collapsed Panel as a drawer or sheet temporarily renders
+its body expanded without mutating collapse state; returning to `panel` restores the same collapse
+state.
+
+## Scope and declarative lifecycle
+
+> Contract: Accepted
+> Implementation: Partial
+
+- One active DashPanel is permitted per scope.
+- A Panel and one primary DashStack may share a scope.
+- A Panel resolving a different scope from its nearest scoped context registers an active
+  declarative parent-child relationship.
+- Nexus entity and relationship leases follow committed React lifecycle.
+- Hiding or collapsing a Panel does not release its entity, relationship, or dock occupancy.
+- Effect deactivation and unmount release runtime leases. Permanent removal is application-owned
+  unmounting.
+- Imperative `deregister` close behavior is retired.
+
+## Panel anatomy and visibility
+
+> Contract: Accepted
+> Implementation: Partial
+> Evidence: `packages/dashpanel/src/runtime/panel-runtime.test.ts` and
+> `packages/dashpanel/tests/dashpanel.test.tsx` cover the private model plus React collapse
+> controls, hidden/inert retained bodies, callback ordering, dynamic policy updates, triggers,
+> launchers, transient close/reopen, and cleanup. `apps/lab/tests/contract-lab.spec.ts` covers real
+> browser focus entry/restoration and Bridge-backed retained Nexus behavior.
+> Notes: `useDashPanel`, durable layout, and confirmed removal are implemented; modal presentation remains deferred.
+
+DashPanel renders a non-modal `aside` with a required title, generated accessible relationships,
+header actions, and a body for arbitrary children. Scope `id` never doubles as an HTML `id`; DOM
+identifiers are generated independently.
+
+The first public contract is Provider-owned uncontrolled visibility and collapse:
+
+- `defaultVisible` and `defaultCollapsed` seed transient state;
+- callbacks report committed visibility and collapse changes;
+- `DashPanelTrigger` and `DashPanelLauncher` control visibility and activation in this lifecycle
+  cut; `useDashPanel` controls the same lifecycle fields and layout reset when called programmatically;
+- a controlled `visible` prop is deferred until a concrete consumer requires it.
+
+A hidden Panel remains mounted, retains child React state and all leases, is absent visually and
+from the accessibility tree, and is inert. The package stylesheet makes the native `hidden`
+attribute authoritative over every placement rule: hidden Floating, Fixed, and Hybrid Panels have
+`display: none` and no layout box even though their settled placement remains registered. A
+collapsed floating or snapped Panel reduces to its header.
+
+A collapsible Fixed Panel, or a Hybrid Panel with a settled docked disposition, instead exposes an
+in-header Minimize control whose arrow points toward its docked edge. `bottom-left` and
+`bottom-right` use diagonal arrows toward their corners; full or centered top/bottom docks use
+vertical arrows. Minimizing animates the complete retained Panel beyond that boundary using only
+transform and opacity. Its body stays mounted at its expanded dimensions so the shell retracts as
+one object, while the retracted Panel becomes inert and leaves the accessibility tree.
+
+A detached Reveal control remains on the vacated edge or bottom corner. Its arrow points in the
+opposite direction, back into the container. A control-initiated minimize transfers focus to
+Reveal, and Reveal transfers focus back to Minimize as expansion starts. Both transfers prevent
+scrolling to the controls' transient animated positions. Reduced motion makes both changes immediate. Programmatic controller commands retain their existing no-focus-movement rule.
+Collapse/minimize and visibility are transient, retain dock occupancy and child state, and are
+never persisted. Reveal carriers render above every ordinary Panel layer so an overlapping active
+Panel cannot make the replacement control unreachable.
+
+Pointer interaction, focus entry, and explicit show/focus commands activate a Panel. Provider
+activation order marks only the most recently activated visible Panel with the private
+`data-active` hook. The package stylesheet projects that Panel at the shared raised layer; this is
+an internal stacking mechanism and does not add a public z-index prop or token.
+
+## Placement model
+
+> Contract: Accepted
+> Implementation: Partial
+> Evidence: `packages/dashpanel/src/placement/placement.test.ts`,
+> `packages/dashpanel/src/placement/dock-policy.test.ts`,
+> `packages/dashpanel/src/geometry/placement-geometry.test.ts`,
+> `packages/dashpanel/src/placement/dock-arena.test.ts`, and
+> `packages/dashpanel/tests/dashpanel.test.tsx` cover normalization, policy, containment, snap/dock
+> projection, occupancy, allocation, rendered placement, movement, and durable commit/reset.
+> `apps/lab/tests/contract-lab.spec.ts` covers real browser geometry and input choreography.
+> Notes: Resize observers, viewport-change stabilization, and adaptive modal projection remain
+> Phase 3 work.
+
+Placement mode describes the permitted behavior model. Disposition describes the current settled
+result.
+
+| Mode       | Permitted dispositions                                                    |
+| ---------- | ------------------------------------------------------------------------- |
+| `floating` | Free or snapped to any corner or edge midpoint.                           |
+| `fixed`    | Docked to any position enabled by current Provider and Panel policy.      |
+| `hybrid`   | Free, snapped to top/bottom, or docked to any currently enabled position. |
+
+Free Panels are contained within the effective boundary. Snaps are offset and floating-like. Docks
+are flush and fixed-like. Pointer dragging resolves an explicit transient intent without mutating
+the durable placement:
+
+- a Floating Panel entering `snapProximity` of a permitted offset snap target moves to that exact
+  target before pointer release;
+- snap acquisition and final detachment add short theme-defined transform motion while the base
+  position continues to follow live pointer geometry;
+- an acquired or initially settled snap remains magnetically attached until the raw contained
+  pointer projection reaches `max(snapProximity, detachDistance)` from the target;
+- between `snapProximity` and that release distance, smooth geometric resistance makes the Panel
+  lag behind the pointer and catch up continuously at release;
+- a Hybrid Panel applies the same attraction and resistance to its permitted top/bottom snaps;
+- a docked Hybrid Panel remains at its dock until `detachDistance`, then continues as a free Hybrid
+  Panel without changing mode; and
+- pointer cancellation discards every transient intent and writes nothing.
+
+Movement is sticky for the complete gesture: returning the Panel's free rectangle to its pickup
+coordinates does not erase an intervening snap release or a changed dock-zone intent. Pointer
+release commits the latest displayed intent.
+
+Hybrid side docking uses an independent target-area proxy. The four corner zones map to
+`top-left`, `top-right`, `bottom-left`, and `bottom-right`; the middle side zones map to
+`full-left/right`, or to `center-left/right` when the matching full-side target is disabled. The
+remaining canonical docks stay directly available through the placement menu, where their intent
+is unambiguous. A policy-disabled or occupied target produces no proxy.
+
+The proxy begins at the moving Panel. Motion animates its transform and opacity to the current dock
+target, continues between target rectangles as the pointer crosses zones, and returns it to the
+Panel while fading it out when the pointer leaves every valid zone. It uses the shared
+`--picodash-duration-fast` and `--picodash-easing-out` theme tokens. Reduced motion makes those
+visual transitions immediate. The proxy never supplies input geometry, claims occupancy, changes
+Nexus state, or commits a dock before pointer release.
+
+The return-to-Panel transition keeps its original progress as the pointer moves. Its destination
+tracks the Panel without restarting the fade on every pointer event; once invisible, the proxy
+follows without further animation until another dock target is offered.
+
+A successful release animates the Panel from its actual released rectangle to the allocated dock
+rectangle using Motion and the same shared theme tokens. The coordinate handoff does not add the
+old drag translation to the dock position. Reduced motion settles immediately. The Contract Lab
+placement journey samples the release animation to verify continuity and containment throughout,
+not only the final dock geometry.
+
+An available target does contribute a transient allocation preview for settled peers on the same
+side. Those peers immediately animate toward their prospective size and offset. Crossing to another
+zone replaces the preview; leaving every valid zone, cancelling the gesture, or detaching a docked
+Hybrid Panel removes it and animates peers toward the allocation derived from settled occupants.
+The preview remains runtime-only and never reserves the target slot.
+
+A docked Panel and its proxy retain the theme's radius on free corners and remove it from every
+corner that lies on a contacted effective-boundary edge. A corner target contacts two boundary
+edges, so only its opposite inner corner remains rounded. A full-side target that contacts three
+boundary edges loses all four radii. Allocation can offset a full-top or full-bottom target from a
+corner occupant; its displaced corner is then free and regains its radius. Contact is therefore
+derived from the resolved rectangle rather than inferred from the dock-position name. The detached
+Reveal control applies the same rule to its own boundary contact, independently of the hidden
+Panel's other contacts.
+
+### Canonical positions
+
+```ts
+type DashPanelSnapPosition =
+  'top-left' | 'top' | 'top-right' | 'right' | 'bottom-right' | 'bottom' | 'bottom-left' | 'left'
+
+type DashPanelDockPosition =
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-right'
+  | 'bottom-left'
+  | 'full-left'
+  | 'center-left'
+  | 'full-right'
+  | 'center-right'
+  | 'full-top'
+  | 'center-top'
+  | 'full-bottom'
+  | 'center-bottom'
+
+type DashPanelPlacement =
+  | {
+      mode: 'floating'
+      disposition: { kind: 'free' } | { kind: 'snapped'; position: DashPanelSnapPosition }
+    }
+  | {
+      mode: 'fixed'
+      disposition: { kind: 'docked'; position: DashPanelDockPosition }
+    }
+  | {
+      mode: 'hybrid'
+      disposition:
+        | { kind: 'free' }
+        | { kind: 'snapped'; position: 'top' | 'bottom' }
+        | { kind: 'docked'; position: DashPanelDockPosition }
+    }
+```
+
+`center-left` and `center-right` replace the prototype terms `middle-left` and `middle-right`.
+Floating ignores dock-position policy.
+
+Standalone DashPanel enables every dock position for Fixed and Hybrid Panels by default. Provider
+policy declares the maximum set; an individual Panel may narrow that set but cannot widen it.
+
+The integrated Picodash policy initially disables `full-top`, `center-top`, `full-bottom`, and
+`center-bottom`. This preserves Picodash's fixed-width column form while retaining top/bottom snaps:
+
+- Fixed Picodash Panels allow corners, `full-left/right`, and `center-left/right`.
+- Hybrid Picodash Panels allow corners and `full-left/right`.
+
+Disabling a position is a host policy decision, not evidence that a stored layout is corrupt. A
+valid persisted target that is unavailable under current policy remains durable and dormant. The
+Panel uses its contained declared fallback without rewriting the record.
+
+The private dock-policy model resolves Provider and Panel position sets as frozen canonical-order
+arrays. Provider omission enables all canonical positions; an explicit empty array disables every
+dock target. Panel omission inherits the Provider maximum, while an explicit set may only narrow it;
+widening or unknown positions throw synchronously. Placement classification reports `available` for
+floating placements and permitted Hybrid snaps, or a frozen dormant result with status `dormant`,
+reason `position_disabled`, and the disabled target for a Fixed or Hybrid dock placement. It does
+not select fallbacks or materialize Nexus state.
+
+## Dock occupancy and allocation
+
+> Contract: Accepted
+> Implementation: Verified
+> Evidence: `packages/dashpanel/src/placement/dock-arena.test.ts` covers the complete left/right
+> allocation and offset matrix. `packages/dashpanel/src/runtime/panel-runtime.test.ts` covers
+> Fixed/Hybrid occupancy, retained leases, prospective targets, and adjacent-corner width
+> allocation. `packages/dashpanel/src/portal.test.tsx` covers mixed-mode rendering, and the
+> placement journey in `apps/lab/tests/contract-lab.spec.ts` proves that the animated Hybrid proxy,
+> committed Hybrid Panel, and equivalent Fixed Panel resolve to the same browser geometry.
+
+Docking coordinates multiple Fixed and Hybrid Panels within a Provider. These terms are canonical:
+
+- **Dock position:** one named placement target such as `top-left` or `full-right`.
+- **Dock arena:** Panels with the same Provider, resolved boundary identity, and resolved inset.
+- **Dock slot:** the collision identity claimed by a docked Panel.
+- **Dock occupancy:** the active runtime lease between a Panel and a dock slot.
+- **Dock allocation:** the runtime size cap assigned to occupants sharing an edge.
+
+Occupancy and allocation are host runtime, not Nexus metadata.
+
+### Occupancy rules
+
+1. Only one Panel may occupy an exact dock position in one arena.
+2. `full-left` and `center-left` share one main-left slot; `full-right` and `center-right` share one
+   main-right slot. A full and center Panel therefore cannot occupy the same side simultaneously.
+3. `full-top` and `center-top` share one main-top slot; `full-bottom` and `center-bottom` share one
+   main-bottom slot.
+4. A visible, hidden, or collapsed mounted Panel retains its slot. Unmount releases it.
+5. Occupancy applies equally to Fixed and Hybrid Panels.
+6. Orthogonal edge slots may coexist. Where their rendered rectangles overlap, ordinary Provider
+   activation and z-index rules decide which Panel is above.
+
+During pointer or keyboard movement, an occupied target is not offered as a valid intent proxy.
+Releasing over it preserves the Panel's previous settled placement. A programmatic placement
+command fails atomically with structured reason `dock_occupied`.
+
+During pointer movement, an available Hybrid target temporarily participates in allocation without
+participating in occupancy. Existing same-side occupants animate toward the prospective allocation
+as soon as the proxy enters the zone. Leaving the zone, cancelling, or detaching removes that
+participant and animates peers toward their settled allocation. Pointer release remains the only
+operation that acquires the slot or changes durable placement.
+
+During persisted-layout materialization, the first committed lease wins. A later conflicting Panel
+uses a contained, non-durable fallback and reports the conflict. It does not silently overwrite the
+record or jump into the slot if it later becomes free; the application or user must request another
+placement.
+
+### Side allocation rules
+
+The following allocation caps apply independently to the left and right sides of an arena. “Corner”
+means the top or bottom corner on that side; “main” means that side's `full-*` or `center-*` slot.
+
+| Occupants on one side            | Maximum allocation along container height                          |
+| -------------------------------- | ------------------------------------------------------------------ |
+| Full main slot only              | Fills the side.                                                    |
+| Center main slot only            | Retains intrinsic height up to the available side height.          |
+| One corner only                  | Corner may grow up to **2/3**.                                     |
+| Top and bottom corners           | Up to `1/2 + 1/2`.                                                 |
+| One corner plus a full main slot | Corner up to `1/3`; full main slot receives the remaining `2/3`.   |
+| One corner plus a center slot    | Corner up to `1/3`; center slot up to `1/3`; opposite third empty. |
+| Two corners plus either main     | `1/3 + 1/3 + 1/3`.                                                 |
+
+The two-thirds single-corner cap replaces the earlier one-half proposal. Adding or removing an
+occupant recomputes the complete side allocation; a corner does not retain a previous larger cap.
+
+Allocations are maxima, not persisted sizes. Corner and center Panels retain intrinsic size until
+they reach their cap. A full side Panel stretches through its allocation. When content exceeds its
+allocation, the Panel body scrolls while its header and reveal affordance remain reachable.
+
+### Top and bottom edge behavior
+
+- `full-top` and `full-bottom` retain intrinsic height and fill the available horizontal span.
+- Their span reaches the effective container edge or stops at the inner edge of an occupied corner
+  on that top or bottom edge.
+- `center-top` and `center-bottom` retain intrinsic width and center against the whole effective
+  boundary.
+- Center top/bottom Panels may overlap side or corner Panels and follow ordinary z-index behavior.
+- Full top/bottom Panels may intersect orthogonal full-side Panels; ordinary z-index behavior
+  resolves the overlap unless a future reviewed contract introduces a different explicit tiling
+  rule.
+
+Picodash defines a reviewed exception for integrated DashStack rails. A corner rail's orientation
+selects an effective edge, perpendicular rails may bound one another at their inner edges, and three
+rail occupants on one edge receive the standard thirds accommodation. This coordination belongs to
+the Picodash facade and does not make standalone DashPanel depend on DashStack or change ordinary
+non-rail allocation.
+
+## Boundaries, insets, and portals
+
+> Contract: Accepted
+> Implementation: Partial
+> Evidence: `packages/dashpanel/src/geometry/boundary.test.ts` covers direct HTML/SVG identity,
+> Panel-over-Provider precedence, explicit viewport selection, unresolved-ref fallback, live refs,
+> invalid values, and no-measurement behavior. `packages/dashpanel/src/geometry/inset.test.ts`
+> covers shorthand normalization, inheritance selection, hostile values, frozen detached outputs,
+> coherent overconstrained rectangles, edge validation, and getter snapshots. Provider policy
+> wiring and Panel inheritance/narrowing/live-ref behavior are covered by
+> `packages/dashpanel/tests/dashpanel.test.tsx`; the public Provider/Panel prop surface is covered
+> by `packages/dashpanel/tests/dashpanel.types.test.ts`.
+> Notes: Reference, inset, rectangle algebra, synchronous policy publication, live boundary
+> measurement, observer refresh, and pointer/keyboard projection are implemented. Adaptive
+> drawer/sheet presentation remains outside this slice.
+
+Boundary resolution follows Panel override, Provider default, then viewport. Explicit `null`
+selects the viewport; an unresolved ref falls through to the next boundary. Provider and Panel
+boundaries are Element/ref contracts, not selector strings.
+
+Inset resolution follows Panel override, Provider default, then zero. Insets constrain free
+placement and define the flush docking rectangle. Snaps apply their separate offset after inset
+resolution. Insets and boundary objects are runtime policy and are not persisted.
+
+Every inset is a finite, non-negative CSS-pixel number. Physical shorthand expands as follows:
+
+- `n` becomes `{ top: n, right: n, bottom: n, left: n }`.
+- `[vertical, horizontal]` becomes `{ top: vertical, right: horizontal, bottom: vertical, left: horizontal }`.
+- `[top, horizontal, bottom]` becomes `{ top, right: horizontal, bottom, left: horizontal }`.
+- `[top, right, bottom, left]` maps directly to those four sides.
+
+The implementation selects inheritance before normalization: an omitted Panel inset inherits the
+Provider inset, an omitted Provider inset resolves to zero, and an explicit Panel inset of `0`
+clears an inherited inset. `null` is invalid for inset values. An invalid selected value throws
+without falling back to another level. Runtime validation rejects negative numbers, `NaN`, positive
+or negative infinity, boxed numbers, non-number members, sparse arrays, and every tuple arity other
+than 2, 3, or 4. `-0` normalizes to `+0`.
+
+Normalization produces a private, frozen, detached record with exactly `top`, `right`, `bottom`,
+and `left`; it does not rewrite or persist the caller's input. The effective boundary rectangle is
+always coherent, even when insets overconstrain an axis:
+
+```ts
+left = Math.min(rect.right, rect.left + inset.left)
+right = Math.max(left, rect.right - inset.right)
+top = Math.min(rect.bottom, rect.top + inset.top)
+bottom = Math.max(top, rect.bottom - inset.bottom)
+width = right - left
+height = bottom - top
+```
+
+Top and left take precedence when opposite insets overconstrain an axis. Rectangle derivation is
+pure geometry; it does not mutate the boundary, placement, or persisted layout.
+
+Portal ownership and geometry boundary are independent. Changing a portal target must not change
+placement coordinates; changing a boundary must not implicitly move ownership of the Panel DOM.
+
+## Durable layout
+
+> Contract: Accepted
+> Implementation: Verified
+> Evidence: `packages/dashpanel/src/runtime/panel-runtime.test.ts`,
+> `packages/dashpanel/tests/dashpanel.test.tsx`, and the Contract Lab durable-layout journey in
+> `apps/lab/tests/contract-lab.spec.ts` cover settled writes, browser persistence and restoration,
+> reset-to-default behavior, and invalid-record recovery through the disclosed Nexus scope.
+
+Nexus persists one settled layout override per Panel scope:
+
+```ts
+type DashPanelLayoutRecord = {
+  placement: DashPanelPlacement
+  preferredPosition: { x: number; y: number }
+}
+```
+
+`preferredPosition` contains finite CSS-pixel offsets from the effective boundary's top-left after
+inset and before snap offset. It preserves the preferred contained free position through snapping
+or docking and gives Hybrid detachment a stable destination.
+
+Nexus does not persist resolved size, visibility, collapse, focus, activation, z-order, drag proxy,
+occupancy, allocations, allocation ratios, peer identity, boundary object, inset, enabled positions,
+fallback layout, or responsive projection.
+
+A completed move, snap, or dock writes the override. Cancellation writes nothing.
+`resetDashPanelLayout()` removes it so the current declared `defaultLayout` applies. A record with
+an unknown position, an invalid mode/disposition combination, or non-finite coordinates enters
+Nexus recovery; a valid record merely disabled by current UI policy remains dormant.
+
+## Resize and responsive behavior
+
+DashPanel does not offer user resizing in its initial contract. It observes intrinsic content and
+boundary size changes and recomputes containment and dock allocations. Resolved size is never
+persisted.
+
+Responsive behavior is geometry-derived rather than breakpoint-driven:
+
+- the visual viewport is the viewport boundary;
+- free geometry is projected into the current effective boundary without changing its durable
+  preferred position;
+- a free Panel keeps its intrinsic height while it fits; dragging its header downward may reduce
+  the resolved height to the remaining boundary space instead of forcing the header upward;
+- the Panel never reduces below its measured shell minimum; a root DashStack contributes its
+  `start` and `end` bands to that minimum while its automatic band owns overflow scrolling;
+- changing boundary, inset, zoom, or viewport during an active movement cancels the interaction and
+  writes no stale result;
+- current policy may temporarily make a durable target unavailable without deleting it.
+
+There is no automatic mode switch at a product-defined breakpoint.
+
+Boundary contraction does not replace the preferred intrinsic height. On release into a bottom
+corner, a Hybrid Panel restores that height up to its allocated maximum and aligns with the bottom
+edge. It does not stretch short content to fill the allocation. Intrinsic and minimum measurements
+exclude the visual scale used by the dock transition, so animation cannot feed a contracted height
+back into the settled layout.
+
+Overflowing ordinary content scrolls within the Panel body, with the shared vertical
+[`scroll-fade` recipe](ui.md#scroll-overflow-feedback) indicating content above or below. A root
+DashStack owns its automatic-band scrollport instead; the Panel header and pinned bands remain
+unfaded. Content that fits is not faded.
+Scrolling inside the Panel or completing a scroll-mask animation does not trigger intrinsic shell
+measurement; ancestor or viewport scrolling still updates placement geometry.
+
+Settled intrinsic height changes use Motion with `--picodash-duration-fast` and
+`--picodash-easing-out`, so a custom theme can tune their duration and curve without adding a
+motion prop. DashPanel captures the rendered shell height before a disclosure change, resolves the
+new boundary-constrained height, and animates between those concrete values. This covers Panel and
+nested DashGroup toggles without relying on an intrinsic `auto` transition. Active movement and
+`prefers-reduced-motion: reduce` disable the transition. Theme entry and exit keyframes remain
+deferred until DashPanel owns a reviewed visibility-transition lifecycle that keeps `hidden`,
+inertness, focus restoration, and reduced-motion semantics aligned.
+
+### Adaptive drawer and sheet presentation
+
+> Contract: Accepted
+> Implementation: Planned
+> Evidence: None
+
+DashPanel supplies three explicit presentations:
+
+```ts
+type DashPanelPresentation =
+  | { kind: 'panel' }
+  | { kind: 'drawer'; edge: 'left' | 'right' }
+  | { kind: 'sheet'; edge: 'top' | 'bottom' }
+```
+
+`panel` is the ordinary non-modal movable and dockable presentation. The initial `drawer` and
+`sheet` presentations are modal. A persistent non-modal drawer is an ordinary Fixed Panel docked to
+`full-left` or `full-right`, not a fourth adaptive mode.
+
+The host selects `presentation` from its own viewport, route, or application policy. DashPanel has
+no product breakpoint and never changes presentation automatically. Drawer and sheet are transient
+projections: they do not change the durable placement or preferred coordinates, and returning to
+`panel` restores the same desktop layout input. DashStack content continues to respond to its actual
+container width independently.
+
+While a drawer or sheet is active:
+
+- movement, placement, collapse, and layout-reset actions are unavailable;
+- the Panel uses modal-dialog semantics, a backdrop, focus containment, host scroll lock, and
+  Escape/outside-interaction dismissal;
+- dismissal restores focus through the ordinary connected-trigger chain;
+- a visible Close control is mandatory, so `showCloseButton={false}` with either modal presentation
+  is a developer contract error;
+- reduced motion removes the slide transition without changing visibility or focus behavior; and
+- portal ownership remains Provider-controlled while modal geometry uses the visual viewport rather
+  than a persisted Panel boundary.
+
+At most one sibling modal Panel may be visible in one Provider. A competing show command returns
+`modal_occupied`. A prop-driven transition of an already visible Panel retains its previous
+presentation and records the same structured diagnostic; it is not queued and does not retry until
+the host changes the presentation input again. DashPanel never hides the existing modal silently.
+Nested modal overlays inside the active Panel follow the shared UI layer and Escape-order contract.
+
+Left and right drawers use the Panel's preferred width capped to the visual viewport. Top and bottom
+sheets fill the available inline span and use intrinsic block size capped to the visual viewport.
+Swipe-to-dismiss and drag-to-resize gestures are deferred until they have their own pointer,
+accessibility, and conflict contract.
+
+## Pointer, keyboard, and focus
+
+> Contract: Accepted
+> Implementation: Partial
+
+Pointer and keyboard operations must reach the same canonical placements and reject the same
+occupied targets. Pointer movement uses capture, a raw contained projection, and a separate
+displayed intent. Floating Panels acquire any of the eight offset snap targets within
+`snapProximity`; Hybrid Panels acquire only top and bottom. The displayed Panel reaches an acquired
+target during the drag, applies the documented resistance until `detachDistance`, and commits the
+retained snap on release. A released Panel resumes the raw contained projection. Hybrid dock
+targeting reads that raw Panel rectangle and the current pointer, while its animated proxy remains
+visual intent only and never becomes geometry input.
+
+Snap acquisition and final detachment animate an independent Motion translation with the owning
+theme's DashPanel motion tokens. Motion also owns measured-height interpolation and the Hybrid dock
+target proxy. Same-side allocation changes use a Motion FLIP transition from each affected Panel's
+current on-screen rectangle to its newly resolved layout rectangle. These are geometry-derived,
+replaceable sequences. Because the base transform continues to track each pointer or keyboard step,
+animation does not delay movement or alter the geometry supplied to snap, dock, allocation, or
+Nexus logic. A new snap, detach, target, or allocation transition may replace its in-flight
+predecessor.
+
+Keyboard movement uses the Panel's move control:
+
+- `Enter` or `Space` enters movement mode;
+- arrow keys move by 1 CSS pixel;
+- `Shift` plus an arrow moves by 10 CSS pixels;
+- `Enter` commits;
+- `Escape` restores the pre-interaction layout and writes nothing;
+- a placement submenu provides direct snap and dock choices, subject to current policy and
+  occupancy.
+
+Mounting a visible Panel or applying a passive visibility change does not steal focus. An explicit
+`DashPanelTrigger` or launcher activation follows its documented show-and-focus behavior. Hiding
+restores focus first to the most recent connected trigger, then to the connected element focused
+before Panel interaction, then to a Provider fallback. Closing a menu restores its trigger.
+Reduced-motion preference removes non-essential movement while preserving state feedback.
+
+For docked collapse, the visible in-header action is named `Minimize panel {title}` and the detached
+edge action is named `Reveal panel {title}`. A press on either action transfers focus to its
+replacement control. The retracted Panel remains mounted but is inert and `aria-hidden`; Reveal is
+the only sequentially focusable part of that minimized presentation.
+
+For the implemented Panel presentation, trigger and launcher activation choose the first connected,
+rendered, enabled sequential focus target in DOM order. If none exists, the Panel `aside` receives
+programmatic focus with `tabIndex={-1}`. Focus restoration resolves the most recent connected
+trigger, the connected element focused before entry, the resolved Provider boundary, the explicit
+portal container, and finally a focusable document body in that order. The runtime keeps element
+references weakly and clears the Panel record on release. Direct runtime visibility commands do not
+move focus; the initiating UI component coordinates focus after the visibility commit.
+
+## Close and removal
+
+| Operation                 | Contract | Implementation | Behavior                                    |
+| ------------------------- | -------- | -------------- | ------------------------------------------- |
+| Hide/close                | Accepted | Prototype      | Changes transient visibility.               |
+| Reopen                    | Accepted | Prototype      | Restores visibility without remounting.     |
+| Request permanent removal | Accepted | Implemented    | Notifies application; application unmounts. |
+| Imperative deregistration | Rejected | Prototype      | Legacy behavior removed during conformance. |
+
+The Close button calls the transient hide command; it never requests permanent removal.
+`onRequestRemove` enables the confirmed `Remove panel…` action and receives only the resolved
+`scopeId`. After confirmation, DashPanel calls the callback and the application decides whether to
+unmount its JSX. Omitting the callback omits the permanent-removal action.
+
+## Action menu
+
+The built-in DashPanel menu contains only Panel-owned placement and layout-reset actions. Value
+reset, group expansion, copy, import, export, and disclosure policy belong to DashStack, Nexus, or
+integrated Picodash composition.
+
+| Configuration                      | Contract | Behavior                                              |
+| ---------------------------------- | -------- | ----------------------------------------------------- |
+| `actionMenu` omitted               | Accepted | Standard trigger with contributed then Panel actions. |
+| `actionMenu={false}`               | Accepted | Hides the menu and every contributed action.          |
+| `actionMenu={readonly elements[]}` | Accepted | Replaces all default and contributed menu items.      |
+| Caller-replaced root trigger       | Deferred | Advanced surface only after a demonstrated need.      |
+
+DashPanel exports the menu item, submenu, separator, and built-in placement/reset components needed
+to compose the accepted custom-content path. They use public controller commands and must not
+mutate Nexus or Provider internals.
+
+The Panel-owned action exports are:
+
+- `DashPanelActionItems`;
+- `DashPanelPlacementSubmenu`;
+- `DashPanelResetLayoutItem`; and
+- `DashPanelRequestRemoveItem`.
+
+Generic menu composition primitives are UI-owned explicit reexports; DashPanel owns the built-in
+placement/reset items and every command they execute. Reexporting a primitive does not move its
+accessibility or theme contract into DashPanel.
+
+DashPanel also owns this narrow composition seam from `@picodash/dashpanel/integration`:
+
+```ts
+interface DashPanelDefaultActionItemsProps {
+  scopeId: string
+}
+
+type DashPanelDefaultActionItems = ComponentType<DashPanelDefaultActionItemsProps>
+
+interface DashPanelIntegrationProviderProps {
+  children: ReactNode
+  defaultActionItems?: DashPanelDefaultActionItems
+}
+```
+
+`DashPanelIntegrationProvider` supplies at most one component type to descendant Panels. A Panel
+uses the nearest integration Provider and renders that component before its placement and layout
+actions only when `actionMenu` is omitted. Passing `false` hides the whole menu. Passing a custom
+item array replaces both the contribution and Panel defaults; an empty array renders no trigger.
+Callers may explicitly include exported action items in their replacement array.
+
+The contributor receives only the resolved Panel `scopeId`. A component type rather than a render
+callback preserves ordinary React hook and component-identity rules. Its output is declarative
+ActionMenu-family content: it cannot replace the trigger, mutate private Panel runtime, add a
+persistence path, or gain controller authority. Nearest-Provider replacement is the complete
+resolution rule; there is no global registry, keyed plugin collection, or Provider prop that
+applications merge.
+
+The application-facing `actionMenu` prop remains the ordinary customization API. The integration
+entry exists for a composing product such as Picodash and does not create a second application
+extension system.
+
+## Header composition
+
+> Contract: Accepted
+> Implementation: Partial
+> Evidence: `packages/dashpanel/tests/dashpanel.test.tsx`,
+> `packages/dashpanel/tests/style.test.ts`, and `apps/lab/tests/contract-lab.spec.ts` cover the
+> slotted header, title-wide pointer and keyboard move surface, interactive-control exclusion,
+> centered collapse/action/close controls, and browser drag behavior.
+
+DashPanel uses the presentational `DashHeader` owned by `@picodash/ui` and explicitly reexports its
+stable component and types. DashPanel supplies the grab surface, collapse control, title, action
+menu, and close control through named slots and retains every associated behavior. `DashHeader`
+does not initiate placement, toggle Panel state, or execute actions.
+
+The shared API has `leading`, `title`, `actions`, and `trailing` slots in fixed DOM order and no
+general `children` prop. It forwards its root ref so DashPanel can measure the header without
+placing geometry or drag behavior in the shared package. These slots are an internal composition
+boundary for DashPanel, not a public `headerSlots` override: Panel props create the default slot
+nodes, while action-menu composition provides the accepted additive extension path. The complete
+target is recorded in the [shared UI reference](ui.md#dashheader).
+
+## Theme and CSS design tokens
+
+> Contract: Accepted theme behavior and product-owned token inventory; implementation evidence
+> pending for exhaustive shared-token consumption
+>
+> Implementation: Partial
+> Evidence: `packages/dashpanel/src/style.css` and `packages/dashpanel/tests/style.test.ts` cover
+> the width token, dense shell/header geometry, translucent surface material, and shared token
+> consumption. The exhaustive dependency-table audit remains planned.
+
+The translucent surface applies its backdrop filter at the Panel boundary so it samples application
+content behind the Panel rather than an isolated internal backdrop.
+
+`@picodash/ui` owns `dark`, `light`, `system`, custom named-theme resolution, the accepted
+`regular | compact` density axis, and all shared semantic tokens. `DashPanelProvider` establishes
+the inherited theme and density; a Panel may override either. Theme and density are runtime
+presentation and are never persisted by DashPanel. Portaled Panel-owned roots repeat both resolved
+attributes; their descendants inherit.
+
+Density changes shared geometry tokens without changing color roles, placement semantics, or
+durable layout. Compact presentation keeps coarse-pointer hit targets at least 44 CSS pixels. An
+application may persist its own preference in Nexus and pass it back as an ordinary prop.
+
+Custom themes override public `--picodash-*` tokens under their named theme selector. Consumers must
+not rely on `--_picodash-*` variables, which are package-private derived values.
+
+DashPanel owns these public product tokens:
+
+| Variable                           | Purpose                                      | Syntax                | Regular default                   |
+| ---------------------------------- | -------------------------------------------- | --------------------- | --------------------------------- |
+| `--picodash-panel-width`           | Preferred intrinsic Panel width.             | `<length-percentage>` | `min(20rem, calc(100dvw - 2rem))` |
+| `--picodash-panel-snap-duration`   | Magnetic snap-settle duration.               | `<time>`              | `160ms`                           |
+| `--picodash-panel-snap-easing`     | Magnetic snap-settle timing function.        | `<easing-function>`   | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
+| `--picodash-panel-snap-bounce`     | Snap overshoot as a fraction of snap travel. | `<number>`            | `0.06`                            |
+| `--picodash-panel-detach-duration` | Magnetic detach-settle duration.             | `<time>`              | `140ms`                           |
+| `--picodash-panel-detach-easing`   | Magnetic detach-settle timing function.      | `<easing-function>`   | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
+| `--picodash-panel-detach-bounce`   | Detach overshoot as a fraction of travel.    | `<number>`            | `0.04`                            |
+
+The token and prop are two access paths to one preferred-width input:
+
+1. `--picodash-panel-width` supplies the inherited host, Provider-container, or selector default;
+2. `width` supplies a local inline token value for one Panel and takes precedence; and
+3. the token's regular recipe supplies the fallback above when neither application path sets it.
+
+Magnetic motion is independent of the live transform rather than a transition on Panel position.
+Duration accepts a non-negative CSS time. Bounce accepts a unitless value from `0` through `0.25`;
+the runtime clamps larger finite values and treats invalid values as zero. A zero duration disables
+that transition. Easing accepts the CSS `linear`, `ease`, `ease-in`, `ease-out`, and `ease-in-out`
+keywords or a valid `cubic-bezier()` function; unsupported values fall back to Motion's `easeOut`.
+The default snap and detach recipes are intentionally short with a small
+overshoot. `prefers-reduced-motion: reduce` disables them regardless of theme values.
+
+The preferred width is presentation state, not durable layout. Boundary containment, dock
+allocation, and the current presentation may cap or temporarily replace it; the resolved pixel
+width is observed for geometry and never persisted. A content size change causes remeasurement and
+containment without creating a layout override.
+
+Valid intrinsic CSS width values are supported. For example, `width="fit-content"` or a selector
+setting `--picodash-panel-width: fit-content` lets the browser derive width from arbitrary content,
+subject to the effective boundary. DashPanel does not measure content and convert that result into
+a stored numeric preference. This avoids making responsive children or DashStack's container-based
+layout into a circular persistence input.
+
+`full-top` and `full-bottom` docks own the available inline span, so the preferred width is dormant
+while either is active. Top/bottom sheets follow the same rule. Left/right drawers and ordinary
+floating, snapped, corner, center, and side placements use the preferred width, capped to their
+available geometry. Returning to a width-sensitive presentation restores the same preferred input.
+
+No public token is added for header height, collapse offsets, docking allocation, drag opacity,
+placement-preview paint, or runtime z-index. Those values are structural rules, placement
+configuration, or package-private derived values rather than durable theming contracts.
+
+The target Panel structure currently requires this candidate shared subset:
+
+- `--picodash-color-{surface,surface-muted,text,text-muted,border}`;
+- `--picodash-space-{1,2,3}`;
+- `--picodash-font-size-xl`, `--picodash-font-weight-semibold`, and
+  `--picodash-letter-spacing-normal`;
+- `--picodash-control-height-md`, `--picodash-icon-{sm,md,lg}`, and
+  `--picodash-radius-surface`;
+- `--picodash-shadow-{md,elevated}` and `--picodash-blur-surface`; and
+- `--picodash-duration-fast` and `--picodash-easing-out`.
+
+That subset is candidate implementation evidence because DashHeader and the composed Button,
+ActionMenu, Tooltip, and AlertDialog recipes belong to `@picodash/ui`. The implemented DashPanel
+dependency table will take the
+union of the Panel-owned structure and those accepted shared recipes, identify the consuming
+component for each token, and link each shared meaning to the canonical
+[shared UI inventory](ui.md#shared-public-token-inventory). This avoids treating the current copied
+UI implementation as the target while still giving a DashPanel-only consumer a complete reference.
+
+Before the shared-consumption conformance row becomes Verified, a check must prove that every
+consumed public variable is documented and every documented variable is consumed or deliberately
+inherited. DashStack maintains its own complete dependency table by the same rule.
+
+The prototype's copied shared recipe is removed during migration. DashPanel imports
+`@picodash/ui/style.css`, defines only `--picodash-panel-*` public tokens in its own stylesheet, and
+uses `--_picodash-*` for private Panel formulas.
+
+## Triggers and launcher
+
+> Contract: Accepted
+> Implementation: Partial
+> Evidence: `packages/dashpanel/tests/dashpanel.test.tsx`,
+> `packages/dashpanel/src/runtime/panel-runtime.test.ts`,
+> `packages/dashpanel/tests/dashpanel.types.test.ts`, and
+> `packages/dashpanel/tests/package-artifacts.mjs` cover the implemented subset.
+
+```ts
+interface DashPanelTriggerProps extends Omit<ButtonProps, 'onPress'> {
+  panelId: string
+  action?: 'show' | 'toggle'
+}
+
+type DashPanelLauncherItem =
+  | {
+      itemId?: string
+      panelId: string
+      label: string
+      accessibleName?: string
+      disabled?: boolean
+    }
+  | {
+      itemId?: string
+      panelId: string
+      label: Exclude<ReactNode, string>
+      accessibleName: string
+      disabled?: boolean
+    }
+
+interface DashPanelLauncherProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  label: string
+  items: readonly DashPanelLauncherItem[]
+}
+```
+
+`DashPanelTrigger` defaults to `action="show"`. Showing a Panel makes it visible, activates its
+Provider layer, and moves focus into its first appropriate focus target; an already visible Panel
+is still activated and focused. `toggle` hides a visible Panel or performs the same show operation
+for a hidden Panel.
+
+`DashPanelLauncher` renders an application-declared group of Panel triggers. It does not discover
+Panels through a registry, infer labels from mounted content, or acquire authority to mount missing
+JSX. `panelId` identifies the target Panel; optional `itemId` identifies the launcher entry. A
+target that occurs once may omit `itemId` and uses `panelId` as its stable entry identity. When a
+`panelId` occurs more than once, every occurrence requires a unique, stable, non-empty `itemId`.
+Supplied `itemId` values are unique within that launcher and never become DOM IDs, Nexus scope IDs,
+or persisted state. Text labels provide the trigger name directly; non-text labels require
+`accessibleName`, which is forwarded as the trigger's accessible name. A launcher item for an
+unavailable Panel renders as a disabled trigger and does not create it.
+
+Both components require the nearest DashPanel Provider. Their button behavior and public prop base
+come from `@picodash/ui`, but DashPanel owns panel targeting, visibility, activation, and focus.
+
+The public trigger and launcher components, unavailable-target behavior, retained visibility, and
+runtime activation are implemented and covered by the component, runtime, type, and package
+artifact tests. Browser focus evidence and the controller and layout-dependent lifecycle surfaces
+remain part of the broader partial Panel lifecycle.
+
+## Panel controller
+
+> Contract: Accepted
+> Implementation: Partial
+
+```ts
+type DashPanelCommandResult =
+  | { readonly status: 'executed' }
+  | {
+      readonly status: 'not_executed'
+      readonly reason: 'unavailable' | 'not_collapsible' | 'modal_occupied' | 'modal_presentation'
+    }
+
+type DashPanelLayoutCommandResult =
+  | {
+      readonly status: 'executed'
+      readonly transaction: CoreTransactionResult | PersistentTransactionResult
+    }
+  | {
+      readonly status: 'not_executed'
+      readonly reason: 'unavailable' | 'dock_occupied' | 'position_disabled' | 'modal_presentation'
+    }
+
+interface DashPanelControllerCommands {
+  show(): DashPanelCommandResult
+  hide(): DashPanelCommandResult
+  toggleVisibility(): DashPanelCommandResult
+  activate(): DashPanelCommandResult
+  expand(): DashPanelCommandResult
+  collapse(): DashPanelCommandResult
+  toggleCollapsed(): DashPanelCommandResult
+  setPlacement(placement: DashPanelPlacement): DashPanelLayoutCommandResult
+  resetLayout(): DashPanelLayoutCommandResult
+}
+
+type DashPanelController = DashPanelControllerCommands &
+  (
+    | {
+        readonly availability: 'unavailable'
+        readonly scopeId: string
+      }
+    | {
+        readonly availability: 'available'
+        readonly scopeId: string
+        readonly visible: boolean
+        readonly collapsed: boolean
+        readonly collapsible: boolean
+        readonly placement: DashPanelPlacement
+        readonly presentation: DashPanelPresentation
+        readonly dockPreview: DashPanelDockPreview | null
+        readonly dragPreview: DashPanelDragPreview | null
+      }
+  )
+
+function useDashPanel(panelId?: string): DashPanelController
+```
+
+With no argument, `useDashPanel()` targets the nearest Panel. With `panelId`, it targets that mounted
+Panel in the nearest Provider. Calling the hook outside a DashPanel Provider, or omitting `panelId`
+without a nearest Panel, is a lifecycle contract error. An explicit ID that is not currently mounted
+returns an immutable unavailable controller rather than creating runtime state.
+
+`dockPreview` is transient observable metadata for the targeted Panel. It is `null` when there is
+no eligible target. During a Hybrid pointer drag over an available side or corner dock zone it is:
+
+```ts
+interface DashPanelDockPreview {
+  readonly panelId: string
+  readonly position: DashPanelDockPosition
+  readonly bounds: Readonly<{ left: number; top: number; width: number; height: number }>
+}
+```
+
+`bounds` is the prospective dock target-proxy rectangle in viewport CSS pixels, including the effective
+boundary inset and shared dock allocation. It is the logical destination of the visible target
+proxy, not the proxy's intermediate animated rectangle or the moving Panel's rectangle. Release
+can restore intrinsic height, so these bounds need not equal the final settled shell bounds. Applications
+can position readouts from this observation without measuring each pointer event or moving a camera.
+Translate viewport coordinates into the application's containing block when needed.
+
+The existing drag intent owns this observation. The hook notifies on target or bounds changes and
+clears it immediately when leaving valid zones, cancelling, dropping, or disposing the Panel. A
+returning/fading proxy may remain painted after the observation clears. Disabled and occupied targets,
+Fixed and Floating modes, keyboard magnetic movement, and modal presentations expose no dock preview.
+Available preview does not claim occupancy, change `placement`, or write Nexus/persistence; only the
+existing successful release commits placement. An unavailable controller has no preview field.
+
+`dragPreview` distinguishes idle (`null`) from movement without a dock target. Its immutable
+snapshot contains `panelId`, `input` (`pointer` or `keyboard`), the rendered free `placement`
+(mode `floating` or `hybrid`), and `dockTarget`. The target is `null` outside eligible zones,
+`{ kind: 'blocked', position }` for an occupied target, or
+`{ kind: 'available', preview: DashPanelDockPreview }` for an available destination. Disabled
+zones expose no target. Fixed Panels and modal presentations do not expose active movement.
+
+The rendered free posture starts at pickup, including pickup from a committed dock; there is no
+held-dock metadata phase. `controller.placement` remains committed until successful release.
+Applications can reserve space from `dragPreview.placement` while moving and from committed
+`placement` while idle. An available destination remains prospective. `dockPreview` is derived
+atomically from an available `dragPreview.dockTarget` and shares its `preview` object; all other
+active states expose `dockPreview: null`. Do not interpret that legacy null as idle or undocked.
+
+Notifications follow meaningful input, posture, target, or destination-bounds changes, without
+per-pointer coordinate churn. Zone leave clears only the target; cancellation, drop, and disposal
+clear the whole movement observation. Successful placement publication clears movement in the
+same snapshot. These observations never write Nexus or persistence. The bounds coordinate system
+and logical proxy meaning are the same as `DashPanelDockPreview` above.
+
+Every command rechecks current availability at execution time. Visibility, activation, and collapse
+commands mutate transient Provider runtime. Placement and reset commands invoke Nexus and return its
+structured persistent transaction result; `status: 'executed'` means the Nexus command ran, not that
+the transaction necessarily committed. Structured Nexus rejection remains visible in `transaction`.
+Ownership, lifecycle, and malformed-placement contract errors continue to throw.
+
+The public hook is now implemented and exposed through the accepted API. It is the command-level entry
+for visibility, activation, placement, collapse, and layout-reset operations when callers need explicit
+programmatic control. DashPanelTrigger and DashPanelLauncher continue to use their focused control paths.
+
+DashPanel exposes no mutable Provider Nexus, generic runtime selector, or `/advanced` entrypoint in
+the initial contract. Applications select Nexus values through `@picodash/nexus/react`; DashPanel
+does not create another equality or value-subscription API.
+
+## Public package surfaces
+
+| Surface                           | Contract | Implementation | Purpose                                             |
+| --------------------------------- | -------- | -------------- | --------------------------------------------------- |
+| `@picodash/dashpanel`             | Accepted | Prototype      | Provider, Panel, controller, actions, UI reexports. |
+| `@picodash/dashpanel/integration` | Accepted | Implemented    | Narrow default-action contribution seam.            |
+| `@picodash/dashpanel/catalog`     | Accepted | Planned        | Static accepted-component metadata.                 |
+| `@picodash/dashpanel/style.css`   | Accepted | Prototype      | UI foundation plus Panel structural styles.         |
+
+There is no initial `@picodash/dashpanel/advanced` or `@picodash/dashpanel/ui` surface. Generic UI
+primitives remain canonically imported from `@picodash/ui`; DashPanel explicitly reexports only the
+accepted `DashHeader` and ActionMenu family needed for unchanged Panel composition.
+
+## Implementation evidence to complete
+
+No unresolved DashPanel contract question blocks implementation. Conformance still must produce:
+
+1. the exhaustive shared-token consumption table after shared components are implemented;
+2. cohesive regular, compact, intrinsic-width, drawer, and sheet visual evidence;
+3. package and type evidence for every accepted public surface; and
+4. proof that private geometry selectors and formulas have not become customization promises.
+
+These are implementation and verification obligations. They do not reopen Nexus ownership,
+declarative lifecycle, placement semantics, adaptive presentation, persistence, accessibility, or
+action ownership without an explicit contract revision.
+
+## Related documents
+
+- [Shared UI target reference](ui.md)
+- [DashPanel value proposition](../product/value-propositions.md#dashpanel)
+- [DashPanel contract decisions](dashpanel-contract-decisions.md)
+- [ADR 0004: DashPanel launcher item identity](../adr/0004-dashpanel-launcher-item-identity.md)
+- [Nexus target reference](nexus.md)
+- [Nexus decisions](nexus-contract-decisions.md)
+- [Component catalog target reference](catalog.md)
+- [Contract conformance](contract-conformance.md)
+- [Roadmap](../ROADMAP.md)
+
+### Integration transfer seam
+
+`@picodash/dashpanel/integration` additionally exposes `DashPanelTransferBoundary`,
+`useDashPanelHostId`, and the `DashPanelTransfer`, `DashPanelTransferDriver` and
+`DashPanelTransferPoint` types. This is a bounded host-coordination contract used by Picodash's
+[detachable groups](picodash.md#detachable-groups), not an alternate application placement API.
+The host may supply `returnIcon` for the Return action; DashPanel retains the accessible
+`returnLabel` and action behavior. Activation follows the physical Panel containing a pointer
+or focus target, even when retained content has a different React ancestor.
+See [PANEL-TRANSFER-1](dashpanel-contract-decisions.md#detachable-group-hosting-panel-transfer-1).
+
+## Recorded panel shortcuts
+
+`recordableHotkey` (default `false`) adds a small shortcut chip after the title when a Panel is
+collapsible and docked, or offers Close. The outlined chip contains separate keycaps and a Lucide
+pencil outside the outline that appears on hover, keyboard focus or recording without changing its width.
+The complete control is vertically centred in its Panel or group header. An empty recorder shows
+“Click to record shortcut” in light upright text at 70% opacity, reaching full opacity on hover
+or keyboard focus. Recording and saved shortcuts remain fully opaque. Both header types use the same theme font-size token for the recorder. Clicking
+anywhere on the chip records a modifier chord using TanStack Hotkeys. Escape cancels;
+Delete/Backspace clears. Conflicts and reserved editing/navigation chords leave recording active
+and retain the previous key. Labels use platform-specific modifiers and physical key positions.
+Recorder help uses the shared theme-aware, layered Tooltip portal. Recording instructions stay
+visible throughout recording, and a separate live status region announces rejected, saved,
+removed and cancelled shortcuts without requiring hover. Opening another help can supersede
+its visible tooltip while recording continues. Explicitly hovering the recorder can show it again;
+normal blur still cancels recording.
+
+The shortcut uses Minimize/Reveal and keeps children mounted. It also reveals a closed, mounted
+docked Panel. Other closeable Panels use Hide/Show, including floating and non-collapsible Panels. It is inactive for Panels with neither supported operation, text inputs, contenteditable,
+selects, open modals, and recording. Holding a chord fires once. Focus follows the existing
+reveal/minimize controls; Hide restores prior focus and Show focuses the first available Panel control. Unmounting unregisters the shortcut. Known live TanStack conflicts are
+rejected; restored duplicate registrations are suppressed. External listeners and OS/browser
+reservations cannot all be detected.
+
+Nexus stores the committed binding in `scope.dashPanelHotkey` under the Panel ID. With the existing
+Nexus persistence driver it survives reload. Layout reset preserves it; explicit clearing or scope
+destruction removes it. Visibility, recording state, drafts, and focus remain transient. A default
+Nexus without persistence retains the preference only for its lifetime.
+
+```tsx
+<DashPanel
+  id="inspector"
+  title="Inspector"
+  collapsible
+  recordableHotkey
+  defaultLayout={{
+    placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
+  }}
+>
+  {children}
+</DashPanel>
+```
+
+Installed agent guidance is shipped as the Intent skill `docked-panel-shortcuts` in
+`@picodash/dashpanel/skills/`. Intent is a development dependency only.
+
+### Contextual group shortcut integration
+
+`@picodash/dashpanel/integration` exports `DashPanelContextHotkey` for Picodash's group host.
+The recorder accepts a committed binding, label, enabled flag, commit callback and activation callback.
+It derives its context from the nearest original Panel identity and Provider runtime. It exposes no runtime controller.
+Hidden or collapsed parents are ineligible. Among eligible duplicate bindings across different parents,
+the active parent wins; one eligible binding works without prior activation. Ambiguity across Providers
+or duplicates within the same parent is suppressed. Global Panel shortcuts cannot share contextual keys.
+A key event is consumed before activation changes, preventing a second action during the same dispatch.

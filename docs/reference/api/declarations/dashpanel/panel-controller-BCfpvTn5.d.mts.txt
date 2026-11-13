@@ -1,0 +1,189 @@
+import { ReactNode, RefObject } from "react";
+import { CoreTransactionResult, PersistentTransactionResult } from "@picodash/nexus";
+type DashPanelSnapPosition = 'top-left' | 'top' | 'top-right' | 'right' | 'bottom-right' | 'bottom' | 'bottom-left' | 'left';
+type DashPanelDockPosition = 'top-left' | 'top-right' | 'bottom-right' | 'bottom-left' | 'full-left' | 'center-left' | 'full-right' | 'center-right' | 'full-top' | 'center-top' | 'full-bottom' | 'center-bottom';
+type DashPanelPlacement = {
+  readonly mode: 'floating';
+  readonly disposition: {
+    readonly kind: 'free';
+  } | {
+    readonly kind: 'snapped';
+    readonly position: DashPanelSnapPosition;
+  };
+} | {
+  readonly mode: 'fixed';
+  readonly disposition: {
+    readonly kind: 'docked';
+    readonly position: DashPanelDockPosition;
+  };
+} | {
+  readonly mode: 'hybrid';
+  readonly disposition: {
+    readonly kind: 'free';
+  } | {
+    readonly kind: 'snapped';
+    readonly position: 'top' | 'bottom';
+  } | {
+    readonly kind: 'docked';
+    readonly position: DashPanelDockPosition;
+  };
+};
+interface DashPanelDefaultLayout {
+  readonly placement: DashPanelPlacement;
+  readonly preferredPosition?: Readonly<{
+    readonly x: number;
+    readonly y: number;
+  }>;
+}
+interface DashPanelPlacementOptions {
+  readonly snapOffset?: number;
+  readonly snapProximity?: number;
+  readonly detachDistance?: number;
+}
+type DashPanelPresentation = {
+  readonly kind: 'panel';
+} | {
+  readonly kind: 'drawer';
+  readonly edge: 'left' | 'right';
+} | {
+  readonly kind: 'sheet';
+  readonly edge: 'top' | 'bottom';
+};
+type DashPanelBoundary = Element | RefObject<Element | null>;
+type DashPanelBoundaryInset = number | readonly [vertical: number, horizontal: number] | readonly [top: number, horizontal: number, bottom: number] | readonly [top: number, right: number, bottom: number, left: number];
+interface DashPanelSize {
+  readonly width: number;
+  readonly height: number;
+}
+/** A finite non-negative size, resolved against the effective boundary. */
+type DashPanelDimension = number | `${number}px` | `${number}rem` | `${number}%`;
+type DashPanelHeight = DashPanelDimension | 'auto';
+type DashPanelSizeAxis = 'width' | 'height';
+type DashPanelResizeTarget = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw';
+interface DashPanelResizeOptions {
+  readonly handles?: 'auto' | 'always' | 'hidden';
+  readonly targets?: readonly DashPanelResizeTarget[];
+}
+type DashPanelResize = false | DashPanelResizeOptions;
+interface DashPanelContentConstraints {
+  readonly minWidth?: boolean;
+  readonly maxWidth?: boolean;
+  readonly minHeight?: boolean;
+  readonly maxHeight?: boolean;
+}
+/** Outer-shell equivalents of the content's minimum/maximum contribution. */
+interface DashPanelContentMetrics {
+  readonly minWidth?: number;
+  readonly maxWidth?: number;
+  readonly minHeight?: number;
+  readonly maxHeight?: number;
+}
+type DashPanelManualSize = {
+  readonly width: number;
+  readonly height?: number;
+} | {
+  readonly width?: number;
+  readonly height: number;
+};
+type DashPanelSizingConstraintCode = 'minimum' | 'maximum' | 'boundary' | 'allocation' | 'content_minimum' | 'content_maximum' | 'shell_minimum' | 'minimum_unavailable' | 'content_bounds_conflict' | 'measurement_unavailable';
+interface DashPanelSizingConstraint {
+  readonly axis: DashPanelSizeAxis;
+  readonly code: DashPanelSizingConstraintCode;
+  readonly limit?: number;
+}
+interface DashPanelSizingState {
+  readonly preferred: DashPanelSize;
+  readonly desired: DashPanelSize;
+  readonly resolved: DashPanelSize;
+  /** Effective, satisfiable limits suitable for gesture geometry. */
+  readonly minimum: DashPanelSize;
+  readonly maximum: DashPanelSize;
+  readonly requestedMinimum: DashPanelSize;
+  readonly source: Readonly<Record<DashPanelSizeAxis, 'preferred' | 'manual'>>;
+  readonly constraints: readonly DashPanelSizingConstraint[];
+  readonly measurements?: Readonly<{
+    status: 'ready' | 'pending' | 'unavailable';
+    content: DashPanelSize;
+    bounds: DashPanelContentMetrics;
+  }>;
+}
+interface DashPanelRestoreSizeOptions {
+  readonly axes?: 'both' | 'width' | 'height';
+}
+type DashPanelSizeRequest = DashPanelManualSize;
+type DashPanelCommandResult = {
+  readonly status: 'executed';
+} | {
+  readonly status: 'not_executed';
+  readonly reason: 'unavailable' | 'not_collapsible' | 'modal_occupied' | 'modal_presentation';
+};
+type DashPanelLayoutCommandResult = {
+  readonly status: 'executed';
+  readonly transaction: CoreTransactionResult | PersistentTransactionResult;
+} | {
+  readonly status: 'not_executed';
+  readonly reason: 'unavailable' | 'dock_occupied' | 'position_disabled' | 'modal_presentation';
+};
+/** Prospective dock target in viewport CSS pixels; never persisted. */
+interface DashPanelDockPreview {
+  readonly panelId: string;
+  readonly position: DashPanelDockPosition;
+  readonly bounds: Readonly<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  }>;
+}
+/** Transient rendered movement posture; never persisted. */
+interface DashPanelDragPreview {
+  readonly panelId: string;
+  readonly input: 'pointer' | 'keyboard';
+  readonly placement: Readonly<{
+    mode: 'floating' | 'hybrid';
+    disposition: Readonly<{
+      kind: 'free';
+    }>;
+  }>;
+  readonly dockTarget: null | Readonly<{
+    kind: 'blocked';
+    position: DashPanelDockPosition;
+  }> | Readonly<{
+    kind: 'available';
+    preview: DashPanelDockPreview;
+  }>;
+}
+interface DashPanelControllerCommands {
+  show(): DashPanelCommandResult;
+  hide(): DashPanelCommandResult;
+  toggleVisibility(): DashPanelCommandResult;
+  activate(): DashPanelCommandResult;
+  expand(): DashPanelCommandResult;
+  collapse(): DashPanelCommandResult;
+  toggleCollapsed(): DashPanelCommandResult;
+  setPlacement(placement: DashPanelPlacement): DashPanelLayoutCommandResult;
+  resetLayout(): DashPanelLayoutCommandResult;
+  setSize(size: DashPanelSizeRequest): DashPanelLayoutCommandResult;
+  restorePreferredSize(options?: DashPanelRestoreSizeOptions): DashPanelLayoutCommandResult;
+}
+type DashPanelController = (DashPanelControllerCommands & {
+  readonly availability: 'unavailable';
+  readonly scopeId: string;
+}) | (DashPanelControllerCommands & {
+  readonly availability: 'available';
+  readonly scopeId: string;
+  readonly visible: boolean;
+  readonly collapsed: boolean;
+  readonly collapsible: boolean;
+  readonly placement: DashPanelPlacement;
+  readonly dockPreview: DashPanelDockPreview | null;
+  readonly dragPreview: DashPanelDragPreview | null;
+  readonly presentation: DashPanelPresentation;
+  readonly manualSize?: DashPanelManualSize;
+  readonly manuallySized: boolean;
+  readonly sizing?: DashPanelSizingState;
+});
+declare function useDashPanelHostId(): string | undefined;
+declare function useDashPanel(panelId?: string): DashPanelController;
+export { DashPanelDockPosition as C, DashPanelSnapPosition as D, DashPanelPresentation as E, DashPanelDefaultLayout as S, DashPanelPlacementOptions as T, DashPanelResizeTarget as _, DashPanelDockPreview as a, DashPanelBoundary as b, DashPanelRestoreSizeOptions as c, DashPanelContentMetrics as d, DashPanelDimension as f, DashPanelResizeOptions as g, DashPanelResize as h, DashPanelCommandResult as i, DashPanelSizeRequest as l, DashPanelManualSize as m, useDashPanel as n, DashPanelDragPreview as o, DashPanelHeight as p, useDashPanelHostId as r, DashPanelLayoutCommandResult as s, DashPanelController as t, DashPanelContentConstraints as u, DashPanelSizingConstraint as v, DashPanelPlacement as w, DashPanelBoundaryInset as x, DashPanelSizingState as y };
+//# sourceMappingURL=panel-controller-BCfpvTn5.d.mts.map

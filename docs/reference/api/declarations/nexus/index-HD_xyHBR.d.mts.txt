@@ -1,0 +1,1247 @@
+import { StandardSchemaV1 } from "@standard-schema/spec";
+type NexusInteractionSource = 'mouse' | 'touch' | 'pen' | 'keyboard' | 'programmatic' | 'automatic';
+type NexusInteractionRect = Readonly<{
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}>;
+type NexusInteractionGeometry = Readonly<{
+  initial: NexusInteractionRect;
+  requested: NexusInteractionRect;
+  applied: NexusInteractionRect;
+  delta: NexusInteractionRect;
+  stepDelta: NexusInteractionRect;
+  pointerDelta?: Readonly<{
+    x: number;
+    y: number;
+  }>;
+  constraints?: readonly string[];
+}>;
+type InteractionTarget = Readonly<{
+  target: string;
+  input: NexusInteractionSource;
+}>;
+type DragInput = InteractionTarget & Readonly<{
+  interactionId: string;
+  operation: 'move' | 'resize' | 'reorder';
+  geometry?: NexusInteractionGeometry;
+}>;
+type NexusInteractionInput = (InteractionTarget & Readonly<{
+  type: 'hover' | 'focus';
+  phase: 'enter' | 'leave';
+}>) | (InteractionTarget & Readonly<{
+  type: 'pointer';
+  phase: 'down' | 'up' | 'cancel' | 'move' | 'click';
+  position?: Readonly<{
+    x: number;
+    y: number;
+  }>;
+  button?: number;
+  buttons?: number;
+  modifiers?: Readonly<{
+    alt: boolean;
+    control: boolean;
+    meta: boolean;
+    shift: boolean;
+  }>;
+}>) | (DragInput & Readonly<{
+  type: 'drag.start' | 'drag.update';
+}>) | (DragInput & Readonly<{
+  type: 'drag.end';
+  outcome: 'accepted' | 'unchanged' | 'rejected';
+  reason?: string;
+}>) | (DragInput & Readonly<{
+  type: 'drag.cancel';
+  reason: string;
+}>) | (InteractionTarget & Readonly<{
+  type: 'command';
+  command: string;
+  outcome: 'accepted' | 'unchanged' | 'rejected';
+  reason?: string;
+}>) | (InteractionTarget & Readonly<{
+  type: 'layout';
+  reason: 'content' | 'boundary' | 'policy';
+  geometry: NexusInteractionGeometry;
+}>);
+type NexusInteractionEvent = Readonly<{
+  sequence: number;
+  timestamp: number;
+  source: Readonly<{
+    scopeId: string;
+    kind: 'dashPanel' | 'dashStack';
+    generation: number;
+  }>;
+  event: NexusInteractionInput;
+}>;
+type NexusInteractionFilter = Readonly<{
+  scopeIds?: readonly string[];
+  kinds?: readonly ('dashPanel' | 'dashStack')[];
+  types?: readonly NexusInteractionInput['type'][];
+}>;
+interface NexusInteractionEvents {
+  subscribe(listener: (event: NexusInteractionEvent) => void, filter?: NexusInteractionFilter): () => void;
+  getSequence(): number;
+}
+type NexusInteractionPublisher = (input: NexusInteractionInput) => NexusInteractionEvent | undefined;
+declare const NEXUS_INTERACTION_TYPES: readonly ['hover', 'focus', 'pointer', 'drag.start', 'drag.update', 'drag.end', 'drag.cancel', 'command', 'layout'];
+/** Validate and detach a public wire event without granting publication authority. */
+declare function normalizeNexusInteractionEvent(input: unknown): NexusInteractionEvent;
+type NexusEntityKind = 'dashPanel' | 'dashStack';
+type InvalidEntityOptionsReason = 'not-object' | 'unknown-key' | 'accessor-property' | 'invalid-kind' | 'host-required';
+type EntityLeaseOptions = {
+  readonly kind: 'dashPanel';
+  readonly host: ProviderLease | EntityLease;
+} | {
+  readonly kind: 'dashStack';
+  readonly host?: ProviderLease | EntityLease;
+};
+declare const providerLeaseBrand: unique symbol;
+declare const entityLeaseBrand: unique symbol;
+declare const relationshipLeaseBrand: unique symbol;
+declare const bindingHandleBrand: unique symbol;
+declare const dashStackNodeLeaseBrand: unique symbol;
+type NexusBindingMode = 'input' | 'display';
+type InvalidBindingHandleReason = 'foreign-root' | 'released' | 'superseded' | 'wrong-kind';
+type AcquireBindingOptions<Fields extends Record<string, FieldLike$1>, Key extends keyof Fields & string> = {
+  readonly itemId: string;
+  readonly field: PicodashField<ValuesOf<Fields>, Key>;
+  readonly alias?: string;
+  readonly mode: NexusBindingMode;
+};
+type ProviderLease = Readonly<{
+  readonly [providerLeaseBrand]: 'ProviderLease';
+  release(): void;
+}>;
+type EntityLease = Readonly<{
+  readonly [entityLeaseBrand]: 'EntityLease';
+  release(): void;
+}>;
+type RelationshipLease = Readonly<{
+  readonly [relationshipLeaseBrand]: 'RelationshipLease';
+  release(): void;
+}>;
+type InvalidDashStackNodeOptionsReason = 'not-object' | 'unknown-key' | 'accessor-property' | 'invalid-node-id';
+type AcquireDashStackNodeOptions = {
+  readonly nodeId: string;
+};
+type DashStackNodeLease = Readonly<{
+  readonly [dashStackNodeLeaseBrand]: 'DashStackNodeLease';
+  release(): void;
+}>;
+type BindingHandle<Fields extends Record<string, FieldLike$1>, Key extends keyof Fields & string> = Readonly<{
+  readonly [bindingHandleBrand]: 'BindingHandle';
+  readonly scopeId: string;
+  readonly itemId: string;
+  readonly alias: string;
+  readonly field: PicodashField<ValuesOf<Fields>, Key>;
+  readonly mode: NexusBindingMode;
+  release(): void;
+}>;
+type FieldLike$1 = {
+  readonly defaultValue: PicodashJsonValue;
+  readonly schema?: StandardSchemaV1<unknown, PicodashJsonValue>;
+  readonly parse?: (input: unknown) => PicodashParseResult<PicodashJsonValue>;
+};
+declare function acquireBindingLease<Fields extends Record<string, FieldLike$1>, Key extends keyof Fields & string, Result extends CoreTransactionResult = CoreTransactionResult>(scopedNexus: ScopedNexus<Fields, Result>, options: AcquireBindingOptions<Fields, Key>): BindingHandle<Fields, Key>;
+declare function acquireProviderLease<Fields extends Record<string, FieldLike$1>, Result extends CoreTransactionResult = CoreTransactionResult>(rootNexus: RootNexus<Fields, Result>, options?: {
+  readonly providerId?: string;
+}): ProviderLease;
+declare function acquireEntityLease<Fields extends Record<string, FieldLike$1>, Result extends CoreTransactionResult = CoreTransactionResult>(scopedNexus: ScopedNexus<Fields, Result>, options: EntityLeaseOptions): EntityLease;
+declare function acquireDashStackNodeLease<Fields extends Record<string, FieldLike$1>, Result extends CoreTransactionResult = CoreTransactionResult>(scopedNexus: ScopedNexus<Fields, Result>, options: AcquireDashStackNodeOptions): DashStackNodeLease;
+declare function acquireRelationshipLease(parentEntity: EntityLease, childEntity: EntityLease): RelationshipLease;
+/** Publish through one currently active entity generation without granting mutation authority. */
+declare function publishNexusInteraction(lease: EntityLease, input: NexusInteractionInput): NexusInteractionEvent;
+type NumericGestureCancelReason = 'escape' | 'capture-lost' | 'hidden' | 'removed' | 'scale-changed' | 'external-write' | 'released' | 'destroyed' | 'cancelled';
+type ValueGestureEnd<Value extends PicodashJsonValue = PicodashJsonValue> = Readonly<{
+  outcome: 'committed' | 'cancelled';
+  reason: 'commit' | NumericGestureCancelReason;
+  initialValue: Value;
+  finalValue: Value | null;
+  changed: boolean;
+  rollback: 'unnecessary' | 'applied' | 'rejected' | 'superseded';
+}>;
+type ValueGestureOptions<Value extends PicodashJsonValue = PicodashJsonValue> = {
+  readonly onEnd?: (event: ValueGestureEnd<Value>) => void;
+};
+interface ValueGesture<Value extends PicodashJsonValue = PicodashJsonValue, Result extends CoreTransactionResult = CoreTransactionResult> {
+  readonly active: boolean;
+  begin(): boolean;
+  update(value: Value): Result;
+  commit(): ValueGestureEnd<Value> | undefined;
+  cancel(reason?: NumericGestureCancelReason): ValueGestureEnd<Value> | undefined;
+  release(): void;
+}
+type NumericGestureEnd = ValueGestureEnd<number>;
+type NumericGestureOptions = ValueGestureOptions<number>;
+type NumericGesture<Result extends CoreTransactionResult = CoreTransactionResult> = ValueGesture<number, Result>;
+type PicodashDiagnostic<Code extends string = string, Identity extends object = object, Severity extends 'error' | 'warning' = 'error' | 'warning'> = Readonly<{
+  readonly code: Code;
+  readonly severity: Severity;
+  readonly message: string;
+  readonly identity: Identity;
+  readonly count: number;
+  readonly lastOccurrence: number;
+}>;
+type PicodashDiagnosticsState = Readonly<{
+  readonly current: ReadonlyMap<string, PicodashDiagnostic>;
+}>;
+type SubscriberExceptionIdentity = Readonly<{
+  readonly kind: 'subscriber';
+  readonly surface: 'root' | 'scope' | 'diagnostics' | 'capability';
+  readonly scopeId?: string;
+  readonly capability?: string;
+}>;
+type SubscriberExceptionDiagnostic = PicodashDiagnostic<'subscriber_exception', SubscriberExceptionIdentity, 'error'>;
+interface PicodashDiagnostics {
+  getState(): PicodashDiagnosticsState;
+  subscribe(listener: () => void): () => void;
+}
+type SerializedStringMap = readonly (readonly [string, readonly string[]])[];
+type SerializedBooleanMap = readonly (readonly [string, boolean])[];
+/** The JSON projection used by Nexus persistence for DashStack metadata. */
+type SerializedDashStackMetadataRecord = {
+  readonly rootOrder?: readonly string[];
+  readonly groupOrders: SerializedStringMap;
+  readonly collapseOverrides: SerializedBooleanMap;
+};
+/** The JSON projection used by Nexus persistence for DashPanel metadata. */
+type SerializedDashPanelLayoutRecord = DashPanelLayoutRecord;
+/** The JSON projection used by Nexus persistence for a durable scope. */
+type SerializedDurableScopeMetadata = {
+  readonly dashPanelHotkey?: string;
+  readonly dashGroupHotkeys?: readonly (readonly [string, string])[];
+  readonly dashStack?: SerializedDashStackMetadataRecord;
+  readonly dashPanel?: SerializedDashPanelLayoutRecord;
+};
+type PicodashSchemaMigrationPayload = Readonly<{
+  readonly schemaVersion: number;
+  readonly values: Readonly<Record<string, PicodashJsonValue>>;
+  readonly scopes: readonly (readonly [scopeId: string, metadata: PicodashJsonValue])[];
+}>;
+type PicodashSchemaMigration = (payload: PicodashSchemaMigrationPayload) => PicodashSchemaMigrationPayload;
+type SchemaMigrations = Readonly<Record<number, PicodashSchemaMigration>>;
+type SchemaMigrationFailureReason = 'source-newer' | 'missing-step' | 'callback-threw' | 'async-result' | 'invalid-result' | 'wrong-version' | 'final-validation';
+type PicodashQuarantinedScopeMetadata = Readonly<{
+  readonly scopeId: string;
+  readonly raw: PicodashJsonValue;
+}>;
+type PicodashMetadataRecoveryState = Readonly<{
+  readonly quarantinedScopes: ReadonlyMap<string, PicodashQuarantinedScopeMetadata>;
+}>;
+interface PicodashMetadataRecovery<Result extends CoreTransactionResult = CoreTransactionResult> {
+  getState(): PicodashMetadataRecoveryState;
+  subscribe(listener: () => void): () => void;
+  replaceScope(scopeId: string, replacement: SerializedDurableScopeMetadata | null): Result;
+}
+interface PicodashPersistenceDriver {
+  readonly identity: object;
+  read(storageKey: string): string | null;
+  write(storageKey: string, envelope: string): void;
+  remove(storageKey: string): void;
+  subscribe?(storageKey: string, listener: () => void): () => void;
+}
+type NexusOwnedPersistenceConfig<Fields extends Record<string, {
+  readonly defaultValue: PicodashJsonValue;
+}>> = Readonly<{
+  storageKey: string;
+  driver: PicodashPersistenceDriver;
+  values: {
+    defaultFieldPolicy: 'include' | 'omit';
+    fields?: Partial<Record<keyof Fields & string, 'include' | 'omit'>>;
+  };
+}>;
+type ExternalOwnedPersistenceConfig = Readonly<{
+  storageKey: string;
+  driver: PicodashPersistenceDriver;
+  values?: never;
+}>;
+type PersistenceWriteStatus = 'unchanged' | 'saved' | 'pending';
+type PicodashEnvelopeHeader = Readonly<{
+  kind: 'picodash-nexus-envelope';
+  formatVersion: 1;
+  nexusId: string;
+  schemaVersion: number;
+  revision: number;
+  writerId: string;
+  scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[];
+}>;
+type PicodashEnvelopeInput<Values extends Record<string, PicodashJsonValue> = Record<string, PicodashJsonValue>> = (PicodashEnvelopeHeader & {
+  readonly valueOwner: 'nexus';
+  readonly values: Readonly<Values>;
+}) | (PicodashEnvelopeHeader & {
+  readonly valueOwner: 'external';
+  readonly values?: never;
+});
+type PersistentTransactionResult = (Extract<CoreTransactionResult, {
+  readonly ok: true;
+}> & {
+  readonly persistence: PersistenceWriteStatus;
+}) | Extract<CoreTransactionResult, {
+  readonly ok: false;
+}>;
+type PicodashPersistenceConflict = Readonly<{
+  reason: 'foreign-envelope' | 'foreign-removal';
+  localRevision: number;
+  localWriterId: string;
+  durableRevision: number | null;
+  durableWriterId: string | null;
+}>;
+type PersistenceFailureReason = 'read-failed' | 'write-failed' | 'write-verification-failed' | 'invalid-later-envelope' | 'remove-failed' | 'remove-verification-failed';
+type PersistenceConflictResolutionOptions = Readonly<{
+  readonly mode: 'reload';
+}> | Readonly<{
+  readonly mode: 'overwrite';
+}> | Readonly<{
+  readonly mode: 'reconcile';
+  readonly onOverlap: 'local' | 'durable';
+}>;
+declare const persistenceConflictResolutionPlanBrand: unique symbol;
+type PicodashPersistenceConflictResolutionPlan = Readonly<{
+  readonly [persistenceConflictResolutionPlanBrand]: 'PicodashPersistenceConflictResolutionPlan';
+  readonly kind: 'persistence-conflict-resolution-plan';
+  readonly mode: PersistenceConflictResolutionOptions['mode'];
+}>;
+declare const persistenceErasePlanBrand: unique symbol;
+type PicodashPersistenceErasePlan = Readonly<{
+  readonly [persistenceErasePlanBrand]: 'PicodashPersistenceErasePlan';
+  readonly kind: 'persistence-erase-plan';
+  readonly hasDurableEnvelope: boolean;
+  readonly discardsPendingEnvelope: boolean;
+}>;
+type PersistenceEraseResult = Readonly<{
+  readonly ok: true;
+  readonly erased: boolean;
+  readonly discardedPendingEnvelope: boolean;
+}> | Readonly<{
+  readonly ok: false;
+  readonly error: PicodashTransactionError;
+}>;
+type PersistenceDriverUnavailableReason = 'read' | 'subscribe' | 'seed-write' | 'seed-verification';
+type InvalidPersistenceEnvelopeReason = 'syntax' | 'shape' | 'format' | 'identity' | 'schema' | 'authority' | 'values' | 'metadata';
+type HydrationSourceConflictReason = 'revision' | 'content';
+type PicodashPersistenceDiagnostic = PicodashDiagnostic<'persistence_failure', Readonly<{
+  readonly kind: 'persistence';
+}>, 'error'> & {
+  readonly reason: PersistenceFailureReason;
+};
+type PicodashPersistenceState = Readonly<{
+  status: 'clean';
+  durableRevision: number | null;
+  liveRevision: number;
+  hasPendingEnvelope: false;
+  lastError?: never;
+  conflict?: never;
+}> | Readonly<{
+  status: 'pending';
+  durableRevision: number | null;
+  liveRevision: number;
+  hasPendingEnvelope: true;
+  lastError?: never;
+  conflict?: never;
+}> | Readonly<{
+  status: 'error';
+  durableRevision: number | null;
+  liveRevision: number;
+  hasPendingEnvelope: true;
+  lastError: PicodashPersistenceDiagnostic;
+  conflict?: never;
+}> | Readonly<{
+  status: 'conflict';
+  durableRevision: number | null;
+  liveRevision: number;
+  hasPendingEnvelope: true;
+  lastError?: never;
+  conflict: PicodashPersistenceConflict;
+}>;
+interface PicodashPersistence {
+  getState(): PicodashPersistenceState;
+  subscribe(listener: () => void): () => void;
+  flush(): PersistenceWriteStatus;
+  createConflictResolutionPlan(options: PersistenceConflictResolutionOptions): PicodashPersistenceConflictResolutionPlan;
+  executeConflictResolution(plan: PicodashPersistenceConflictResolutionPlan): PersistentTransactionResult;
+  createErasePlan(): PicodashPersistenceErasePlan;
+  executeErase(plan: PicodashPersistenceErasePlan, options: {
+    readonly confirm: true;
+  }): PersistenceEraseResult;
+}
+type OperationSource = 'programmatic' | 'interactive' | 'repair' | 'reset' | 'import';
+type AdapterWriteContext = Readonly<{
+  source: OperationSource;
+  originScopeId?: string;
+  targetScopeIds: readonly string[];
+  changedFields: readonly string[];
+}>;
+interface PicodashValueAdapter<Values extends object> {
+  getSnapshot(): Readonly<Values>;
+  subscribe(listener: () => void): () => void;
+  setValues(completeValues: Readonly<Values>, context: AdapterWriteContext): void;
+}
+type AdapterWriteFailureReason = 'write_threw' | 'async_write' | 'not_visible' | 'invalid_snapshot' | 'mismatched_snapshot';
+type AdapterHealthReason = 'read_threw' | 'async_snapshot' | 'invalid_snapshot' | AdapterWriteFailureReason;
+type AdapterInitializationFailureReason = 'read_threw' | 'async_snapshot' | 'invalid_snapshot' | 'subscribe_threw' | 'invalid_teardown';
+type PicodashInitializationErrorReasonByCode = Readonly<{
+  readonly 'adapter-initialization-failed': AdapterInitializationFailureReason;
+  readonly 'persistence-driver-unavailable': PersistenceDriverUnavailableReason;
+  readonly 'invalid-persistence-envelope': InvalidPersistenceEnvelopeReason;
+  readonly 'hydration-source-conflict': HydrationSourceConflictReason;
+  readonly 'schema-migration-failed': SchemaMigrationFailureReason;
+}>;
+type PicodashInitializationErrorCode = keyof PicodashInitializationErrorReasonByCode;
+type AdapterUnhealthyIssue = TransactionIssue & {
+  readonly code: 'adapter_unhealthy';
+  readonly reason: 'blocked';
+  readonly path: readonly [];
+  readonly scopeId?: string;
+};
+type AdapterWriteFailedIssue = TransactionIssue & {
+  readonly code: 'adapter_write_failed';
+  readonly reason: AdapterWriteFailureReason;
+  readonly path: readonly [];
+  readonly scopeId?: string;
+};
+type AdapterHealthDiagnostic = PicodashDiagnostic<'adapter_unhealthy', Readonly<{
+  readonly kind: 'adapter';
+}>, 'error'> & {
+  readonly reason: AdapterHealthReason;
+};
+declare class PicodashInitializationError extends Error {
+  readonly name: 'PicodashInitializationError';
+  readonly code: PicodashInitializationErrorCode;
+  readonly reason: PicodashInitializationErrorReasonByCode[PicodashInitializationErrorCode];
+  readonly issues: readonly [TransactionIssue & {
+    readonly code: 'adapter_initialization_failed' | 'persistence_driver_unavailable' | 'invalid_persistence_envelope' | 'hydration_source_conflict' | 'schema_migration_failed';
+    readonly reason: string;
+    readonly path: readonly [];
+  }];
+  constructor(reason: AdapterInitializationFailureReason | PersistenceDriverUnavailableReason | InvalidPersistenceEnvelopeReason | HydrationSourceConflictReason | SchemaMigrationFailureReason, code?: PicodashInitializationErrorCode);
+}
+/** The disclosure marker used for fields that are configured as redacted. */
+type PicodashDocumentFieldValue = Readonly<{
+  readonly status: 'included';
+  readonly value: PicodashJsonValue;
+}> | Readonly<{
+  readonly status: 'redacted';
+}>;
+/** A deterministic serialized field entry. */
+type PicodashDocumentFieldEntry = readonly [fieldKey: string, entry: PicodashDocumentFieldValue];
+type PicodashRootDocument = Readonly<{
+  readonly formatVersion: 1;
+  readonly kind: 'root';
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly fields: readonly PicodashDocumentFieldEntry[];
+  readonly scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[];
+}>;
+type PicodashScopeDocument = Readonly<{
+  readonly formatVersion: 1;
+  readonly kind: 'scope';
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly scopeId: string;
+  readonly fields: readonly PicodashDocumentFieldEntry[];
+  readonly scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[];
+}>;
+type PicodashDocument = PicodashRootDocument | PicodashScopeDocument;
+type PicodashDocumentFailureReason = 'shape' | 'format' | 'kind' | 'identity' | 'schema' | 'fields' | 'scopes' | 'metadata' | 'foreign_nexus' | 'unknown_field' | 'incompatible_field' | 'missing_scope' | 'schema_migration_failed' | 'stale_plan';
+/** Safe, structured failure for the pure document codec. */
+declare class PicodashDocumentError extends TypeError {
+  readonly code: 'invalid_document';
+  readonly reason: PicodashDocumentFailureReason;
+  readonly path: readonly [];
+  constructor(reason: PicodashDocumentFailureReason);
+}
+type PicodashDocumentOptionOperation = 'export' | 'export-execution' | 'import-analysis';
+type PicodashDocumentOptionReason = 'not-object' | 'unknown-key' | 'accessor-property' | 'invalid-target' | 'invalid-fields' | 'duplicate-field' | 'invalid-promotion' | 'invalid-mapping' | 'duplicate-target' | 'invalid-boolean' | 'confirmation-required' | 'unexpected-confirmation';
+/** Safe option-validation failure. It intentionally contains no rejected values. */
+declare class PicodashDocumentOptionsError extends TypeError {
+  readonly code: 'invalid-document-options';
+  readonly operation: PicodashDocumentOptionOperation;
+  readonly reason: PicodashDocumentOptionReason;
+  constructor(operation: PicodashDocumentOptionOperation, reason: PicodashDocumentOptionReason);
+}
+/** Decode a parsed strict JSON value into the canonical detached document. */
+declare function decodePicodashDocument(value: unknown): PicodashDocument;
+/** Alias used by callers that already know they have a document-shaped value. */
+declare const normalizePicodashDocument: typeof decodePicodashDocument;
+/** Encode a document by validating, sorting, detaching, and freezing it. */
+declare function encodePicodashDocument(value: PicodashDocument): PicodashDocument;
+type PicodashExportFieldPolicy = Readonly<{
+  readonly default: 'include' | 'redact' | 'omit';
+  readonly allowPromotion?: 'with-confirmation';
+}>;
+type PicodashExportPolicy = Readonly<{
+  readonly documents: Readonly<{
+    readonly defaultFieldPolicy: 'include' | 'redact' | 'omit';
+  }>;
+  readonly fields: Readonly<Record<string, PicodashExportFieldPolicy>>;
+}>;
+type PicodashExportConfig = Readonly<{
+  readonly documents: Readonly<{
+    readonly defaultFieldPolicy: 'include' | 'redact' | 'omit';
+  }>;
+  readonly fields?: Readonly<Record<string, 'include' | 'redact' | 'omit' | PicodashExportFieldPolicy>>;
+}>;
+/** Normalize immutable export disclosure policy and reject unknown field keys. */
+declare function normalizePicodashExportPolicy(value: unknown, fieldKeys: readonly string[]): PicodashExportPolicy;
+/** A real root-owned Nexus field handle; the private brand is retained at the public type boundary. */
+type PicodashDocumentFieldHandle<Values extends object = Record<string, PicodashJsonValue>> = PicodashField<Values, keyof Values & string>;
+type PicodashRootExportOptions<Values extends object = Record<string, PicodashJsonValue>> = Readonly<{
+  readonly scopeId?: string;
+  readonly includeDescendants: boolean;
+  readonly fields?: readonly PicodashDocumentFieldHandle<Values>[];
+  readonly promoteFields?: readonly PicodashDocumentFieldHandle<Values>[];
+}>;
+type PicodashScopedExportOptions<Values extends object = Record<string, PicodashJsonValue>> = Readonly<{
+  readonly includeDescendants: boolean;
+  readonly fields?: readonly PicodashDocumentFieldHandle<Values>[];
+  readonly promoteFields?: readonly PicodashDocumentFieldHandle<Values>[];
+}>;
+/** Root receiver export options; retained as the concise public alias. */
+type PicodashExportOptions<Values extends object = Record<string, PicodashJsonValue>> = PicodashRootExportOptions<Values>;
+type PicodashExportExecutionOptions = Readonly<{
+  readonly confirmRedactedPromotion: true;
+}>;
+type PicodashImportFieldMappingTarget<Values extends object = Record<string, PicodashJsonValue>> = PicodashFieldMappingTarget<Values>;
+type PicodashNormalizedFieldMap = readonly (readonly [string, PicodashImportFieldMappingTarget])[];
+type PicodashNormalizedScopeMap = readonly (readonly [string, string])[];
+type PicodashRootImportOptions<Values extends object = Record<string, PicodashJsonValue>> = Readonly<{
+  readonly allowForeignNexus?: boolean;
+  readonly createMissingScopes?: boolean;
+  readonly fieldMap?: Readonly<Record<string, PicodashFieldMappingTarget<Values>>>;
+  readonly scopeMap?: Readonly<Record<string, string>>;
+  readonly targetScopeId?: string;
+}>;
+type PicodashScopedImportOptions<Values extends object = Record<string, PicodashJsonValue>> = Readonly<{
+  readonly allowForeignNexus?: boolean;
+  readonly createMissingScopes?: boolean;
+  readonly fieldMap?: Readonly<Record<string, PicodashFieldMappingTarget<Values>>>;
+  readonly scopeMap?: Readonly<Record<string, string>>;
+}>;
+type PicodashFieldMappingTarget<Values extends object = Record<string, PicodashJsonValue>> = PicodashDocumentFieldHandle<Values> | 'ignore';
+/** Root receiver import options; retained as the concise public alias. */
+type PicodashImportOptions<Values extends object = Record<string, PicodashJsonValue>> = PicodashRootImportOptions<Values>;
+type PicodashNormalizedImportOptions = Readonly<{
+  readonly allowForeignNexus: boolean;
+  readonly createMissingScopes: boolean;
+  readonly fieldMap: PicodashNormalizedFieldMap;
+  readonly scopeMap: PicodashNormalizedScopeMap;
+  readonly targetScopeId?: string;
+}>;
+/** Validate exact export options for either a root or scoped receiver. */
+declare function normalizePicodashExportOptions(value: unknown, receiver?: 'root' | 'scope'): PicodashExportOptions;
+/** Validate the one-use export confirmation object. */
+declare function normalizePicodashExportExecutionOptions(value: unknown, requiresConfirmation: boolean): PicodashExportExecutionOptions | undefined;
+/** Normalize a field map and reject duplicate target handles. */
+declare function normalizePicodashFieldMap(value: unknown, operation?: PicodashDocumentOptionOperation): PicodashNormalizedFieldMap;
+/** Normalize a scope map and reject duplicate target scope IDs. */
+declare function normalizePicodashScopeMap(value: unknown, operation?: PicodashDocumentOptionOperation): PicodashNormalizedScopeMap;
+/** Validate exact import analysis options for either a root or scoped receiver. */
+declare function normalizePicodashImportOptions(value: unknown, receiver?: 'root' | 'scope'): PicodashNormalizedImportOptions;
+type PicodashExportPlanReview = Readonly<{
+  readonly kind: 'export-plan';
+  readonly documentKind: 'root' | 'scope';
+  readonly scopeId?: string;
+  readonly fieldKeys: readonly string[];
+  readonly promotedFieldKeys: readonly string[];
+  readonly scopeIds: readonly string[];
+}>;
+declare const picodashExportPlanBrand: unique symbol;
+type PicodashExportPlan = PicodashExportPlanReview & Readonly<{
+  readonly [picodashExportPlanBrand]: 'PicodashExportPlan';
+}>;
+type PicodashImportPlanReview = Readonly<{
+  readonly kind: 'import-plan';
+  readonly documentKind: 'root' | 'scope';
+  readonly targetScopeId?: string;
+  readonly changedFields: readonly string[];
+  readonly changedScopeIds: readonly string[];
+  readonly ignoredFields: readonly string[];
+  readonly createdScopes: readonly string[];
+  readonly fieldRemaps: readonly (readonly [string, string])[];
+  readonly scopeRemaps: readonly (readonly [string, string])[];
+  readonly foreignNexus: boolean;
+}>;
+declare const picodashImportPlanBrand: unique symbol;
+type PicodashImportPlan = PicodashImportPlanReview & Readonly<{
+  readonly [picodashImportPlanBrand]: 'PicodashImportPlan';
+}>;
+/** Remove redacted entries before import mapping or schema migration. */
+declare function stripRedactedPicodashDocumentFields(document: PicodashDocument): PicodashDocument;
+/** Build the schema-migration payload after strict decode and redaction removal. */
+declare function documentToSchemaMigrationPayload(document: PicodashDocument): PicodashSchemaMigrationPayload;
+/** Rebuild a document from a migrated, validated schema payload. */
+declare function documentFromSchemaMigrationPayload(original: PicodashDocument, payload: PicodashSchemaMigrationPayload): PicodashDocument;
+/** Run the complete schema chain for a document without invoking Nexus callbacks. */
+declare function migratePicodashDocument(document: PicodashDocument, targetSchemaVersion: number, migrations: SchemaMigrations | undefined): PicodashDocument;
+type PicodashDocumentOverlayInput = Readonly<{
+  readonly document: PicodashDocument;
+  readonly targetValues: Readonly<Record<string, PicodashJsonValue>>;
+  readonly targetScopes: readonly (readonly [string, SerializedDurableScopeMetadata])[];
+  readonly targetFieldKeys: readonly string[];
+  readonly compatibleFieldKeys?: readonly string[];
+  readonly targetScopeIds?: readonly string[];
+  readonly options?: PicodashNormalizedImportOptions;
+}>;
+type PicodashDocumentOverlay = Readonly<{
+  readonly values: Readonly<Record<string, PicodashJsonValue>>;
+  readonly scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[];
+  readonly changedFields: readonly string[];
+  readonly changedScopeIds: readonly string[];
+  readonly ignoredFields: readonly string[];
+  readonly createdScopes: readonly string[];
+  readonly fieldRemaps: readonly (readonly [string, string])[];
+  readonly scopeRemaps: readonly (readonly [string, string])[];
+}>;
+/** Apply version-one overlay semantics to detached pure JSON inputs. */
+declare function buildPicodashDocumentOverlay(input: PicodashDocumentOverlayInput): PicodashDocumentOverlay;
+type PicodashExportFreshnessInput = Readonly<{
+  readonly documentKind: 'root' | 'scope';
+  readonly scopeId?: string;
+  readonly fieldKeys: readonly string[];
+  readonly promotedFieldKeys: readonly string[];
+  readonly values: readonly (readonly [string, PicodashJsonValue])[];
+  readonly scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[];
+  readonly activeFieldKeys?: readonly string[];
+  readonly descendantScopeIds?: readonly string[];
+}>;
+type PicodashImportFreshnessInput = Readonly<{
+  readonly document: PicodashDocument;
+  readonly values: Readonly<Record<string, PicodashJsonValue>>;
+  readonly scopes: readonly (readonly [string, SerializedDurableScopeMetadata])[];
+  readonly fieldMap: PicodashNormalizedFieldMap;
+  readonly scopeMap: PicodashNormalizedScopeMap;
+  readonly targetScopeId?: string;
+  readonly scopeExistence: readonly string[];
+}>;
+/** The JSON values accepted at Nexus trust boundaries. */
+type PicodashJsonPrimitive = boolean | null | number | string;
+type PicodashJsonValue = PicodashJsonPrimitive | readonly PicodashJsonValue[] | {
+  readonly [key: string]: PicodashJsonValue;
+};
+type PicodashIssueCode = 'invalid_json' | 'parse_failed' | 'schema_failed' | 'validation_failed' | 'stale_input' | 'stale_plan' | 'unknown_field' | 'invalid_document' | 'foreign_nexus' | 'incompatible_field' | 'missing_scope' | 'schema_migration_failed' | 'invalid_metadata' | 'quarantined_metadata' | 'adapter_initialization_failed' | 'adapter_unhealthy' | 'adapter_write_failed' | 'persistence_driver_unavailable' | 'invalid_persistence_envelope' | 'hydration_source_conflict' | 'persistence_failure' | 'persistence_resolution_failed' | 'persistence_erase_failed' | `app:${string}`;
+/** Issues supplied by application callbacks. Nexus-owned codes are not accepted here. */
+type PicodashIssueInput = {
+  readonly message: string;
+  readonly code?: `app:${string}`;
+  readonly path?: readonly (string | number)[];
+};
+type TransactionIssue = {
+  readonly code: PicodashIssueCode;
+  readonly path: readonly (string | number)[];
+  readonly message: string;
+  readonly reason?: string;
+  readonly fieldKey?: string;
+  readonly scopeId?: string;
+  readonly itemId?: string;
+  readonly alias?: string;
+};
+type PicodashValidationContext<Values extends object = Record<string, PicodashJsonValue>> = {
+  readonly values: Readonly<Values>;
+  readonly field?: PicodashField<Values, keyof Values & string>;
+  readonly source: 'default' | 'initial' | 'persistence' | 'adapter' | 'programmatic' | 'interactive' | 'repair' | 'reset' | 'import';
+  readonly originScopeId?: string;
+};
+type PicodashFieldValidator<Value, Values extends object> = (value: Value, context: PicodashValidationContext<Values>) => readonly PicodashIssueInput[];
+type ValuesValidator<Values extends object> = (values: Readonly<Values>, context: {
+  readonly values: Readonly<Values>;
+  readonly source: 'default' | 'initial' | 'persistence' | 'adapter' | 'programmatic' | 'interactive' | 'repair' | 'reset' | 'import';
+  readonly originScopeId?: string;
+}) => readonly PicodashIssueInput[];
+type Widen<T> = T extends string ? string : T extends number ? number : T extends boolean ? boolean : T extends readonly (infer E)[] ? readonly Widen<E>[] : T extends object ? { readonly [K in keyof T]: Widen<T[K]>; } : T;
+type IsJson<T> = [T] extends [PicodashJsonValue] ? T : never;
+type StandardOutput<S> = S extends StandardSchemaV1<infer _Input, infer Output> ? Output : never;
+/** A parser is part of the target type surface but is intentionally not executed by Phase 1. */
+type PicodashParseResult<Candidate> = {
+  readonly ok: true;
+  readonly candidate: Candidate;
+} | {
+  readonly ok: false;
+  readonly issues: readonly [PicodashIssueInput, ...PicodashIssueInput[]];
+  readonly repair?: Candidate;
+};
+type PicodashFieldDefinition<Value extends PicodashJsonValue = PicodashJsonValue, Schema extends StandardSchemaV1 | undefined = undefined, Values extends object = Record<string, PicodashJsonValue>> = {
+  readonly defaultValue: Value;
+  readonly schema?: Schema;
+  readonly parse?: (input: unknown) => PicodashParseResult<Value>;
+  readonly validate?: PicodashFieldValidator<Schema extends StandardSchemaV1 ? IsJson<StandardOutput<Schema>> : Value, Values>;
+};
+type PicodashFieldDefinitions = Record<string, PicodashFieldDefinition<PicodashJsonValue, StandardSchemaV1<unknown, PicodashJsonValue>, Record<string, PicodashJsonValue>>>;
+type FieldLike = {
+  readonly defaultValue: PicodashJsonValue;
+  readonly schema?: StandardSchemaV1<unknown, PicodashJsonValue>;
+  readonly parse?: (input: unknown) => PicodashParseResult<PicodashJsonValue>;
+};
+type InputFieldBase<Values extends Record<string, PicodashJsonValue>, Key extends keyof Values> = {
+  readonly defaultValue: Widen<Values[Key]>;
+  readonly parse?: (input: unknown) => PicodashParseResult<Values[Key]>;
+  readonly validate?: PicodashFieldValidator<Values[Key], Values>;
+};
+type InputField<Values extends Record<string, PicodashJsonValue>, Key extends keyof Values> = (InputFieldBase<Values, Key> & {
+  readonly schema?: undefined;
+}) | (InputFieldBase<Values, Key> & {
+  readonly schema: StandardSchemaV1<unknown, Values[Key]>;
+});
+type InputFields<Values extends Record<string, PicodashJsonValue>> = { readonly [Key in keyof Values]: InputField<Values, Key>; };
+type InferredNexusConfigBase<Values extends Record<string, PicodashJsonValue>> = {
+  readonly valueOwner: 'nexus';
+  readonly adapter?: never;
+  readonly fields: InputFields<Values>;
+  readonly initialValues?: Partial<Values>;
+  readonly validateValues?: ValuesValidator<Values>;
+};
+type InferredNexusConfig<Values extends Record<string, PicodashJsonValue>> = (InferredNexusConfigBase<Values> & {
+  readonly nexusId?: string;
+  readonly schemaVersion?: number;
+  readonly initialEnvelope?: never;
+  readonly persistence?: never;
+  readonly migrations?: never;
+  readonly export?: never;
+}) | (InferredNexusConfigBase<Values> & {
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly initialEnvelope?: PicodashEnvelopeInput<Values>;
+  readonly persistence?: NexusOwnedPersistenceConfig<Record<string, {
+    readonly defaultValue: PicodashJsonValue;
+  }>>;
+  readonly migrations?: SchemaMigrations;
+  readonly export?: PicodashExportConfig;
+});
+type InferredExternalConfigBase<Values extends Record<string, PicodashJsonValue>> = {
+  readonly valueOwner: 'external';
+  readonly fields: InputFields<Values>;
+  readonly adapter: PicodashValueAdapter<Values>;
+  readonly initialValues?: never;
+  readonly validateValues?: ValuesValidator<Values>;
+};
+type InferredExternalConfig<Values extends Record<string, PicodashJsonValue>> = (InferredExternalConfigBase<Values> & {
+  readonly nexusId?: string;
+  readonly schemaVersion?: number;
+  readonly initialEnvelope?: never;
+  readonly persistence?: never;
+  readonly migrations?: never;
+  readonly export?: never;
+}) | (InferredExternalConfigBase<Values> & {
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly initialEnvelope?: PicodashEnvelopeInput<Values>;
+  readonly persistence?: ExternalOwnedPersistenceConfig;
+  readonly migrations?: SchemaMigrations;
+  readonly export?: PicodashExportConfig;
+});
+type ExternalOwnedConfigBase<Fields extends Record<string, FieldLike>> = {
+  readonly valueOwner: 'external';
+  readonly fields: DefinitionsFor<Fields>;
+  readonly adapter: PicodashValueAdapter<ValuesOf<Fields>>;
+  readonly initialValues?: never;
+  readonly validateValues?: ValuesValidator<ValuesOf<Fields>>;
+};
+type ExternalOwnedConfig<Fields extends Record<string, FieldLike>> = (ExternalOwnedConfigBase<Fields> & {
+  readonly nexusId?: string;
+  readonly schemaVersion?: number;
+  readonly initialEnvelope?: never;
+  readonly persistence?: never;
+  readonly migrations?: never;
+  readonly export?: never;
+}) | (ExternalOwnedConfigBase<Fields> & {
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly initialEnvelope?: PicodashEnvelopeInput<ValuesOf<Fields>>;
+  readonly persistence?: ExternalOwnedPersistenceConfig;
+  readonly migrations?: SchemaMigrations;
+  readonly export?: PicodashExportConfig;
+});
+type ExactInputFields<Values extends Record<string, PicodashJsonValue>, Definitions extends InputFields<Values>> = { readonly [Key in keyof Definitions]: Exclude<keyof Definitions[Key], keyof InputFields<Values>[Key & keyof Values]> extends never ? Definitions[Key] : never; };
+type FieldValueOne<Definition> = Definition extends {
+  readonly schema: infer Schema;
+} ? Schema extends StandardSchemaV1 ? IsJson<StandardOutput<Schema>> : Definition extends {
+  readonly defaultValue: infer Value;
+} ? Widen<IsJson<Value>> : never : Definition extends {
+  readonly defaultValue: infer Value;
+} ? Widen<IsJson<Value>> : never;
+type FieldValue<Definition> = Definition extends unknown ? FieldValueOne<Definition> : never;
+type ValuesOf<Fields extends Record<string, FieldLike>> = { readonly [Key in keyof Fields]: FieldValue<Fields[Key]>; };
+declare const fieldBrand: unique symbol;
+declare const exactFieldBrand: unique symbol;
+type IsAny<Value> = 0 extends 1 & Value ? true : false;
+type ExactFieldRecursionDepth = readonly [unknown, unknown, unknown, unknown, unknown, unknown];
+type ExactFieldNextDepth<Depth extends readonly unknown[]> = Depth extends readonly [unknown, ...infer Rest] ? Rest : readonly [];
+type ExactFieldInvariant<Domain> = readonly ['domain', Domain, (domain: Domain) => Domain];
+type ExactFieldDomain<Value, Depth extends readonly unknown[] = ExactFieldRecursionDepth> = ExactFieldInvariant<ExactFieldDomainShape<Value, Depth>>;
+type ExactFieldNormalizedValue<Value, Depth extends readonly unknown[] = ExactFieldRecursionDepth> = Depth extends readonly [] ? Value : Value extends readonly unknown[] ? number extends Value['length'] ? readonly ExactFieldNormalizedValue<Value[number], ExactFieldNextDepth<Depth>>[] : { readonly [Key in keyof Value]: ExactFieldNormalizedValue<Value[Key], ExactFieldNextDepth<Depth>>; } : Value extends object ? { readonly [Key in keyof Value]: ExactFieldNormalizedValue<Value[Key], ExactFieldNextDepth<Depth>>; } : Value;
+type ExactFieldDomainShape<Value, Depth extends readonly unknown[]> = IsAny<Value> extends true ? readonly ['any'] : [Value] extends [never] ? readonly ['never'] : Depth extends readonly [] ? readonly ['depth-limit', Value] : Value extends string ? string extends Value ? readonly ['string'] : readonly ['string-literal', Value] : Value extends number ? number extends Value ? readonly ['number'] : readonly ['number-literal', Value] : [Value] extends [boolean] ? boolean extends Value ? readonly ['boolean'] : readonly ['boolean-literal', Value] : Value extends null ? readonly ['null'] : Value extends readonly unknown[] ? number extends Value['length'] ? readonly ['array', ExactFieldDomain<Value[number], ExactFieldNextDepth<Depth>>] : readonly ['tuple', { readonly [Key in keyof Value]: ExactFieldDomain<Value[Key], ExactFieldNextDepth<Depth>>; }] : Value extends object ? readonly ['object', keyof Value, { readonly [Key in keyof Value]-?: ExactFieldDomain<Value[Key], ExactFieldNextDepth<Depth>>; }] : readonly ['other', Value];
+/** A root-owned nominal field handle. The brand is intentionally not exported. */
+type PicodashField<Values extends object, Key extends keyof Values & string> = {
+  readonly key: Key;
+  /** Type-only payload keeps field value and key inference without adding runtime properties. */
+  readonly [fieldBrand]: {
+    readonly values: Values;
+    readonly key: Key;
+    readonly value: Values[Key];
+  };
+};
+/**
+ * A nominal field view whose selected value is assignable to `Value`.
+ *
+ * This is a type-only consumer constraint. Runtime field handles still contain only their key.
+ */
+type PicodashFieldOf<Value> = {
+  readonly key: string;
+  readonly [fieldBrand]: {
+    readonly value: Value;
+  };
+};
+/**
+ * A nominal field view whose selected value is exactly `Value`.
+ *
+ * The private type-only domain fingerprint makes supported JSON domains invariant without adding
+ * runtime properties or a callable operation to field handles.
+ */
+type PicodashExactFieldOf<Value> = {
+  readonly key: string;
+  readonly [fieldBrand]: {
+    readonly value: Value;
+  };
+  /** Type-only recursive fingerprint preserves the complete value domain. */
+  readonly [exactFieldBrand]: {
+    readonly fingerprint: ExactFieldDomain<Value>;
+    readonly invariant: (value: ExactFieldNormalizedValue<Value>) => ExactFieldNormalizedValue<Value>;
+  };
+};
+type PicodashFields<Fields extends Record<string, FieldLike>> = { readonly [Key in keyof Fields]: PicodashField<ValuesOf<Fields>, Key & string>; };
+type ProjectedPicodashField<Values extends object, Key extends keyof Values & string> = PicodashField<Values, Key> & PicodashExactFieldOf<Values[Key]>;
+type ProjectedPicodashFields<Fields extends Record<string, FieldLike>> = string extends keyof Fields ? PicodashFields<Fields> : { readonly [Key in keyof Fields]: ProjectedPicodashField<ValuesOf<Fields>, Key & string>; };
+type DefinitionsFor<Fields extends Record<string, FieldLike>> = { readonly [Key in keyof Fields]: Fields[Key] & {
+  readonly validate?: PicodashFieldValidator<FieldValue<Fields[Key]>, ValuesOf<NoInfer<Fields>>>;
+}; };
+type NexusOwnedConfigBase<Fields extends Record<string, FieldLike>> = {
+  readonly valueOwner: 'nexus';
+  readonly adapter?: never;
+  readonly fields: DefinitionsFor<Fields>;
+  readonly initialValues?: Partial<ValuesOf<Fields>>;
+  readonly validateValues?: ValuesValidator<ValuesOf<Fields>>;
+};
+type NexusOwnedConfig<Fields extends Record<string, FieldLike>> = (NexusOwnedConfigBase<Fields> & {
+  readonly nexusId?: string;
+  readonly schemaVersion?: number;
+  readonly initialEnvelope?: never;
+  readonly persistence?: never;
+  readonly migrations?: never;
+  readonly export?: never;
+}) | (NexusOwnedConfigBase<Fields> & {
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly initialEnvelope?: PicodashEnvelopeInput<ValuesOf<Fields>>;
+  readonly persistence?: NexusOwnedPersistenceConfig<Fields>;
+  readonly migrations?: SchemaMigrations;
+  readonly export?: PicodashExportConfig;
+});
+type DashStackMetadataRecord = {
+  readonly rootOrder?: readonly string[];
+  readonly groupOrders: ReadonlyMap<string, readonly string[]>;
+  readonly collapseOverrides: ReadonlyMap<string, boolean>;
+};
+/** One atomic DashStack collapse override update: null removes the override. */
+type DashStackCollapseOverrideUpdate = readonly [string, boolean | null];
+type DashPanelSnapPositionRecord = 'top-left' | 'top' | 'top-right' | 'right' | 'bottom-right' | 'bottom' | 'bottom-left' | 'left';
+type DashPanelDockPositionRecord = 'top-left' | 'top-right' | 'bottom-right' | 'bottom-left' | 'full-left' | 'center-left' | 'full-right' | 'center-right' | 'full-top' | 'center-top' | 'full-bottom' | 'center-bottom';
+type DashPanelPlacementRecord = {
+  readonly mode: 'floating';
+  readonly disposition: {
+    readonly kind: 'free';
+  } | {
+    readonly kind: 'snapped';
+    readonly position: DashPanelSnapPositionRecord;
+  };
+} | {
+  readonly mode: 'fixed';
+  readonly disposition: {
+    readonly kind: 'docked';
+    readonly position: DashPanelDockPositionRecord;
+  };
+} | {
+  readonly mode: 'hybrid';
+  readonly disposition: {
+    readonly kind: 'free';
+  } | {
+    readonly kind: 'snapped';
+    readonly position: 'top' | 'bottom';
+  } | {
+    readonly kind: 'docked';
+    readonly position: DashPanelDockPositionRecord;
+  };
+};
+type DashPanelManualSizeRecord = Readonly<{
+  width: number;
+  height?: number;
+}> | Readonly<{
+  width?: number;
+  height: number;
+}>;
+type DashPanelLayoutOverrides = Readonly<{
+  placement?: DashPanelPlacementRecord;
+  preferredPosition?: Readonly<{
+    x: number;
+    y: number;
+  }>;
+  manualSize?: DashPanelManualSizeRecord;
+}>;
+type DashPanelLayoutRecord = Readonly<{
+  version: 2;
+}> & DashPanelLayoutOverrides & (Readonly<{
+  placement: DashPanelPlacementRecord;
+}> | Readonly<{
+  preferredPosition: Readonly<{
+    x: number;
+    y: number;
+  }>;
+}> | Readonly<{
+  manualSize: DashPanelManualSizeRecord;
+}>);
+type DurableScopeMetadata = {
+  /** Opaque keyboard binding owned by DashPanel; independent of layout resets. */
+  readonly dashPanelHotkey?: string;
+  readonly dashGroupHotkeys?: ReadonlyMap<string, string>;
+  readonly dashStack?: DashStackMetadataRecord;
+  readonly dashPanel?: DashPanelLayoutRecord;
+};
+type DashStackPruneEffect = 'root-order-entry' | 'group-order-owner' | 'group-order-entry' | 'collapse-override';
+type DashStackPruneCandidate = Readonly<{
+  readonly nodeId: string;
+  readonly effects: readonly DashStackPruneEffect[];
+}>;
+type DashStackPruneReview = Readonly<{
+  readonly kind: 'dash-stack-prune-review';
+  readonly scopeId: string;
+  readonly candidates: readonly DashStackPruneCandidate[];
+}>;
+type DashStackPruneSelection = {
+  readonly mode: 'review';
+} | {
+  readonly mode: 'explicit';
+  readonly removeNodeIds: readonly string[];
+  readonly keepNodeIds: readonly string[];
+} | {
+  readonly mode: 'inventory';
+  readonly knownNodeIds: readonly string[];
+};
+type RootDashStackPruneOptions = DashStackPruneSelection & {
+  readonly scopeId: string;
+};
+type InvalidPruneOptionsReason = 'not-object' | 'unknown-key' | 'accessor-property' | 'invalid-mode' | 'invalid-node-ids' | 'duplicate-node-id' | 'overlapping-node-id' | 'unknown-candidate' | 'incomplete-candidate-partition' | 'missing-active-node';
+declare const dashStackPrunePlanBrand: unique symbol;
+type PicodashDashStackPrunePlan = Readonly<{
+  readonly [dashStackPrunePlanBrand]: 'PicodashDashStackPrunePlan';
+  readonly kind: 'dash-stack-prune-plan';
+  readonly mode: 'explicit' | 'inventory';
+  readonly scopeId: string;
+  readonly candidates: readonly DashStackPruneCandidate[];
+  readonly removeNodeIds: readonly string[];
+  readonly keepNodeIds: readonly string[];
+}>;
+type RootNexusSnapshot<Values extends object> = {
+  readonly values: Readonly<Values>;
+  readonly scopes: ReadonlyMap<string, DurableScopeMetadata>;
+};
+type InvalidScopeIdReason = 'not-string' | 'empty' | 'surrounding-whitespace' | 'control-character';
+type InvalidDestroyOptionsReason = 'not-object' | 'unknown-key' | 'accessor-property' | 'invalid-include-descendants' | 'invalid-discard-unpersisted';
+type DestroyRootOptions = {
+  readonly discardUnpersisted: true;
+};
+type DestroyScopeOptions = {
+  readonly includeDescendants?: boolean;
+};
+type InvalidResetOptionsReason = 'not-object' | 'unknown-key' | 'accessor-property' | 'invalid-include-descendants';
+type ResetRegisteredValuesOptions = {
+  readonly includeDescendants?: boolean;
+};
+type RootResetRegisteredValuesOptions = ResetRegisteredValuesOptions & {
+  readonly scopeId: string;
+};
+type RegisteredValueResetInspection = {
+  readonly registeredFields: readonly string[];
+  readonly changedFields: readonly string[];
+};
+type StaleDraftConflict = {
+  readonly kind: 'stale-draft';
+  readonly baseRevision: number;
+  readonly baseValue: PicodashJsonValue;
+};
+type BindingInteractionState = {
+  readonly fieldKey: string;
+  readonly draft?: PicodashJsonValue;
+  readonly touched: boolean;
+  readonly inputIssues: readonly TransactionIssue[];
+  readonly conflict?: StaleDraftConflict;
+};
+declare const repairPlanBrand: unique symbol;
+type PicodashRepairPlan = {
+  readonly [repairPlanBrand]: 'PicodashRepairPlan';
+};
+declare const staleInputOverwritePlanBrand: unique symbol;
+type PicodashStaleInputOverwritePlan = {
+  readonly [staleInputOverwritePlanBrand]: 'PicodashStaleInputOverwritePlan';
+};
+interface BindingInteractionCommands<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult> {
+  createValueGesture<Key extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, Key>, options?: ValueGestureOptions): ValueGesture<PicodashJsonValue, Result>;
+  createValueInputGesture<Key extends keyof Fields & string>(binding: BindingHandle<Fields, Key>, options?: ValueGestureOptions): ValueGesture<PicodashJsonValue, Result>;
+  createNumericGesture<Key extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, Key> & (ValuesOf<Fields>[Key] extends number ? unknown : never), options?: NumericGestureOptions): NumericGesture<Result>;
+  createNumericInputGesture<Key extends keyof Fields & string>(binding: BindingHandle<Fields, Key> & (ValuesOf<Fields>[Key] extends number ? unknown : never), options?: NumericGestureOptions): NumericGesture<Result>;
+  setInput<Key extends keyof Fields & string>(binding: BindingHandle<Fields, Key>, input: PicodashJsonValue): Result;
+  discardInput<Key extends keyof Fields & string>(binding: BindingHandle<Fields, Key>): boolean;
+  createStaleInputOverwritePlan<Key extends keyof Fields & string>(binding: BindingHandle<Fields, Key>): PicodashStaleInputOverwritePlan;
+  executeStaleInputOverwrite(plan: PicodashStaleInputOverwritePlan): Result;
+  executeRepair(plan: PicodashRepairPlan): Result;
+}
+type ItemInteractionState = {
+  readonly focused: boolean;
+  readonly hovered: boolean;
+  readonly active: boolean;
+};
+interface ItemInteractionSource {
+  set(patch: Partial<ItemInteractionState>): void;
+  release(): void;
+}
+type ScopeInteractionState = {
+  readonly bindings: ReadonlyMap<string, ReadonlyMap<string, BindingInteractionState>>;
+  readonly items: ReadonlyMap<string, ItemInteractionState>;
+};
+type ScopedNexusSnapshot<Values extends object> = {
+  readonly values: Readonly<Values>;
+  readonly scope: DurableScopeMetadata | undefined;
+  readonly interaction: ScopeInteractionState;
+};
+type PicodashDocumentExportResult<Result extends CoreTransactionResult = CoreTransactionResult> = Readonly<{
+  readonly ok: true;
+  readonly document: PicodashDocument;
+}> | Extract<Result, {
+  readonly ok: false;
+}>;
+interface DocumentImportCommands<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult> {
+  analyzeImport(document: unknown, options?: PicodashRootImportOptions<ValuesOf<Fields>>): Readonly<{
+    readonly ok: true;
+    readonly plan: PicodashImportPlan;
+  }> | Extract<Result, {
+    readonly ok: false;
+  }>;
+  executeImport(plan: PicodashImportPlan): Result;
+}
+interface DocumentExportCommands<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult> {
+  createExportPlan(options?: PicodashRootExportOptions<ValuesOf<Fields>>): PicodashExportPlan;
+  executeExport(plan: PicodashExportPlan, options?: PicodashExportExecutionOptions): PicodashDocumentExportResult<Result>;
+}
+interface ScopedDocumentImportCommands<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult> {
+  analyzeImport(document: unknown, options?: PicodashScopedImportOptions<ValuesOf<Fields>>): Readonly<{
+    readonly ok: true;
+    readonly plan: PicodashImportPlan;
+  }> | Extract<Result, {
+    readonly ok: false;
+  }>;
+  executeImport(plan: PicodashImportPlan): Result;
+}
+interface ScopedDocumentExportCommands<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult> {
+  createExportPlan(options?: PicodashScopedExportOptions<ValuesOf<Fields>>): PicodashExportPlan;
+  executeExport(plan: PicodashExportPlan, options?: PicodashExportExecutionOptions): PicodashDocumentExportResult<Result>;
+}
+type DocumentNamespace<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult, Identified extends boolean, ExportEnabled extends boolean> = Identified extends true ? Readonly<DocumentImportCommands<Fields, Result> & (ExportEnabled extends true ? DocumentExportCommands<Fields, Result> : object)> : never;
+type ScopedDocumentNamespace<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult, Identified extends boolean, ExportEnabled extends boolean> = Identified extends true ? Readonly<ScopedDocumentImportCommands<Fields, Result> & (ExportEnabled extends true ? ScopedDocumentExportCommands<Fields, Result> : object)> : never;
+interface RootMetadataCommands<Result extends CoreTransactionResult = CoreTransactionResult> {
+  setDashPanelLayout(scopeId: string, layout: DashPanelLayoutRecord): Result;
+  resetDashPanelLayout(scopeId: string): Result;
+  setDashPanelHotkey(scopeId: string, hotkey: string | null): Result;
+  setDashGroupHotkey(scopeId: string, groupId: string, hotkey: string | null): Result;
+  setDashStackRootOrder(scopeId: string, order: readonly string[]): Result;
+  removeDashStackRootOrder(scopeId: string): Result;
+  setDashStackGroupOrder(scopeId: string, groupId: string, order: readonly string[]): Result;
+  removeDashStackGroupOrder(scopeId: string, groupId: string): Result;
+  setDashStackCollapseOverride(scopeId: string, nodeId: string, collapsed: boolean): Result;
+  removeDashStackCollapseOverride(scopeId: string, nodeId: string): Result;
+  updateDashStackCollapseOverrides(scopeId: string, updates: readonly DashStackCollapseOverrideUpdate[]): Result;
+  resetDashStackMetadata(scopeId: string): Result;
+  createPrunePlan(options: RootDashStackPruneOptions & {
+    readonly mode: 'review';
+  }): DashStackPruneReview;
+  createPrunePlan(options: RootDashStackPruneOptions & {
+    readonly mode: 'explicit' | 'inventory';
+  }): PicodashDashStackPrunePlan;
+  executePrunePlan(plan: PicodashDashStackPrunePlan): Result;
+}
+interface ScopedMetadataCommands<Result extends CoreTransactionResult = CoreTransactionResult> {
+  setDashPanelLayout(layout: DashPanelLayoutRecord): Result;
+  resetDashPanelLayout(): Result;
+  setDashPanelHotkey(hotkey: string | null): Result;
+  setDashGroupHotkey(groupId: string, hotkey: string | null): Result;
+  setDashStackRootOrder(order: readonly string[]): Result;
+  removeDashStackRootOrder(): Result;
+  setDashStackGroupOrder(groupId: string, order: readonly string[]): Result;
+  removeDashStackGroupOrder(groupId: string): Result;
+  setDashStackCollapseOverride(nodeId: string, collapsed: boolean): Result;
+  removeDashStackCollapseOverride(nodeId: string): Result;
+  updateDashStackCollapseOverrides(updates: readonly DashStackCollapseOverrideUpdate[]): Result;
+  resetDashStackMetadata(): Result;
+  createPrunePlan(options: {
+    readonly mode: 'review';
+  }): DashStackPruneReview;
+  createPrunePlan(options: Extract<DashStackPruneSelection, {
+    readonly mode: 'explicit' | 'inventory';
+  }>): PicodashDashStackPrunePlan;
+  executePrunePlan(plan: PicodashDashStackPrunePlan): Result;
+}
+interface RootNexusBase<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult, Identified extends boolean = false, ExportEnabled extends boolean = false> extends RootMetadataCommands<Result>, BindingInteractionCommands<Fields, Result> {
+  readonly kind: 'root';
+  readonly fields: PicodashFields<Fields>;
+  scope(scopeId: string): ScopedNexus<Fields, Result, Identified, ExportEnabled>;
+  getState(): RootNexusSnapshot<ValuesOf<Fields>>;
+  subscribe(listener: () => void): () => void;
+  readonly diagnostics: PicodashDiagnostics;
+  readonly events: NexusInteractionEvents;
+  destroy(options?: DestroyRootOptions): void;
+  setValue<K extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, K>, value: ValuesOf<Fields>[K]): Result;
+  setValueOrThrow<K extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, K>, value: ValuesOf<Fields>[K]): Extract<Result, {
+    readonly ok: true;
+  }>;
+  resetValue<K extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, K>): Result;
+  resetValueOrThrow<K extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, K>): Extract<Result, {
+    readonly ok: true;
+  }>;
+  resetRegisteredValues(options: RootResetRegisteredValuesOptions): Result;
+  resetRegisteredValuesOrThrow(options: RootResetRegisteredValuesOptions): Extract<Result, {
+    readonly ok: true;
+  }>;
+  inspectRegisteredValueReset(options: RootResetRegisteredValuesOptions): RegisteredValueResetInspection;
+  setValues(values: Partial<ValuesOf<Fields>>): Result;
+  setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, {
+    readonly ok: true;
+  }>;
+  destroyScope(scopeId: string, options?: DestroyScopeOptions): Result;
+}
+interface ScopedNexusBase<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult, Identified extends boolean = false, ExportEnabled extends boolean = false> extends ScopedMetadataCommands<Result>, BindingInteractionCommands<Fields, Result> {
+  readonly kind: 'scoped';
+  createItemInteractionSource(itemId: string): ItemInteractionSource;
+  readonly root: RootNexus<Fields, Result, Identified, ExportEnabled>;
+  readonly scopeId: string;
+  readonly fields: PicodashFields<Fields>;
+  readonly diagnostics: PicodashDiagnostics;
+  readonly events: NexusInteractionEvents;
+  scope(scopeId: string): ScopedNexus<Fields, Result, Identified, ExportEnabled>;
+  getState(): ScopedNexusSnapshot<ValuesOf<Fields>>;
+  subscribe(listener: () => void): () => void;
+  setValue<K extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, K>, value: ValuesOf<Fields>[K]): Result;
+  setValueOrThrow<K extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, K>, value: ValuesOf<Fields>[K]): Extract<Result, {
+    readonly ok: true;
+  }>;
+  resetValue<K extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, K>): Result;
+  resetValueOrThrow<K extends keyof Fields & string>(field: PicodashField<ValuesOf<Fields>, K>): Extract<Result, {
+    readonly ok: true;
+  }>;
+  resetRegisteredValues(options?: ResetRegisteredValuesOptions): Result;
+  resetRegisteredValuesOrThrow(options?: ResetRegisteredValuesOptions): Extract<Result, {
+    readonly ok: true;
+  }>;
+  inspectRegisteredValueReset(options?: ResetRegisteredValuesOptions): RegisteredValueResetInspection;
+  setValues(values: Partial<ValuesOf<Fields>>): Result;
+  setValuesOrThrow(values: Partial<ValuesOf<Fields>>): Extract<Result, {
+    readonly ok: true;
+  }>;
+  destroyScope(options?: DestroyScopeOptions): Result;
+}
+type PersistenceCapability<Result extends CoreTransactionResult> = Result extends PersistentTransactionResult ? {
+  readonly persistence: PicodashPersistence;
+} : {};
+type MetadataRecoveryCapability<Identified extends boolean, Result extends CoreTransactionResult> = Identified extends true ? {
+  readonly metadataRecovery: PicodashMetadataRecovery<Result>;
+} : {};
+type RootNexus<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult, Identified extends boolean = false, ExportEnabled extends boolean = false> = RootNexusBase<Fields, Result, Identified, ExportEnabled> & PersistenceCapability<Result> & MetadataRecoveryCapability<Identified, Result> & (Identified extends true ? {
+  readonly documents: DocumentNamespace<Fields, Result, Identified, ExportEnabled>;
+} : {});
+type ScopedNexus<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult, Identified extends boolean = false, ExportEnabled extends boolean = false> = ScopedNexusBase<Fields, Result, Identified, ExportEnabled> & PersistenceCapability<Result> & MetadataRecoveryCapability<Identified, Result> & (Identified extends true ? {
+  readonly documents: ScopedDocumentNamespace<Fields, Result, Identified, ExportEnabled>;
+} : {});
+type CreatedRootNexus<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult, Identified extends boolean = false, ExportEnabled extends boolean = false> = Omit<RootNexus<Fields, Result, Identified, ExportEnabled>, 'fields' | 'scope'> & {
+  readonly fields: ProjectedPicodashFields<Fields>;
+  scope(scopeId: string): CreatedScopedNexus<Fields, Result, Identified, ExportEnabled>;
+};
+type CreatedScopedNexus<Fields extends Record<string, FieldLike>, Result extends CoreTransactionResult = CoreTransactionResult, Identified extends boolean = false, ExportEnabled extends boolean = false> = Omit<ScopedNexus<Fields, Result, Identified, ExportEnabled>, 'fields' | 'root' | 'scope'> & {
+  readonly root: CreatedRootNexus<Fields, Result, Identified, ExportEnabled>;
+  readonly fields: ProjectedPicodashFields<Fields>;
+  scope(scopeId: string): CreatedScopedNexus<Fields, Result, Identified, ExportEnabled>;
+};
+type ContractErrorCode = 'invalid-configuration' | 'invalid-scope-id' | 'foreign-handle' | 'async-contract' | 'invalid-callback-result' | 'reentrant-write' | 'invalid-destroy-options' | 'invalid-reset-options' | 'invalid-provider-id' | 'duplicate-provider' | 'persistence-identity-in-use' | 'invalid-persistence-conflict-options' | 'invalid-persistence-erase-options' | 'invalid-persistence-conflict-resolution' | 'invalid-persistence-plan' | 'invalid-entity-options' | 'invalid-binding-options' | 'invalid-integration-handle' | 'invalid-interaction-event' | 'invalid-interaction-publisher' | 'invalid-binding-handle' | 'invalid-binding-plan' | 'invalid-stale-input-overwrite' | 'duplicate-entity' | 'duplicate-binding' | 'scope-host-conflict' | 'invalid-relationship' | 'relationship-parent-conflict' | 'relationship-cycle' | 'lease-has-active-dependents' | 'missing-nexus-context' | 'invalid-dash-stack-node-options' | 'duplicate-dash-stack-node' | 'invalid-prune-options' | 'invalid-prune-plan' | 'invalid-quarantine-replacement' | 'invalid-document-options' | 'invalid-document-plan' | 'root-has-active-leases' | 'root-has-unpersisted-state' | 'use-after-destroy';
+declare class PicodashContractError extends Error {
+  readonly code: ContractErrorCode;
+  readonly context: Readonly<Record<string, string>>;
+  readonly issues?: readonly TransactionIssue[];
+  constructor(code: ContractErrorCode, context?: Record<string, string>, issues?: readonly TransactionIssue[]);
+}
+declare class PicodashTransactionError extends Error {
+  readonly issues: readonly TransactionIssue[];
+  constructor(issues: readonly TransactionIssue[]);
+}
+type CoreTransactionResult = {
+  readonly ok: true;
+  readonly changedFields: readonly string[];
+  readonly changedScopeIds: readonly string[];
+} | {
+  readonly ok: false;
+  readonly error: PicodashTransactionError;
+  readonly repair?: PicodashRepairPlan;
+};
+declare function createPicodashNexus<Values extends Record<string, PicodashJsonValue>, const Definitions extends InputFields<Values>>(config: InferredNexusConfig<Values> & {
+  readonly fields: Definitions & ExactInputFields<Values, Definitions>;
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly export: PicodashExportConfig;
+  readonly persistence: NexusOwnedPersistenceConfig<Definitions>;
+}): CreatedRootNexus<Definitions, PersistentTransactionResult, true, true>;
+declare function createPicodashNexus<Values extends Record<string, PicodashJsonValue>, const Definitions extends InputFields<Values>>(config: InferredNexusConfig<Values> & {
+  readonly fields: Definitions & ExactInputFields<Values, Definitions>;
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly export: PicodashExportConfig;
+  readonly persistence?: never;
+}): CreatedRootNexus<Definitions, CoreTransactionResult, true, true>;
+declare function createPicodashNexus<Values extends Record<string, PicodashJsonValue>, const Definitions extends InputFields<Values>>(config: InferredNexusConfig<Values> & {
+  readonly fields: Definitions & ExactInputFields<Values, Definitions>;
+  readonly persistence: NexusOwnedPersistenceConfig<Definitions>;
+}): CreatedRootNexus<Definitions, PersistentTransactionResult, true, false>;
+declare function createPicodashNexus<Values extends Record<string, PicodashJsonValue>, const Definitions extends InputFields<Values>>(config: InferredNexusConfig<Values> & {
+  readonly fields: Definitions & ExactInputFields<Values, Definitions>;
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly initialEnvelope?: PicodashEnvelopeInput<Values>;
+  readonly migrations?: SchemaMigrations;
+  readonly persistence?: never;
+}): CreatedRootNexus<Definitions, CoreTransactionResult, true, false>;
+declare function createPicodashNexus<Values extends Record<string, PicodashJsonValue>, const Definitions extends InputFields<Values>>(config: InferredExternalConfig<Values> & {
+  readonly fields: Definitions & ExactInputFields<Values, Definitions>;
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly export: PicodashExportConfig;
+  readonly persistence: ExternalOwnedPersistenceConfig;
+}): CreatedRootNexus<Definitions, PersistentTransactionResult, true, true>;
+declare function createPicodashNexus<Values extends Record<string, PicodashJsonValue>, const Definitions extends InputFields<Values>>(config: InferredExternalConfig<Values> & {
+  readonly fields: Definitions & ExactInputFields<Values, Definitions>;
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly export?: never;
+  readonly persistence: ExternalOwnedPersistenceConfig;
+}): CreatedRootNexus<Definitions, PersistentTransactionResult, true, false>;
+declare function createPicodashNexus<Values extends Record<string, PicodashJsonValue>, const Definitions extends InputFields<Values>>(config: InferredExternalConfig<Values> & {
+  readonly fields: Definitions & ExactInputFields<Values, Definitions>;
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly export: PicodashExportConfig;
+}): CreatedRootNexus<Definitions, CoreTransactionResult, true, true>;
+declare function createPicodashNexus<Values extends Record<string, PicodashJsonValue>, const Definitions extends InputFields<Values>>(config: InferredExternalConfig<Values> & {
+  readonly fields: Definitions & ExactInputFields<Values, Definitions>;
+  readonly nexusId: string;
+  readonly schemaVersion: number;
+  readonly export?: never;
+}): CreatedRootNexus<Definitions, CoreTransactionResult, true, false>;
+declare function createPicodashNexus<Values extends Record<string, PicodashJsonValue>, const Definitions extends InputFields<Values>>(config: (InferredNexusConfig<Values> & {
+  readonly fields: Definitions & ExactInputFields<Values, Definitions>;
+}) | (InferredExternalConfig<Values> & {
+  readonly fields: Definitions & ExactInputFields<Values, Definitions>;
+})): CreatedRootNexus<Definitions, CoreTransactionResult>;
+export { RootResetRegisteredValuesOptions as $, NumericGestureEnd as $n, normalizePicodashExportOptions as $t, PicodashDocumentExportResult as A, PicodashPersistenceConflict as An, NexusInteractionRect as Ar, PicodashFieldMappingTarget as At, PicodashJsonPrimitive as B, PicodashSchemaMigrationPayload as Bn, PicodashRootExportOptions as Bt, InvalidResetOptionsReason as C, PersistenceEraseResult as Cn, NEXUS_INTERACTION_TYPES as Cr, PicodashExportExecutionOptions as Ct, NexusOwnedConfig as D, PicodashEnvelopeHeader as Dn, NexusInteractionGeometry as Dr, PicodashExportPlan as Dt, ItemInteractionState as E, PersistentTransactionResult as En, NexusInteractionFilter as Er, PicodashExportOptions as Et, PicodashFieldOf as F, PicodashPersistenceState as Fn, PicodashImportPlanReview as Ft, PicodashTransactionError as G, SerializedDurableScopeMetadata as Gn, buildPicodashDocumentOverlay as Gt, PicodashParseResult as H, SchemaMigrations as Hn, PicodashScopeDocument as Ht, PicodashFieldValidator as I, PicodashMetadataRecovery as In, PicodashNormalizedFieldMap as It, ResetRegisteredValuesOptions as J, PicodashDiagnosticsState as Jn, documentToSchemaMigrationPayload as Jt, PicodashValidationContext as K, PicodashDiagnostic as Kn, decodePicodashDocument as Kt, PicodashFields as L, PicodashMetadataRecoveryState as Ln, PicodashNormalizedImportOptions as Lt, PicodashField as M, PicodashPersistenceDiagnostic as Mn, normalizeNexusInteractionEvent as Mr, PicodashImportFreshnessInput as Mt, PicodashFieldDefinition as N, PicodashPersistenceDriver as Nn, PicodashImportOptions as Nt, PicodashContractError as O, PicodashEnvelopeInput as On, NexusInteractionInput as Or, PicodashExportPlanReview as Ot, PicodashFieldDefinitions as P, PicodashPersistenceErasePlan as Pn, PicodashImportPlan as Pt, RootNexusSnapshot as Q, NumericGestureCancelReason as Qn, normalizePicodashExportExecutionOptions as Qt, PicodashIssueCode as R, PicodashQuarantinedScopeMetadata as Rn, PicodashNormalizedScopeMap as Rt, InvalidPruneOptionsReason as S, PersistenceDriverUnavailableReason as Sn, publishNexusInteraction as Sr, PicodashExportConfig as St, ItemInteractionSource as T, PersistenceWriteStatus as Tn, NexusInteractionEvents as Tr, PicodashExportFreshnessInput as Tt, PicodashRepairPlan as U, SerializedDashPanelLayoutRecord as Un, PicodashScopedExportOptions as Ut, PicodashJsonValue as V, SchemaMigrationFailureReason as Vn, PicodashRootImportOptions as Vt, PicodashStaleInputOverwritePlan as W, SerializedDashStackMetadataRecord as Wn, PicodashScopedImportOptions as Wt, RootMetadataCommands as X, SubscriberExceptionIdentity as Xn, migratePicodashDocument as Xt, RootDashStackPruneOptions as Y, SubscriberExceptionDiagnostic as Yn, encodePicodashDocument as Yt, RootNexus as Z, NumericGesture as Zn, normalizePicodashDocument as Zt, DocumentExportCommands as _, ExternalOwnedPersistenceConfig as _n, acquireBindingLease as _r, PicodashDocumentOptionOperation as _t, DashPanelLayoutRecord as a, AdapterHealthDiagnostic as an, AcquireDashStackNodeOptions as ar, ScopedNexusSnapshot as at, ExternalOwnedConfig as b, NexusOwnedPersistenceConfig as bn, acquireProviderLease as br, PicodashDocumentOverlay as bt, DashPanelSnapPositionRecord as c, AdapterUnhealthyIssue as cn, EntityLease as cr, ValuesOf as ct, DashStackPruneCandidate as d, AdapterWriteFailureReason as dn, InvalidDashStackNodeOptionsReason as dr, PicodashDocument as dt, normalizePicodashExportPolicy as en, NumericGestureOptions as er, ScopeInteractionState as et, DashStackPruneEffect as f, OperationSource as fn, InvalidEntityOptionsReason as fr, PicodashDocumentError as ft, DestroyScopeOptions as g, PicodashValueAdapter as gn, RelationshipLease as gr, PicodashDocumentFieldValue as gt, DestroyRootOptions as h, PicodashInitializationErrorReasonByCode as hn, ProviderLease as hr, PicodashDocumentFieldHandle as ht, DashPanelDockPositionRecord as i, stripRedactedPicodashDocumentFields as in, AcquireBindingOptions as ir, ScopedNexus as it, PicodashExactFieldOf as j, PicodashPersistenceConflictResolutionPlan as jn, NexusInteractionSource as jr, PicodashImportFieldMappingTarget as jt, PicodashDashStackPrunePlan as k, PicodashPersistence as kn, NexusInteractionPublisher as kr, PicodashExportPolicy as kt, DashStackCollapseOverrideUpdate as l, AdapterWriteContext as ln, EntityLeaseOptions as lr, ValuesValidator as lt, DashStackPruneSelection as m, PicodashInitializationErrorCode as mn, NexusEntityKind as mr, PicodashDocumentFieldEntry as mt, BindingInteractionState as n, normalizePicodashImportOptions as nn, ValueGestureEnd as nr, ScopedDocumentImportCommands as nt, DashPanelManualSizeRecord as o, AdapterHealthReason as on, BindingHandle as or, StaleDraftConflict as ot, DashStackPruneReview as p, PicodashInitializationError as pn, NexusBindingMode as pr, PicodashDocumentFailureReason as pt, RegisteredValueResetInspection as q, PicodashDiagnostics as qn, documentFromSchemaMigrationPayload as qt, CoreTransactionResult as r, normalizePicodashScopeMap as rn, ValueGestureOptions as rr, ScopedMetadataCommands as rt, DashPanelPlacementRecord as s, AdapterInitializationFailureReason as sn, DashStackNodeLease as sr, TransactionIssue as st, BindingInteractionCommands as t, normalizePicodashFieldMap as tn, ValueGesture as tr, ScopedDocumentExportCommands as tt, DashStackMetadataRecord as u, AdapterWriteFailedIssue as un, InvalidBindingHandleReason as ur, createPicodashNexus as ut, DocumentImportCommands as v, HydrationSourceConflictReason as vn, acquireDashStackNodeLease as vr, PicodashDocumentOptionReason as vt, InvalidScopeIdReason as w, PersistenceFailureReason as wn, NexusInteractionEvent as wr, PicodashExportFieldPolicy as wt, InvalidDestroyOptionsReason as x, PersistenceConflictResolutionOptions as xn, acquireRelationshipLease as xr, PicodashDocumentOverlayInput as xt, DurableScopeMetadata as y, InvalidPersistenceEnvelopeReason as yn, acquireEntityLease as yr, PicodashDocumentOptionsError as yt, PicodashIssueInput as z, PicodashSchemaMigration as zn, PicodashRootDocument as zt };
+//# sourceMappingURL=index-HD_xyHBR.d.mts.map

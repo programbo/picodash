@@ -1,0 +1,87 @@
+import { C as DashPanelDockPosition, D as DashPanelSnapPosition, E as DashPanelPresentation, S as DashPanelDefaultLayout, T as DashPanelPlacementOptions, _ as DashPanelResizeTarget, a as DashPanelDockPreview, b as DashPanelBoundary, c as DashPanelRestoreSizeOptions, d as DashPanelContentMetrics, f as DashPanelDimension, g as DashPanelResizeOptions, h as DashPanelResize, i as DashPanelCommandResult, l as DashPanelSizeRequest, m as DashPanelManualSize, n as useDashPanel, o as DashPanelDragPreview, p as DashPanelHeight, s as DashPanelLayoutCommandResult, t as DashPanelController, u as DashPanelContentConstraints, v as DashPanelSizingConstraint, w as DashPanelPlacement, x as DashPanelBoundaryInset, y as DashPanelSizingState } from "./panel-controller-BCfpvTn5.mjs";
+import { CSSProperties, ComponentPropsWithoutRef, ReactElement, ReactNode } from "react";
+import { ActionMenu, ActionMenuConfirmation, ActionMenuConfirmationGuard, ActionMenuItem, ActionMenuItemProps, ActionMenuItemVariant, ActionMenuProps, ActionMenuSeparator, ActionMenuSeparatorProps, ActionSubmenu, ActionSubmenuProps, ButtonProps, DashHeader, DashHeaderProps, DashHeaderSlots, PicodashDensity, PicodashThemeOption } from "@picodash/ui";
+import { PicodashFieldDefinitions, RootNexus } from "@picodash/nexus";
+interface DashPanelRemoveRequest {
+  readonly scopeId: string;
+}
+export declare function DashPanelPlacementSubmenu(): import("react").JSX.Element | null;
+export declare function DashPanelResetLayoutItem(): import("react").JSX.Element | null;
+export declare function DashPanelRestoreSizeItem(): import("react").JSX.Element | null;
+export declare function DashPanelRequestRemoveItem(): import("react").JSX.Element | null;
+export declare function DashPanelActionItems(): import("react").JSX.Element;
+export type DashPanelStyle = Omit<CSSProperties, 'blockSize' | 'inlineSize' | 'maxBlockSize' | 'maxInlineSize' | 'minBlockSize' | 'minHeight' | 'minInlineSize' | 'minWidth' | 'width' | 'height' | 'maxWidth' | 'maxHeight'>;
+export interface DashPanelProviderProps<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions, CustomTheme extends string = never> {
+  children: ReactNode;
+  nexus: RootNexus<Fields>;
+  providerId?: string;
+  boundary?: DashPanelBoundary | null;
+  boundaryInset?: DashPanelBoundaryInset;
+  dockPositions?: readonly DashPanelDockPosition[];
+  portalContainer?: HTMLElement | null;
+  layerBase?: number;
+  theme?: PicodashThemeOption<CustomTheme>;
+  density?: PicodashDensity;
+}
+export interface DashPanelProps<CustomTheme extends string = never> extends Omit<ComponentPropsWithoutRef<'aside'>, 'aria-hidden' | 'children' | 'hidden' | 'id' | 'inert' | 'style' | 'title'> {
+  id: string;
+  title: ReactNode;
+  children?: ReactNode;
+  style?: DashPanelStyle;
+  width?: CSSProperties['width'];
+  height?: DashPanelHeight;
+  minWidth?: DashPanelDimension;
+  maxWidth?: DashPanelDimension;
+  minHeight?: DashPanelDimension;
+  maxHeight?: DashPanelDimension;
+  resize?: DashPanelResize;
+  contentConstraints?: DashPanelContentConstraints;
+  contentMetrics?: DashPanelContentMetrics;
+  moveHandle?: 'header' | 'grip' | 'both';
+  boundary?: DashPanelBoundary | null;
+  boundaryInset?: DashPanelBoundaryInset;
+  dockPositions?: readonly DashPanelDockPosition[];
+  defaultLayout?: DashPanelDefaultLayout;
+  placementOptions?: DashPanelPlacementOptions;
+  presentation?: DashPanelPresentation;
+  defaultCollapsed?: boolean;
+  collapsible?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  defaultVisible?: boolean;
+  showCloseButton?: boolean;
+  /** Offer a persistent shortcut recorder beside the title of a docked or closeable panel. */
+  recordableHotkey?: boolean;
+  showSizeConstraintIndicator?: boolean;
+  onVisibilityChange?: (visible: boolean) => void;
+  onRequestRemove?: (details: DashPanelRemoveRequest) => void;
+  actionMenu?: false | readonly ReactElement[];
+  theme?: PicodashThemeOption<CustomTheme>;
+  density?: PicodashDensity;
+}
+export interface DashPanelTriggerProps extends Omit<ButtonProps, 'onPress'> {
+  panelId: string;
+  action?: 'show' | 'toggle';
+}
+export type DashPanelLauncherItem = {
+  itemId?: string;
+  panelId: string;
+  label: string;
+  accessibleName?: string;
+  disabled?: boolean;
+} | {
+  itemId?: string;
+  panelId: string;
+  label: Exclude<ReactNode, string>;
+  accessibleName: string;
+  disabled?: boolean;
+};
+export interface DashPanelLauncherProps extends Omit<ComponentPropsWithoutRef<'div'>, 'children'> {
+  label: string;
+  items: readonly DashPanelLauncherItem[];
+}
+export declare function DashPanelProvider<Fields extends PicodashFieldDefinitions = PicodashFieldDefinitions, CustomTheme extends string = never>({ children, nexus, providerId, boundary, boundaryInset, dockPositions, portalContainer, layerBase, theme, density }: DashPanelProviderProps<Fields, CustomTheme>): import("react").JSX.Element;
+export declare const DashPanel: import("react").ForwardRefExoticComponent<DashPanelProps<string> & import("react").RefAttributes<HTMLElement>>;
+export declare function DashPanelTrigger({ panelId, action, isDisabled, ...props }: DashPanelTriggerProps): import("react").JSX.Element;
+export declare function DashPanelLauncher({ label, items, ...props }: DashPanelLauncherProps): import("react").JSX.Element;
+export { ActionMenu, type ActionMenuConfirmation, type ActionMenuConfirmationGuard, ActionMenuItem, type ActionMenuItemProps, type ActionMenuItemVariant, type ActionMenuProps, ActionMenuSeparator, type ActionMenuSeparatorProps, ActionSubmenu, type ActionSubmenuProps, DashHeader, type DashHeaderProps, type DashHeaderSlots, type DashPanelBoundary, type DashPanelBoundaryInset, type DashPanelCommandResult, type DashPanelContentConstraints, type DashPanelContentMetrics, type DashPanelController, type DashPanelDefaultLayout, type DashPanelDimension, type DashPanelDockPosition, type DashPanelDockPreview, type DashPanelDragPreview, type DashPanelHeight, type DashPanelLayoutCommandResult, type DashPanelManualSize, type DashPanelPlacement, type DashPanelPlacementOptions, type DashPanelPresentation, type DashPanelRemoveRequest, type DashPanelResize, type DashPanelResizeOptions, type DashPanelResizeTarget, type DashPanelRestoreSizeOptions, type DashPanelSizeRequest, type DashPanelSizingConstraint, type DashPanelSizingState, type DashPanelSnapPosition, useDashPanel };
+//# sourceMappingURL=index.d.mts.map

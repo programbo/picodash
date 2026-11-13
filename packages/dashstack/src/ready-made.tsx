@@ -12,7 +12,7 @@ import {
 import type { SingleFieldDashletRenderContext } from './bindings.js'
 import type { PicodashJsonValue } from '@picodash/nexus'
 import { Dashlet, type DashletProps } from './index.js'
-import { isNumberCompatible } from './number-compatibility.js'
+import { isNumberCompatible, isStepPrecisionScalable } from './number-compatibility.js'
 import { PresentationWarning, presentationWarningId } from './presentation-warning.js'
 import { asDashletBindingField } from './ready-made-field-types.js'
 import type {
@@ -272,7 +272,9 @@ function SliderDashletInner<F extends ScalarField<number>>(
           !isDetent &&
           (canonical < (allowedRange?.min ?? min) || canonical > (allowedRange?.max ?? max))
         const stepMismatch =
-          !isDetent && !rangeMismatch && !isNumberCompatible(canonical, min, max, step)
+          !isDetent &&
+          !rangeMismatch &&
+          (!isStepPrecisionScalable(step) || !isNumberCompatible(canonical, min, max, step))
         const mismatch = rangeMismatch || stepMismatch
         return (
           <>
@@ -317,7 +319,9 @@ function SliderDashletInner<F extends ScalarField<number>>(
               message={
                 rangeMismatch
                   ? `The current value (${String(canonical)}) is outside the configured range.`
-                  : `The current value (${String(canonical)}) is not on the configured slider step.`
+                  : !isStepPrecisionScalable(step)
+                    ? `The current value (${String(canonical)}) cannot be represented safely with the configured slider step (${String(step)}).`
+                    : `The current value (${String(canonical)}) is not on the configured slider step.`
               }
             />
           </>

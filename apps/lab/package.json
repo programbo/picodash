@@ -13,7 +13,8 @@
     "test:e2e": "playwright test",
     "test:e2e:cap": "playwright test --list",
     "artifacts:phone": "playwright test tests/phone-artifacts.spec.ts --workers=1",
-    "test:dev-host": "node --test scripts/dev-host.test.mjs"
+    "test:dev-host": "node --test scripts/dev-host.test.mjs",
+    "test": "vp test src"
   },
   "dependencies": {
     "@internationalized/date": "catalog:",
@@ -26,7 +27,7 @@
     "@tanstack/charts": "catalog:",
     "clsx": "catalog:",
     "motion": "catalog:",
-    "next": "16.3.8",
+    "next": "16.4.6",
     "react": "catalog:",
     "react-aria-components": "catalog:",
     "react-dom": "catalog:",

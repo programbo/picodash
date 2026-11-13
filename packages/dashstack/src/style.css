@@ -856,6 +856,7 @@
  * here without reviving the old monolithic component or its private classes.
  */
 .picodash-dashstack {
+  flex: 1 1 auto;
   overflow: auto;
   display: flex;
   flex-direction: column;
@@ -1652,7 +1653,10 @@
     );
     /* Compensate for React Aria's centered transform to retain the original top edge. */
     margin-block-start: calc(
-      (var(--picodash-space-1) + var(--picodash-space-0-5) - var(--picodash-control-height-xs) / 2) /
+      (
+          var(--picodash-space-1) + var(--picodash-space-0-5) - var(--picodash-control-height-xs) /
+            2
+        ) /
         2
     );
   }
@@ -2460,8 +2464,10 @@
   transform: translateX(
     calc(
       -1 *
-        (var(--_picodash-achieved-label-offset) + var(--_picodash-target-thumb-half) *
-          (2 * var(--_picodash-achieved-ratio) - 1))
+        (
+          var(--_picodash-achieved-label-offset) + var(--_picodash-target-thumb-half) *
+            (2 * var(--_picodash-achieved-ratio) - 1)
+        )
     )
   );
 }
@@ -2712,7 +2718,10 @@
     --_picodash-target-thumb-rise: calc(var(--picodash-control-height-xs) / 2);
     /* The thumb scales from its bottom edge; lift the attached field by the same amount. */
     --_picodash-target-label-lift: calc(
-      (var(--picodash-control-height-xs) / 2 + var(--picodash-space-1) + var(--picodash-space-0-5)) *
+      (
+          var(--picodash-control-height-xs) / 2 + var(--picodash-space-1) +
+            var(--picodash-space-0-5)
+        ) *
         0.25
     );
   }
@@ -3041,7 +3050,10 @@
     --_picodash-target-edge: calc(max(44px, var(--picodash-control-height-md)) / 2);
     --_picodash-target-thumb-rise: calc(var(--picodash-control-height-xs) / 2);
     --_picodash-target-label-lift: calc(
-      (var(--picodash-control-height-xs) / 2 + var(--picodash-space-1) + var(--picodash-space-0-5)) *
+      (
+          var(--picodash-control-height-xs) / 2 + var(--picodash-space-1) +
+            var(--picodash-space-0-5)
+        ) *
         0.25
     );
   }

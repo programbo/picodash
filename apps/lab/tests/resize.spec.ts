@@ -26,6 +26,7 @@ test.afterEach(async ({ page }) => {
 
 async function openResizeLab(page: Page) {
   await page.goto('/lab')
+  await page.getByRole('button', { name: 'Contract tools', exact: true }).click()
   await expect(page.locator('[data-contract-lab-status]')).toHaveAttribute('data-ready', 'true')
   await page.getByRole('button', { name: 'Reset lab', exact: true }).click()
   await page.getByRole('button', { name: 'Resize lab', exact: true }).click()
