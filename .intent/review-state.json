@@ -1382,16 +1382,18 @@
       ]
     },
     "source:apps/lab/test-results/.last-run.json": {
-      "fingerprint": "55fe725268e77e3cdb1aba90c92f7161b8d6b41fb1b944c9ba40c8a3d2c9aa68",
+      "fingerprint": "6269b491ea636cb0599c8f2e301e8bc660abe3b5574370e20e2feff981d568f6",
       "snapshot": {
-        "apps/lab/test-results/.last-run.json": "70b30a50855b7c5b859d3f3ea99e587b865e336ae9b51983dd861a74484a8afb"
+        "apps/lab/test-results/.last-run.json": null
       },
-      "head": "b837f8d5717b6ee0894ceabe74ca2e39df992eda",
+      "head": "bf13b5a68b97ba667ab49ba1ae53b74d8eb93e4c",
       "outcome": "no-change",
-      "reason": "Scoped repair preserves public APIs and original guide tasks: malformed HTTP URL rejection, mobile numeric centering, existing prototype status, optional Bridge guidance and portable Markdown links. Owning source/docs/tests cover these changes; no independent new skill is warranted.",
+      "reason": "Fresh-checkout CI correction builds the facade before public example typechecks and moves Motion engine/keyframe assertions into deterministic owning tests. Browser tests retain phase, transfer, editor identity, focus, drag and responsive outcomes. Removed an accidentally tracked generated last-run result; it is ignored and carries no guidance. The two task guides and the three planning records remain accurate without a new consumer API.",
       "evidence": [
         "apps/lab/test-results/.last-run.json",
-        "12 focused relay-security tests pass;7 delivery tests pass including copied nested links and missing-target rejection; actual33-document portable closure passes link scan; two skill validations pass."
+        "Deleted facade dist; its release check passed build, lint/types, 35 tests, artifact assertions and pack dry-run.",
+        "Focused retained-group browser journey passed; docs/internal/consolidation-audit.md records Linux failures and replacement evidence.",
+        "Generated last-run JSON is excluded by .gitignore; no task guide or public source was removed."
       ]
     },
     "source:scripts/dogfood/guides.mjs": {
@@ -2230,18 +2232,18 @@
       ]
     },
     "source:docs/internal/consolidation-audit.md": {
-      "fingerprint": "637b7a906972e3cfabfe034e5781b230b4d55206a3fe68a2609c275000da4454",
+      "fingerprint": "b20974509f6b411940747c846ae84df17c77b47ce93b7cfa40bbd8f81627312a",
       "snapshot": {
-        "docs/internal/consolidation-audit.md": "ec98cd4ff7efead40f40f2a32f58461b28b63842df7886dbbab444b7cdad7b2a"
+        "docs/internal/consolidation-audit.md": "a1319bc7a59c3d35cf0878effb65c6b83db1f80cab1ce61d688458c926cedb8e"
       },
-      "head": "e72ae6fff7ea458f09c10f9ee5383d53c013f4b2",
+      "head": "bf13b5a68b97ba667ab49ba1ae53b74d8eb93e4c",
       "outcome": "no-change",
-      "reason": "This source documents or verifies the consolidated implementation and archival reset. Current references and API inventories replace stale target/status claims; the two existing task guides keep valid imports and link to their current owning references. No additional independently useful task guide is required by this change.",
+      "reason": "Fresh-checkout CI correction builds the facade before public example typechecks and moves Motion engine/keyframe assertions into deterministic owning tests. Browser tests retain phase, transfer, editor identity, focus, drag and responsive outcomes. Removed an accidentally tracked generated last-run result; it is ignored and carries no guidance. The two task guides and the three planning records remain accurate without a new consumer API.",
       "evidence": [
         "docs/internal/consolidation-audit.md",
-        "docs/internal/consolidation-audit.md records 493 Nexus, 88 UI, 263 Panel, 330 Stack, 33 facade, 62 Bridge and 30 Lab model/driver tests; final complete Lab 23/23 and website 3/3 passed.",
-        "Isolated trial 0.1.0-dogfood.56 passed install, repeat/frozen install, typechecking, component interactions and Vite/Next builds; no new independent task implementation was generated in this run.",
-        "bun run docs:check verifies six package inventories, 32 generated files, 244 byte-exact archived files and current Markdown links. Source/guidance diffs and all three planning records reviewed."
+        "Deleted facade dist; its release check passed build, lint/types, 35 tests, artifact assertions and pack dry-run.",
+        "Focused retained-group browser journey passed; docs/internal/consolidation-audit.md records Linux failures and replacement evidence.",
+        "Generated last-run JSON is excluded by .gitignore; no task guide or public source was removed."
       ]
     },
     "source:docs/internal/d1-nexus-dashpanel-decision.md": {
@@ -2830,18 +2832,18 @@
       ]
     },
     "source:docs/reference/api/source-fingerprints.json": {
-      "fingerprint": "c8ba0fdd41b554d55dfe47ca191c7bb3fb640b301939aae47235cdb9c8e3b636",
+      "fingerprint": "133611dd17d1f103b3b5b3c0aac4e5745a987895aed28d8fb7ac29986137f2de",
       "snapshot": {
-        "docs/reference/api/source-fingerprints.json": "5af322a44f5d977c9c55e339decdf8bfff8fa3a72b6968366b8a3ed6195d6ad1"
+        "docs/reference/api/source-fingerprints.json": "75f7c308164f9248f1da82a34682b6d76447daf88d42fd4460f93b8eaee7d4f5"
       },
-      "head": "e72ae6fff7ea458f09c10f9ee5383d53c013f4b2",
+      "head": "bf13b5a68b97ba667ab49ba1ae53b74d8eb93e4c",
       "outcome": "no-change",
-      "reason": "This source documents or verifies the consolidated implementation and archival reset. Current references and API inventories replace stale target/status claims; the two existing task guides keep valid imports and link to their current owning references. No additional independently useful task guide is required by this change.",
+      "reason": "Fresh-checkout CI correction builds the facade before public example typechecks and moves Motion engine/keyframe assertions into deterministic owning tests. Browser tests retain phase, transfer, editor identity, focus, drag and responsive outcomes. Removed an accidentally tracked generated last-run result; it is ignored and carries no guidance. The two task guides and the three planning records remain accurate without a new consumer API.",
       "evidence": [
         "docs/reference/api/source-fingerprints.json",
-        "docs/internal/consolidation-audit.md records 493 Nexus, 88 UI, 263 Panel, 330 Stack, 33 facade, 62 Bridge and 30 Lab model/driver tests; final complete Lab 23/23 and website 3/3 passed.",
-        "Isolated trial 0.1.0-dogfood.56 passed install, repeat/frozen install, typechecking, component interactions and Vite/Next builds; no new independent task implementation was generated in this run.",
-        "bun run docs:check verifies six package inventories, 32 generated files, 244 byte-exact archived files and current Markdown links. Source/guidance diffs and all three planning records reviewed."
+        "Deleted facade dist; its release check passed build, lint/types, 35 tests, artifact assertions and pack dry-run.",
+        "Focused retained-group browser journey passed; docs/internal/consolidation-audit.md records Linux failures and replacement evidence.",
+        "Generated last-run JSON is excluded by .gitignore; no task guide or public source was removed."
       ]
     },
     "source:docs/reference/api/ui.md": {
@@ -4450,18 +4452,18 @@
       ]
     },
     "source:apps/lab/tests/reordering.spec.ts": {
-      "fingerprint": "7e03b63cb9104ef76f97922461850a172bd71a20b15d029a19534da0dbb7d4b1",
+      "fingerprint": "aecbe502a63e9c72a06c2992c67b951e50519431f6c7edb7413b5fdca6c02d88",
       "snapshot": {
-        "apps/lab/tests/reordering.spec.ts": "d9bd875a5ffdc6ea8c661b61311d45554645ac016540fab8571e53bf25881ad9"
+        "apps/lab/tests/reordering.spec.ts": "6dd12de363d07311837ef216e4d2fbc9974b9dcdbc6dee7619a9a61e11bec2cd"
       },
-      "head": "bc5b01169e253ac6dff34d575a4dbe9255bb9c35",
+      "head": "bf13b5a68b97ba667ab49ba1ae53b74d8eb93e4c",
       "outcome": "no-change",
-      "reason": "This previously unrecorded main-to-feature application change supplies Lab/gallery/planetary consumers and their browser fixtures. Those app-specific tasks remain outside the two selected task guides; the guides keep valid public setup and identities. The complete current browser and model suites passed.",
+      "reason": "Fresh-checkout CI correction builds the facade before public example typechecks and moves Motion engine/keyframe assertions into deterministic owning tests. Browser tests retain phase, transfer, editor identity, focus, drag and responsive outcomes. Removed an accidentally tracked generated last-run result; it is ignored and carries no guidance. The two task guides and the three planning records remain accurate without a new consumer API.",
       "evidence": [
         "apps/lab/tests/reordering.spec.ts",
-        "Actual promotion baseline: 5f4d71617d13541d04be2b23ab5b154957a32c42; consolidated implementation: bc5b01169e253ac6dff34d575a4dbe9255bb9c35.",
-        "docs/internal/consolidation-audit.md; six package release checks, 30 Lab model tests, complete Lab 23/23 and website 3/3 passed.",
-        "Clean-source 0.1.0-dogfood.57 built from bc5b0116 passed isolated/repeat/frozen install, types, interactions and Vite/Next builds. Existing task fixtures were executed; no new independent task authoring is claimed."
+        "Deleted facade dist; its release check passed build, lint/types, 35 tests, artifact assertions and pack dry-run.",
+        "Focused retained-group browser journey passed; docs/internal/consolidation-audit.md records Linux failures and replacement evidence.",
+        "Generated last-run JSON is excluded by .gitignore; no task guide or public source was removed."
       ]
     },
     "source:apps/web/next.config.ts": {
@@ -6832,6 +6834,21 @@
         "Actual promotion baseline: 5f4d71617d13541d04be2b23ab5b154957a32c42; consolidated implementation: bc5b01169e253ac6dff34d575a4dbe9255bb9c35.",
         "docs/internal/consolidation-audit.md; six package release checks, 30 Lab model tests, complete Lab 23/23 and website 3/3 passed.",
         "Clean-source 0.1.0-dogfood.57 built from bc5b0116 passed isolated/repeat/frozen install, types, interactions and Vite/Next builds. Existing task fixtures were executed; no new independent task authoring is claimed."
+      ]
+    },
+    "source:packages/picodash/tests/group-transfer-motion.test.ts": {
+      "fingerprint": "da3671044caf02186dc227507bd596050e69db7921f15046079146f83c738d86",
+      "snapshot": {
+        "packages/picodash/tests/group-transfer-motion.test.ts": "aed69478df07541d91d6859cca0637c29b169acb3c2dbf19bc3ec55c72d696d6"
+      },
+      "head": "bf13b5a68b97ba667ab49ba1ae53b74d8eb93e4c",
+      "outcome": "no-change",
+      "reason": "Fresh-checkout CI correction builds the facade before public example typechecks and moves Motion engine/keyframe assertions into deterministic owning tests. Browser tests retain phase, transfer, editor identity, focus, drag and responsive outcomes. Removed an accidentally tracked generated last-run result; it is ignored and carries no guidance. The two task guides and the three planning records remain accurate without a new consumer API.",
+      "evidence": [
+        "packages/picodash/tests/group-transfer-motion.test.ts",
+        "Deleted facade dist; its release check passed build, lint/types, 35 tests, artifact assertions and pack dry-run.",
+        "Focused retained-group browser journey passed; docs/internal/consolidation-audit.md records Linux failures and replacement evidence.",
+        "Generated last-run JSON is excluded by .gitignore; no task guide or public source was removed."
       ]
     }
   }

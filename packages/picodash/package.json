@@ -34,7 +34,7 @@
     "check": "vp check",
     "test": "vp test --passWithNoTests",
     "test:package": "node tests/package-artifacts.mjs",
-    "release:check": "vp check && vp test && vp run build && bun run test:package && bun pm pack --dry-run"
+    "release:check": "vp run build && vp check && vp test && bun run test:package && bun pm pack --dry-run"
   },
   "dependencies": {
     "@picodash/dashpanel": "workspace:*",

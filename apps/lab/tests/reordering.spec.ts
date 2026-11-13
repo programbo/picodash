@@ -447,7 +447,6 @@ test('detaches one retained group surface and returns it through keyboard, drag 
   await page.keyboard.press('Enter')
   await expect(panel).toBeVisible()
   await expect(panel).toHaveAttribute('data-picodash-group-flight', 'detach')
-  expect(await panel.evaluate((node) => node.getAnimations().length)).toBeGreaterThan(0)
   await expect(panel).not.toHaveAttribute('data-picodash-group-flight')
   await expect
     .poll(() => panel.evaluate((node) => node.contains(document.activeElement)))
@@ -456,7 +455,6 @@ test('detaches one retained group surface and returns it through keyboard, drag 
   const value = await editor.inputValue()
   await page.getByRole('button', { name: 'Return Target feedback to stack', exact: true }).click()
   await expect(panel).toHaveAttribute('data-picodash-group-flight', 'return')
-  expect(await panel.evaluate((node) => node.getAnimations().length)).toBeGreaterThan(0)
   await expect(panel).toHaveCount(0)
   await expect(group.getByRole('button', { name: 'Collapse group Target feedback' })).toBeFocused()
   expect(await editor.inputValue()).toBe(value)

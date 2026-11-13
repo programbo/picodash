@@ -59,7 +59,7 @@ No generic Nexus extension extraction is claimed by this consolidation.
 | UI component/style tests                               | 88 tests passed                                                                                                        |
 | DashPanel geometry/component tests                     | 263 tests passed                                                                                                       |
 | DashStack component/control tests                      | 330 tests passed, including tiny-step fallback, signed-zero Status, parsing and edit-authorization regression coverage |
-| Picodash integration/consumer fixtures                 | 33 tests passed, including retained detachable groups and contextual shortcuts                                         |
+| Picodash integration/consumer fixtures                 | 35 tests passed, including retained detachable groups and contextual shortcuts                                         |
 | Bridge protocol/browser-connector tests                | 62 tests passed, including combined event/observation session                                                          |
 | Lab collection cap                                     | 23 tests collected, below the unchanged ceiling of 40                                                                  |
 | Resize browser journeys after Lab-entry reconciliation | 3 passed                                                                                                               |
@@ -87,3 +87,14 @@ Zod to ^4.6.7, and the Undici override to 8.12.4. The subsequent high-threshold 
 [Vite+ bundled tooling](https://github.com/advisories/GHSA-587h-7wmj-h5pm), [Zod](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5).
 Global `vp env doctor` passed; its output identifies the available Node 26.13.1 runtime.
 Frozen evaluation seeds remain fixture snapshots rather than implied current dependency recommendations.
+
+## Fresh-checkout CI follow-up
+
+The first pushed run exposed a facade release-order defect masked by existing local build output: public consumer fixtures imported
+`@picodash/picodash` before its own declarations existed. The facade release command now builds before typechecking; deleting its
+`dist` directory and running its release command passed all checks and 35 tests.
+
+The Linux browser run also rejected an assumption that every Motion flight appears immediately in native `getAnimations()`.
+Flight direction, keyframes, cancellation fencing, cleanup and reduced-motion behavior now have two deterministic owning tests.
+The browser journey retains phase, real transfer, retained editor, focus, pointer and responsive outcomes without depending on Motion's native/JS engine.
+No skip, retry-only lane or quarantined test was introduced.
