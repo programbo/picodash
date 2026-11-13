@@ -38,6 +38,7 @@ Picodash integration follows after all three products are stable.
 - [Nexus architecture decision](docs/adr/0002-provider-level-nexus-and-scoped-views.md)
 - [Shared UI architecture decision](docs/adr/0003-shared-ui-foundation.md)
 - [Nexus target API](docs/reference/nexus.md)
+- [Nexus API inventory from source](docs/internal/nexus-api-inventory.md) (audited implementation snapshot)
 - [Shared UI target reference](docs/reference/ui.md)
 - [DashPanel target reference](docs/reference/dashpanel.md)
 - [DashPanel resizing and Resize Lab plan](docs/internal/dashpanel-resizing-plan.md) (Accepted; locally verified)
