@@ -24,10 +24,13 @@
     "@picodash/picodash": "workspace:*",
     "@picodash/ui": "workspace:*",
     "@tanstack/charts": "catalog:",
+    "clsx": "catalog:",
+    "motion": "catalog:",
     "next": "16.3.8",
     "react": "catalog:",
     "react-aria-components": "catalog:",
     "react-dom": "catalog:",
+    "tailwind-merge": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

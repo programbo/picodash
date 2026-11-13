@@ -34,14 +34,14 @@ describe('dev bridge relay', () => {
     })
     const relay = await startPicodashDevBridgeRelay({ allowedBrowserOrigins: ['http://localhost'] })
     const browser = relay.issueBrowserCredential('http://localhost')
-    const socket = new WebSocket(browser.webSocketUrl, 'picodash.dev-bridge.v3', {
+    const socket = new WebSocket(browser.webSocketUrl, 'picodash.dev-bridge.v4', {
       headers: { Origin: browser.origin },
     })
     await new Promise<void>((resolve) => socket.once('open', resolve))
     socket.send(
       JSON.stringify({
         type: 'register',
-        protocolVersion: 3,
+        protocolVersion: 4,
         token: browser.token,
         registration: {
           registrationId: 'test',

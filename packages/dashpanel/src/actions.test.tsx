@@ -187,6 +187,7 @@ describe('DashPanel action composition', () => {
   it('keeps Fixed dock actions when the rendered placement is an occupied fallback', async () => {
     const nexus = makeNexus()
     nexus.scope('inspector').setDashPanelLayout({
+      version: 2,
       placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-left' } },
       preferredPosition: { x: 0, y: 0 },
     })

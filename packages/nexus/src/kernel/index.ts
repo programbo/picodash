@@ -5,6 +5,7 @@ import {
   type ValueGesture,
   type ValueGestureOptions,
 } from '../numeric-gesture.js'
+import { NexusInteractionHub, type NexusInteractionEvents } from '../interactions.js'
 import type { StandardSchemaV1 } from '@standard-schema/spec'
 import { clonePicodashValue, picodashJsonEqual } from '../json.js'
 import {
@@ -603,10 +604,22 @@ export type DashPanelPlacementRecord =
         | { readonly kind: 'docked'; readonly position: DashPanelDockPositionRecord }
     }
 
-export type DashPanelLayoutRecord = {
-  readonly placement: DashPanelPlacementRecord
-  readonly preferredPosition: { readonly x: number; readonly y: number }
-}
+export type DashPanelManualSizeRecord =
+  | Readonly<{ width: number; height?: number }>
+  | Readonly<{ width?: number; height: number }>
+
+type DashPanelLayoutOverrides = Readonly<{
+  placement?: DashPanelPlacementRecord
+  preferredPosition?: Readonly<{ x: number; y: number }>
+  manualSize?: DashPanelManualSizeRecord
+}>
+export type DashPanelLayoutRecord = Readonly<{ version: 2 }> &
+  DashPanelLayoutOverrides &
+  (
+    | Readonly<{ placement: DashPanelPlacementRecord }>
+    | Readonly<{ preferredPosition: Readonly<{ x: number; y: number }> }>
+    | Readonly<{ manualSize: DashPanelManualSizeRecord }>
+  )
 
 export type DurableScopeMetadata = {
   /** Opaque keyboard binding owned by DashPanel; independent of layout resets. */
@@ -931,6 +944,7 @@ interface RootNexusBase<
   getState(): RootNexusSnapshot<ValuesOf<Fields>>
   subscribe(listener: () => void): () => void
   readonly diagnostics: PicodashDiagnostics
+  readonly events: NexusInteractionEvents
   destroy(options?: DestroyRootOptions): void
   setValue<K extends keyof Fields & string>(
     field: PicodashField<ValuesOf<Fields>, K>,
@@ -969,6 +983,7 @@ interface ScopedNexusBase<
   readonly scopeId: string
   readonly fields: PicodashFields<Fields>
   readonly diagnostics: PicodashDiagnostics
+  readonly events: NexusInteractionEvents
   scope(scopeId: string): ScopedNexus<Fields, Result, Identified, ExportEnabled>
   getState(): ScopedNexusSnapshot<ValuesOf<Fields>>
   subscribe(listener: () => void): () => void
@@ -1068,6 +1083,8 @@ type ContractErrorCode =
   | 'invalid-entity-options'
   | 'invalid-binding-options'
   | 'invalid-integration-handle'
+  | 'invalid-interaction-event'
+  | 'invalid-interaction-publisher'
   | 'invalid-binding-handle'
   | 'invalid-binding-plan'
   | 'invalid-stale-input-overwrite'
@@ -2216,6 +2233,7 @@ export function createPicodashNexus<
     PicodashQuarantinedScopeMetadata
   >([])
   let writing = false
+  let pendingInteractionHub: NexusInteractionHub | undefined
   let externalAdapterRuntime: ExternalAdapterRuntime<ValuesOf<Fields>> | undefined
   let adapterEchoValues: Readonly<Record<string, PicodashJsonValue>> | undefined
   if (config.valueOwner === 'external') {
@@ -2245,6 +2263,7 @@ export function createPicodashNexus<
             return run()
           } finally {
             writing = false
+            pendingInteractionHub?.flush()
           }
         },
       })
@@ -2311,6 +2330,16 @@ export function createPicodashNexus<
               message: 'Persisted fields are not present in the current Nexus schema.',
               identity: { kind: 'schema' },
               details: { unknownFieldCount: count },
+            })
+            diagnosticsRuntime.publish()
+          },
+          onObsoletePanel: (scopeId) => {
+            diagnosticsRuntime.recordCondition({
+              fingerprint: `panel-layout-obsolete:${scopeId}`,
+              code: 'panel_layout_obsolete',
+              severity: 'warning',
+              message: 'Obsolete Panel layout was discarded; current defaults apply.',
+              identity: { kind: 'scope-metadata', scopeId },
             })
             diagnosticsRuntime.publish()
           },
@@ -2388,6 +2417,16 @@ export function createPicodashNexus<
           })
           diagnosticsRuntime.publish()
         },
+        onObsoletePanel: (scopeId) => {
+          diagnosticsRuntime.recordCondition({
+            fingerprint: `panel-layout-obsolete:${scopeId}`,
+            code: 'panel_layout_obsolete',
+            severity: 'warning',
+            message: 'Obsolete Panel layout was discarded; current defaults apply.',
+            identity: { kind: 'scope-metadata', scopeId },
+          })
+          diagnosticsRuntime.publish()
+        },
         onQuarantine: (scopeId) => {
           diagnosticsRuntime.recordCondition({
             fingerprint: `metadata-quarantined:${scopeId}`,
@@ -2457,6 +2496,7 @@ export function createPicodashNexus<
             return run()
           } finally {
             writing = false
+            pendingInteractionHub?.flush()
           }
         },
       })
@@ -3194,6 +3234,15 @@ export function createPicodashNexus<
     expectedReceiverScopeId?: string,
   ): CoreTransactionResult =>
     withWriteLock(() => executeDocumentImportPlanLocked(plan, expectedReceiverScopeId))
+  const interactionHub = new NexusInteractionHub(
+    () => assertRuntimeActive(runtimeController),
+    (callbacks) =>
+      diagnosticsRuntime.dispatch([
+        { surface: 'capability', capability: 'events', listeners: callbacks },
+      ]),
+    () => writing,
+  )
+  pendingInteractionHub = interactionHub
   const storeImplementation: RootNexus<Fields, NexusResult, boolean, boolean> = {
     kind: 'root',
     createValueGesture: (field, options) => valueGesture(field, options),
@@ -3202,6 +3251,7 @@ export function createPicodashNexus<
     createNumericInputGesture: (binding, options) => numericInputGesture(binding, options),
     fields,
     diagnostics: diagnosticsRuntime.facade,
+    events: interactionHub.facade(),
     scope: (scopeId) => getScoped(scopeId),
     getState: () => currentSnapshot,
     subscribe(listener) {
@@ -3420,6 +3470,23 @@ export function createPicodashNexus<
     executePrunePlan: (plan) => executePrunePlanInternal(plan as object),
   }
   runtimeController = new RuntimeController(storeImplementation as object)
+  runtimeController.interactionHub = interactionHub
+  runtimeController.reportInteractionFailure = (scopeId, reason) => {
+    const fingerprint = `interaction-delivery:${scopeId}`
+    if (reason)
+      diagnosticsRuntime.recordCondition({
+        fingerprint,
+        code: 'interaction_delivery_limited',
+        severity: 'warning',
+        message: 'A product interaction could not be published within the event capacity limit.',
+        identity: { kind: 'scope-interaction', scopeId },
+        details: { reason },
+      })
+    else diagnosticsRuntime.recoverCondition(fingerprint)
+    diagnosticsRuntime.publish()
+  }
+
+  runtimeController.registerResource({ phase: 'kernel', teardown: () => interactionHub.teardown() })
   const guardedDiagnosticsCapability = makeLifecycleFacade(
     diagnosticsRuntime.facade,
     runtimeController,
@@ -3747,6 +3814,7 @@ export function createPicodashNexus<
       return operation()
     } finally {
       writing = false
+      pendingInteractionHub?.flush()
     }
   }
 
@@ -4140,7 +4208,10 @@ export function createPicodashNexus<
       dispatchNexusSubscribers(affectedChannels, options?.includeRoot)
       return result
     } finally {
-      if (ownsWriteLock) writing = false
+      if (ownsWriteLock) {
+        writing = false
+        pendingInteractionHub?.flush()
+      }
     }
   }
 
@@ -5125,6 +5196,7 @@ export function createPicodashNexus<
       scopeId,
       fields,
       diagnostics: guardedDiagnosticsCapability,
+      events: interactionHub.facade(scopeId),
       scope: (id) => getScoped(id),
       getState: () => channel.snapshot,
       subscribe(listener) {
@@ -5626,6 +5698,7 @@ export function createPicodashNexus<
       return result
     } finally {
       writing = false
+      pendingInteractionHub?.flush()
     }
   }
 

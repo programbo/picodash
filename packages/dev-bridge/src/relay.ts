@@ -2,6 +2,8 @@ import { createHash, randomBytes } from 'node:crypto'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { URL } from 'node:url'
 import { WebSocketServer, WebSocket, type RawData } from 'ws'
+import { NEXUS_INTERACTION_TYPES } from '@picodash/nexus'
+import { EventObservationJournal } from './event-observation.js'
 import type {
   PicodashDevBridgeRelay,
   PicodashDevBridgeRelayOptions,
@@ -14,8 +16,10 @@ import type {
   PicodashDevBridgeWaitResult,
   PicodashDevBridgeError,
   PicodashDevBridgeErrorCode,
+  PicodashDevBridgeReadEventsCommand,
+  PicodashDevBridgeEventsResult,
 } from './types.js'
-import { PICODASH_DEV_BRIDGE_SUBPROTOCOL } from './types.js'
+import { PICODASH_DEV_BRIDGE_PROTOCOL_VERSION, PICODASH_DEV_BRIDGE_SUBPROTOCOL } from './types.js'
 
 type Pending =
   | {
@@ -30,6 +34,13 @@ type Pending =
       timer: ReturnType<typeof setTimeout>
       condition: PicodashDevBridgeWaitCommand['condition']
     }
+  | {
+      kind: 'events'
+      resolve: (v: PicodashDevBridgeEventsResult | PicodashDevBridgeError) => void
+      timer: ReturnType<typeof setTimeout>
+      command: PicodashDevBridgeReadEventsCommand
+      cleanup: () => void
+    }
 type Session = {
   key: string
   id: string
@@ -40,6 +51,7 @@ type Session = {
   snapshot?: PicodashDevBridgeSnapshot
   synchronized: boolean
   pending: Map<string, Pending>
+  events: EventObservationJournal
 }
 const token = () => randomBytes(32).toString('base64url')
 const MAX_HTTP_BODY_BYTES = 1024 * 1024
@@ -190,7 +202,10 @@ export async function startPicodashDevBridgeRelay(
       writableFields: [...registration.permissions.writableFields],
       disclosedScopeIds: [...registration.disclosure.scopeIds],
       diagnosticsDisclosed: registration.disclosure.diagnostics,
-      capabilities: ['inspect', 'set_values', 'wait'],
+      disclosedEventScopeIds: [...(registration.disclosure.eventScopeIds ?? [])],
+      disclosedEventTypes: [...(registration.disclosure.eventTypes ?? [])],
+      eventSequence: 0,
+      capabilities: ['inspect', 'set_values', 'wait', 'read_events'],
     }
     session = {
       key,
@@ -201,6 +216,7 @@ export async function startPicodashDevBridgeRelay(
       socket,
       synchronized: false,
       pending: new Map(),
+      events: new EventObservationJournal(),
     }
     active.set(key, session)
     tombstones.delete(key)
@@ -215,6 +231,7 @@ export async function startPicodashDevBridgeRelay(
     session.snapshot = undefined
     for (const [id, p] of session.pending) {
       clearTimeout(p.timer)
+      if (p.kind === 'events') p.cleanup()
       p.resolve(
         err(
           reason.message === 'generation_mismatch' ? 'generation_mismatch' : 'session_disconnected',
@@ -230,6 +247,32 @@ export async function startPicodashDevBridgeRelay(
     const session = [...active.values()].find((x) => x.socket === source)
     if (!session || !frame || typeof frame !== 'object') return
     const value = frame as Record<string, unknown>
+    if (value.type === 'interaction_event' || value.type === 'event_gap') {
+      const keys =
+        value.type === 'interaction_event'
+          ? ['type', 'session', 'eventSequence', 'event']
+          : ['type', 'session', 'eventSequence']
+      if (
+        !exactKeys(value, keys) ||
+        !validSessionRef(value.session, session) ||
+        !session.synchronized ||
+        (value.session as Record<string, unknown>).sequence !== session.sequence ||
+        !session.descriptor.disclosedEventScopeIds.length ||
+        !session.descriptor.disclosedEventTypes.length ||
+        typeof value.eventSequence !== 'number' ||
+        !(value.type === 'interaction_event'
+          ? session.events.append(value.eventSequence, value.event, session.descriptor)
+          : session.events.gap(value.eventSequence))
+      ) {
+        // Event frames have no retry or mutation authority. Invalid disclosure or ordering ends
+        // this generation rather than retaining a misleading partial history.
+        disconnect(session, new Error('session_disconnected'))
+        return
+      }
+      session.descriptor = { ...session.descriptor, eventSequence: session.events.sequence }
+      evaluateEventWaits(session)
+      return
+    }
     if (value.type === 'snapshot' || value.type === 'resync') {
       const ref = value.session as Record<string, unknown>
       const sequence = Number(value.sequence)
@@ -417,6 +460,92 @@ export async function startPicodashDevBridgeRelay(
     session: { sessionId: session.id, generation: session.generation, sequence: session.sequence },
     snapshot: session.snapshot!,
   })
+  function readEvents(
+    session: Session,
+    command: PicodashDevBridgeReadEventsCommand,
+    signal: AbortSignal,
+  ): Promise<PicodashDevBridgeEventsResult | PicodashDevBridgeError> {
+    if (active.get(session.key) !== session)
+      return Promise.resolve(
+        err(
+          active.has(session.key) ? 'generation_mismatch' : 'session_disconnected',
+          'Event session is no longer current.',
+          command.requestId,
+        ),
+      )
+    if (
+      !session.descriptor.disclosedEventScopeIds.length ||
+      !session.descriptor.disclosedEventTypes.length
+    )
+      return Promise.resolve(
+        err('capability_denied', 'Events are not disclosed.', command.requestId),
+      )
+    if (!session.synchronized)
+      return Promise.resolve(
+        err('session_unsynchronized', 'Session is unsynchronized.', command.requestId),
+      )
+    if (session.pending.has(command.requestId))
+      return Promise.resolve(
+        err('request_in_flight', 'Request already in flight.', command.requestId),
+      )
+    const cursor = command.cursor
+    if (cursor && (cursor.sessionId !== session.id || cursor.generation !== session.generation))
+      return Promise.resolve(
+        err('generation_mismatch', 'Event cursor is stale.', command.requestId),
+      )
+    if (cursor && cursor.sequence > session.events.sequence)
+      return Promise.resolve(
+        err('invalid_request', 'Event cursor is ahead of the session.', command.requestId),
+      )
+    const immediate = session.events.read(session.descriptor, command)
+    if (
+      !cursor ||
+      immediate.outcome === 'history_gap' ||
+      immediate.events.length ||
+      !command.timeoutMs
+    )
+      return Promise.resolve(immediate)
+    if ([...session.pending.values()].filter((pending) => pending.kind === 'events').length >= 32)
+      return Promise.resolve(
+        err('request_in_flight', 'Event wait capacity reached.', command.requestId),
+      )
+    return new Promise((resolve) => {
+      const finish = (result: PicodashDevBridgeEventsResult | PicodashDevBridgeError) => {
+        const pending = session.pending.get(command.requestId)
+        if (!pending || pending.kind !== 'events') return
+        clearTimeout(pending.timer)
+        pending.cleanup()
+        session.pending.delete(command.requestId)
+        resolve(result)
+      }
+      const abort = () =>
+        finish(err('session_disconnected', 'Event wait aborted.', command.requestId))
+      const timer = setTimeout(
+        () => finish(session.events.read(session.descriptor, command, 'timed_out')),
+        command.timeoutMs,
+      )
+      session.pending.set(command.requestId, {
+        kind: 'events',
+        resolve,
+        timer,
+        command,
+        cleanup: () => signal.removeEventListener('abort', abort),
+      })
+      signal.addEventListener('abort', abort, { once: true })
+      if (signal.aborted) abort()
+    })
+  }
+  function evaluateEventWaits(session: Session) {
+    for (const [id, pending] of session.pending) {
+      if (pending.kind !== 'events') continue
+      const result = session.events.read(session.descriptor, pending.command)
+      if (!result.events.length && result.outcome !== 'history_gap') continue
+      clearTimeout(pending.timer)
+      pending.cleanup()
+      session.pending.delete(id)
+      pending.resolve(result)
+    }
+  }
   async function http(req: IncomingMessage, res: ServerResponse) {
     if (req.headers.authorization !== `Bearer ${agentToken}`) {
       write(res, 401, err('unauthorized', 'Unauthorized.'))
@@ -428,7 +557,7 @@ export async function startPicodashDevBridgeRelay(
       return
     }
     const m = url.pathname.match(
-      /^\/v1\/sessions\/([^/]+)\/generations\/(\d+)\/(snapshot|commands|wait)$/,
+      /^\/v1\/sessions\/([^/]+)\/generations\/(\d+)\/(snapshot|commands|wait|events)$/,
     )
     if (!m) {
       write(res, 400, err('invalid_request', 'Invalid request.'))
@@ -471,6 +600,11 @@ export async function startPicodashDevBridgeRelay(
       res.once('close', () => abort.abort())
       const outcome = await wait(session, body, abort.signal)
       write(res, outcome.type === 'bridge_error' ? status(outcome.error.code) : 200, outcome)
+    } else if (m[3] === 'events' && req.method === 'POST' && isReadEvents(body)) {
+      const abort = new AbortController()
+      res.once('close', () => abort.abort())
+      const outcome = await readEvents(session, body, abort.signal)
+      write(res, outcome.type === 'bridge_error' ? status(outcome.error.code) : 200, outcome)
     } else write(res, 400, err('invalid_request', 'Invalid request.'))
   }
   return {
@@ -494,7 +628,7 @@ function validateRegistration(
   if (
     !value ||
     value.type !== 'register' ||
-    value.protocolVersion !== 3 ||
+    value.protocolVersion !== PICODASH_DEV_BRIDGE_PROTOCOL_VERSION ||
     !value.registration ||
     typeof value.registration !== 'object'
   )
@@ -519,7 +653,7 @@ function validateRegistration(
     return
   const strings = (x: unknown, max: number, nonempty = true): x is string =>
     typeof x === 'string' && x.length <= max && (!nonempty || x.length > 0)
-  const arr = (x: unknown) =>
+  const arr = (x: unknown): x is string[] =>
     Array.isArray(x) && x.every((v) => strings(v, 256)) && new Set(x).size === x.length
   if (
     !strings(r.registrationId, 256) ||
@@ -534,8 +668,8 @@ function validateRegistration(
   if (
     !exactKeys(
       d,
-      ['valueFields', 'scopeIds', 'diagnostics', 'observationNames'],
-      ['observationNames'],
+      ['valueFields', 'scopeIds', 'diagnostics', 'observationNames', 'eventScopeIds', 'eventTypes'],
+      ['observationNames', 'eventScopeIds', 'eventTypes'],
     ) ||
     !exactKeys(p, ['writableFields'])
   )
@@ -547,6 +681,12 @@ function validateRegistration(
       (!Array.isArray(d.observationNames) ||
         !arr(d.observationNames) ||
         d.observationNames.length > 64)) ||
+    (d.eventScopeIds !== undefined && !validEventScopeIds(d.eventScopeIds)) ||
+    (d.eventTypes !== undefined &&
+      (!arr(d.eventTypes) ||
+        !d.eventTypes.every((type: string) =>
+          NEXUS_INTERACTION_TYPES.some((expected) => expected === type),
+        ))) ||
     typeof d.diagnostics !== 'boolean' ||
     !arr(p.writableFields)
   )
@@ -570,6 +710,17 @@ function exactKeys(
   return (
     keys.every((key) => allowed.has(key)) &&
     expected.every((key) => optional.includes(key) || Object.hasOwn(value, key))
+  )
+}
+
+function validEventScopeIds(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length <= 256 &&
+    new Set(value).size === value.length &&
+    value.every(
+      (id) => typeof id === 'string' && id.length > 0 && id === id.trim() && !hasControl(id),
+    )
   )
 }
 function isDisclosureSnapshot(value: unknown, d: PicodashDevBridgeSessionDescriptor) {
@@ -831,6 +982,46 @@ function isWait(v: unknown): v is PicodashDevBridgeWaitCommand {
     v.timeoutMs >= 1 &&
     v.timeoutMs <= 30000 &&
     validWaitCondition(v.condition)
+  )
+}
+
+function isReadEvents(v: unknown): v is PicodashDevBridgeReadEventsCommand {
+  if (
+    !isRecord(v) ||
+    !exactKeys(
+      v,
+      ['type', 'requestId', 'cursor', 'limit', 'timeoutMs'],
+      ['cursor', 'limit', 'timeoutMs'],
+    ) ||
+    v.type !== 'read_events' ||
+    !validRequestId(v.requestId)
+  )
+    return false
+  if (
+    v.cursor !== undefined &&
+    (!isRecord(v.cursor) ||
+      !exactKeys(v.cursor, ['sessionId', 'generation', 'sequence']) ||
+      typeof v.cursor.sessionId !== 'string' ||
+      !validRequestId(v.cursor.sessionId) ||
+      typeof v.cursor.generation !== 'number' ||
+      !Number.isSafeInteger(v.cursor.generation) ||
+      v.cursor.generation < 1 ||
+      typeof v.cursor.sequence !== 'number' ||
+      !Number.isSafeInteger(v.cursor.sequence) ||
+      v.cursor.sequence < 0)
+  )
+    return false
+  return (
+    (v.limit === undefined ||
+      (typeof v.limit === 'number' &&
+        Number.isSafeInteger(v.limit) &&
+        v.limit >= 1 &&
+        v.limit <= 256)) &&
+    (v.timeoutMs === undefined ||
+      (typeof v.timeoutMs === 'number' &&
+        Number.isSafeInteger(v.timeoutMs) &&
+        v.timeoutMs >= 0 &&
+        v.timeoutMs <= 30000))
   )
 }
 

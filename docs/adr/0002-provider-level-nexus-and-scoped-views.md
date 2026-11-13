@@ -5,6 +5,10 @@
 Accepted target contract. The current implementation remains a prototype until its behavior is
 reconciled with this decision and linked from the conformance matrix.
 
+[ADR 0007](0007-panel-manual-sizing-and-interaction-events.md) revises Panel metadata to sparse
+versioned manual-sizing overrides and adds ephemeral interaction-event observation. Other ownership
+and scope rules in this decision remain unchanged.
+
 ## Context
 
 DashPanel, DashStack, and Picodash must be useful as separate products without creating incompatible
@@ -78,8 +82,9 @@ Scoped views additionally expose binding-level drafts, touched state, input issu
 conflicts for their own scope. These interaction records are ephemeral.
 
 Providers own transient host facts. Components own pointer frames, drag previews, hover visuals, and
-other high-frequency rendering state. Only settled placement and ordering operations commit durable
-Nexus metadata.
+other high-frequency rendering state. Only settled placement, manual-size, and ordering operations
+commit durable Nexus metadata. Interaction-event observation follows ADR 0007 without moving these
+rendering facts into snapshots or persistence.
 
 ## Value authority and persistence
 

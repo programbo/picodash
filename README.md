@@ -120,6 +120,10 @@ vp run -r build
 Run the narrowest package check that owns a documentation or implementation change. Use
 `bun run ready` only for the full release gate or when explicitly requested.
 
+Build installable archives for other local React apps with `bun run package:local`. The output
+includes an install command and survives removal of this worktree. Run `bun run package:local:verify`
+to check the latest bundle in an isolated consumer. See [local package consumption](docs/development/local-packages.md).
+
 Local development commands:
 
 ```bash

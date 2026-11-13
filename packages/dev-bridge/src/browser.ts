@@ -28,6 +28,7 @@ export async function connectPicodashDevBridge(
   let descriptor: PicodashDevBridgeBrowserConnection['session'] | undefined
   let snapshot: PicodashDevBridgeSnapshot | undefined
   let sequence = 0
+  let eventSequence = 0
   let closed = false
   let settled = false
   const unsubs: Array<() => void> = []
@@ -90,6 +91,8 @@ export async function connectPicodashDevBridge(
             scopeIds: disclosure.scopeIds,
             diagnostics: disclosure.diagnostics,
             observationNames: disclosure.observationNames,
+            eventScopeIds: disclosure.eventScopeIds,
+            eventTypes: disclosure.eventTypes,
           },
           permissions: { writableFields: writable },
         },
@@ -156,6 +159,7 @@ export async function connectPicodashDevBridge(
       clearTimeout(timer)
       rejectRegistration(new Error('connection closed'))
     }
+    void close()
   })
   const abort = () => {
     if (!settled) {
@@ -171,6 +175,35 @@ export async function connectPicodashDevBridge(
     throw error
   })
   if (closed) throw new DOMException('Connection aborted.', 'AbortError')
+  if (disclosure.eventScopeIds.length && disclosure.eventTypes.length)
+    unsubs.push(
+      options.nexus.events.subscribe(
+        (event) => {
+          if (closed || socket.readyState !== WebSocket.OPEN) return
+          eventSequence += 1
+          const sessionRef = {
+            sessionId: session.sessionId,
+            generation: session.generation,
+            sequence,
+          }
+          // A stalled transport must disconnect explicitly rather than accumulating history.
+          if (socket.bufferedAmount > 1024 * 1024) {
+            socket.send(JSON.stringify({ type: 'event_gap', session: sessionRef, eventSequence }))
+            socket.close(1013, 'event transport overflow')
+            return
+          }
+          socket.send(
+            JSON.stringify({
+              type: 'interaction_event',
+              session: sessionRef,
+              eventSequence,
+              event,
+            }),
+          )
+        },
+        { scopeIds: disclosure.eventScopeIds, types: disclosure.eventTypes },
+      ),
+    )
   async function execute(command: PicodashDevBridgeCommand) {
     const beforeSequence = sequence
     let outcome: import('./types.js').PicodashDevBridgeNexusOutcome<
@@ -279,6 +312,10 @@ export type {
   PicodashDevBridgeCommand,
   PicodashDevBridgeCommandResult,
   PicodashDevBridgeWaitResult,
+  PicodashDevBridgeEventCursor,
+  PicodashDevBridgeReadEventsCommand,
+  PicodashDevBridgeEventEntry,
+  PicodashDevBridgeEventsResult,
   PicodashDevBridgeErrorCode,
   PicodashDevBridgeError,
   PicodashDevBridgeBrowserCredential,

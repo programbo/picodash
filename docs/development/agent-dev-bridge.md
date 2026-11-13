@@ -256,9 +256,16 @@ node packages/dev-bridge/dist/cli.mjs sessions
 ```
 
 The JSON output includes `sessionId`, `generation`, `sequence`, disclosure/write allowlists, and
-the capabilities `inspect`, `set_values`, and `wait`. Select a current session and keep both its
+the capabilities `inspect`, `set_values`, `wait`, and `read_events`. Event disclosure is listed
+separately as `disclosedEventScopeIds`, `disclosedEventTypes`, and `eventSequence`. Select a current
+session and keep both its
 `sessionId` and `generation` together. A browser reload keeps the session ID but increments its
 generation; rediscover before retrying and do not mutate with a stale reference.
+
+Discovery confirms registration, not snapshot readiness. `inspect` may return
+`session_unsynchronized` until the first disclosed snapshot or a resynchronization completes.
+Consumers requiring state wait for a successful `inspect`, rather than treating registration
+existence as readiness; other error codes retain their normal failure meaning.
 
 ### Inspect disclosed state
 
@@ -315,9 +322,9 @@ for the matching revision and ready state; Bridge does not add that application 
 - `2`: usage, credential configuration, or stdin JSON/schema error.
 - `3`: transport, protocol, or local internal failure.
 - `4`: bridge error such as unauthorized, unavailable session, stale generation, unsynchronized
-  browser, or denied capability.
+  browser, denied capability, or an event history gap.
 - `5`: Nexus set-values contract error or rejected transaction.
-- `6`: wait timed out.
+- `6`: value/sequence wait or event read timed out.
 - `130`: wait interrupted with Ctrl-C.
 
 JSON responses are written to stdout; local CLI errors are redacted and written to stderr.
@@ -342,6 +349,10 @@ Stop the Lab with Ctrl-C so the host can close the broker/relay and remove owned
 the Lab is already stopped, a new start performs stale-lock recovery as described above.
 
 ## Scope and roadmap
+
+Protocol-v3 event observation passes package/protocol/CLI/artifact checks and real Panel/List
+browser-consumer proof within the complete 18-test Lab gate. See the event rows in the conformance
+matrix rather than treating the earlier snapshot journey below as event verification.
 
 Implemented baseline: Nexus relay, browser connector, typed HTTP client, CLI, and Contract Lab
 dogfood (discover, inspect, set, wait, and reload-generation rejection). The same journey now proves

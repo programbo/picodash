@@ -128,7 +128,10 @@ export function DetachableGroup(props: DashGroupHostProps) {
     motion.current?.inline(null)
     latest.current.props.reorder.cancel()
     if (!point && lastLayout.current) {
-      setInitialLayout(lastLayout.current)
+      setInitialLayout({
+        placement: lastLayout.current.placement ?? { mode, disposition: { kind: 'free' } },
+        preferredPosition: lastLayout.current.preferredPosition ?? { x: 0, y: 0 },
+      })
       layoutNexus.setDashPanelLayout(lastLayout.current)
     } else {
       layoutNexus.resetDashPanelLayout()

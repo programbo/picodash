@@ -103,7 +103,7 @@ Provider boundary resets ancestry.
 > Evidence: `packages/dashstack/tests/dashstack.test.tsx` covers heading/label validation and neutral/list/listitem/group/status semantics; full root API behavior remains Planned.
 
 The package-native component and type names are `DashStack` and `DashStackProps`. The prototype
-aliases `Dashlist`, `DashlistProps`, and `PicodashList` are migration evidence rather than additional
+aliases `Dashlist`, `DashlistProps`, and `PicodashStack` are migration evidence rather than additional
 stable names. Picodash reexports the exact foundational component and type.
 
 The target prop shape is:
@@ -1607,6 +1607,21 @@ once on completion; cancellation never persists a temporary order or compensatin
 A membership, visibility, pin, effective reorder policy, or external order change makes an active
 session stale and cancels it. Reduced-motion preference removes transition animation without
 changing candidate, commit, cancellation, focus, or announcement behavior.
+
+#### Nexus interaction observation
+
+> Contract: Accepted through [ADR 0007](../adr/0007-panel-manual-sizing-and-interaction-events.md)
+> Implementation: Verified for the scoped reorder event adapter
+
+Standalone and Panel-hosted Lists publish reorder start, coalesced update, end, and cancellation
+through the same public [Nexus event channel](nexus.md#interaction-events). The source is the List's
+existing live entity generation; no Panel dependency or duplicate entity is introduced. Report
+operation `reorder`, the handle/node target, input source, stable interaction ID, applied geometry
+when real measurements are available, and accepted/unchanged/rejected completion or cancellation
+reason. Reorder rectangles use physical CSS pixels relative to the containing List root; pointer
+positions use viewport client coordinates. Flush the final update before the terminal event. Preview and event publication create no
+metadata write; only the existing accepted order commit persists. Event coverage does not imply
+recording arbitrary child-control DOM interactions or exposing responsive layout state through Nexus.
 
 #### Accessible feedback
 

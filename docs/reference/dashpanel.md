@@ -1,20 +1,21 @@
 # DashPanel target reference
 
-DashPanel is a standalone React panel shell for movable, dockable, dismissible application UI. This
+DashPanel is a standalone React panel shell for movable, resizable, dockable, dismissible application UI. This
 page records the accepted `@picodash/dashpanel` launch contract. The prototype is evidence, not the
 source of truth.
 
 ## Status
 
-> Contract: Accepted, with revised HTML portal-container type
+> Contract: Revised for HTML portal-container type, manual sizing, and interaction observation
 > Implementation: Partial
 > Evidence: The first standalone shell subset is covered by
 > `packages/dashpanel/tests/dashpanel.test.tsx`, `dashpanel.types.test.ts`, and
 > `package-artifacts.mjs`, `runtime/panel-runtime.test.ts`, and `portal.test.tsx`.
 > Notes: This cut implements Provider/Panel composition, rendered ordinary-Panel placement,
 > Nexus-backed durable layout, pointer and keyboard movement, portal ownership, actions, confirmed
-> removal, and the integration contribution entry. Drawer/sheet presentation, catalog coverage, and
-> exhaustive stabilization remain planned.
+> removal, manual sizing and restoration, interaction events, and the integration contribution entry.
+> Resizing source and isolated checks exist; current browser evidence is separately recorded.
+> Drawer/sheet presentation, catalog coverage, and exhaustive stabilization remain planned.
 
 ## Package purpose
 
@@ -47,16 +48,16 @@ function Tools() {
 }
 ```
 
-| API                 | Contract | Implementation | Purpose                                                          |
-| ------------------- | -------- | -------------- | ---------------------------------------------------------------- |
-| `DashPanelProvider` | Accepted | Partial        | Hosts Panels over one explicit root Nexus.                       |
-| `DashPanel`         | Accepted | Partial        | Renders one Panel with arbitrary React content.                  |
-| `DashPanelTrigger`  | Accepted | Implemented    | Application-placed show/focus control for one Panel.             |
-| `DashPanelLauncher` | Accepted | Implemented    | Provider-level discovery/reopen control for its Panels.          |
-| `useDashPanel`      | Accepted | Implemented    | Controls visibility, collapse, activation, placement, and reset. |
-| `id`                | Accepted | Implemented    | Resolves immutable Nexus scope identity; not a DOM `id`.         |
-| `title`             | Accepted | Implemented    | Required accessible Panel name and visible heading.              |
-| `children`          | Accepted | Implemented    | Arbitrary React content.                                         |
+| API                 | Contract | Implementation | Purpose                                                            |
+| ------------------- | -------- | -------------- | ------------------------------------------------------------------ |
+| `DashPanelProvider` | Accepted | Partial        | Hosts Panels over one explicit root Nexus.                         |
+| `DashPanel`         | Accepted | Partial        | Renders one Panel with arbitrary React content.                    |
+| `DashPanelTrigger`  | Accepted | Implemented    | Application-placed show/focus control for one Panel.               |
+| `DashPanelLauncher` | Accepted | Implemented    | Provider-level discovery/reopen control for its Panels.            |
+| `useDashPanel`      | Accepted | Implemented    | Controls visibility, collapse, placement, sizing, and restoration. |
+| `id`                | Accepted | Implemented    | Resolves immutable Nexus scope identity; not a DOM `id`.           |
+| `title`             | Accepted | Implemented    | Required accessible Panel name and visible heading.                |
+| `children`          | Accepted | Implemented    | Arbitrary React content.                                           |
 
 The package-native names are the target. `PicodashProvider` and `PicodashPanel` remain prototype
 and integrated-facade evidence, not a second standalone API.
@@ -144,9 +145,12 @@ The exact launch prop surface is:
 type DashPanelStyle = Omit<
   CSSProperties,
   | 'blockSize'
+  | 'height'
   | 'inlineSize'
   | 'maxBlockSize'
+  | 'maxHeight'
   | 'maxInlineSize'
+  | 'maxWidth'
   | 'minBlockSize'
   | 'minHeight'
   | 'minInlineSize'
@@ -156,7 +160,7 @@ type DashPanelStyle = Omit<
 
 interface DashPanelProps<CustomTheme extends string = never> extends Omit<
   ComponentPropsWithoutRef<'aside'>,
-  'children' | 'id' | 'style' | 'title'
+  'aria-hidden' | 'children' | 'hidden' | 'id' | 'inert' | 'style' | 'title'
 > {
   id: string
   title: ReactNode
@@ -167,6 +171,7 @@ interface DashPanelProps<CustomTheme extends string = never> extends Omit<
   defaultCollapsed?: boolean
   collapsible?: boolean
   showCloseButton?: boolean
+  showSizeConstraintIndicator?: boolean
 
   onVisibilityChange?: (visible: boolean) => void
   onCollapsedChange?: (collapsed: boolean) => void
@@ -179,6 +184,15 @@ interface DashPanelProps<CustomTheme extends string = never> extends Omit<
   boundary?: DashPanelBoundary | null
   boundaryInset?: DashPanelBoundaryInset
   width?: CSSProperties['width']
+  height?: DashPanelDimension | 'auto'
+  minWidth?: DashPanelDimension
+  maxWidth?: DashPanelDimension
+  minHeight?: DashPanelDimension
+  maxHeight?: DashPanelDimension
+  resize?: false | DashPanelResizeOptions
+  contentConstraints?: DashPanelContentConstraints
+  contentMetrics?: DashPanelContentMetrics
+  moveHandle?: 'header' | 'grip' | 'both'
 
   actionMenu?: false | readonly ReactElement[]
   theme?: PicodashThemeOption<CustomTheme>
@@ -221,11 +235,11 @@ When `preferredPosition` is omitted, the first transition to free placement uses
 contained rendered position. Declared defaults never become persisted overrides merely because a
 Panel mounts.
 
-`style.width`, logical-size, and physical/logical minimum-size properties are reserved so consumer
-styles cannot compete with the `width` prop or projected placement constraints. Width uses the
-`width` prop; maximum logical sizes and all minimum sizes are owned by placement geometry. Callers
-use `width` for one Panel or a `className`/stylesheet rule for selector-based sizing. Other ordinary
-`aside` attributes and styles remain available. DashPanel forwards an `HTMLAsideElement` ref.
+Physical/logical width, height, minimum, and maximum size styles are reserved so consumer styles
+cannot compete with the sizing props or projected placement constraints. Use the named sizing
+props and preferred-width/height tokens. Other ordinary `aside` attributes and styles remain
+available. DashPanel forwards an `HTMLAsideElement` ref. The resize types and rules are defined in
+[resize and responsive behavior](#resize-and-responsive-behavior).
 
 The prototype props `nexus`, `contentMode`, `close`, `onClose`, controlled visibility/collapse, and
 Motion-specific animation or drag props do not enter the target API. DashPanel exposes behavior
@@ -236,6 +250,12 @@ A non-text `title` requires an explicit `aria-label`. `collapsible={false}` with
 no reveal operation. Projecting an already collapsed Panel as a drawer or sheet temporarily renders
 its body expanded without mutating collapse state; returning to `panel` restores the same collapse
 state.
+
+`showSizeConstraintIndicator` defaults to `false`. When enabled and a sizing constraint is active,
+the noninteractive indicator appears immediately before the action menu, after Restore preferred
+size when present. Its tooltip lists active limits. It remains available without an action menu;
+controller sizing diagnostics remain available regardless of the prop. This is presentation only
+and never creates a durable preference.
 
 ## Scope and declarative lifecycle
 
@@ -592,21 +612,30 @@ placement coordinates; changing a boundary must not implicitly move ownership of
 
 ## Durable layout
 
-> Contract: Accepted
-> Implementation: Verified
+> Contract: Revised for version-2 sparse manual-size overrides
+> Implementation: Verified for the version-2 sizing/layout cut
 > Evidence: `packages/dashpanel/src/runtime/panel-runtime.test.ts`,
 > `packages/dashpanel/tests/dashpanel.test.tsx`, and the Contract Lab durable-layout journey in
 > `apps/lab/tests/contract-lab.spec.ts` cover settled writes, browser persistence and restoration,
 > reset-to-default behavior, and invalid-record recovery through the disclosed Nexus scope.
+> Notes: The revised manual-size storage/boundary/restoration round trip additionally passes the
+> new Resize Lab journeys within the complete 18-test Lab gate.
 
 Nexus persists one settled layout override per Panel scope:
 
 ```ts
 type DashPanelLayoutRecord = {
-  placement: DashPanelPlacement
-  preferredPosition: { x: number; y: number }
+  version: 2
+  placement?: DashPanelPlacement
+  preferredPosition?: { x: number; y: number }
+  manualSize?: { width?: number; height?: number }
 }
 ```
+
+At least one override must exist; `manualSize` requires at least one positive finite CSS-pixel
+axis. Missing fields follow current declarations. The public Nexus type enforces nonempty
+overrides as well as validating complete candidates at runtime. A width-only resize does not
+freeze preferred position, placement, or automatic height.
 
 `preferredPosition` contains finite CSS-pixel offsets from the effective boundary's top-left after
 inset and before snap offset. It preserves the preferred contained free position through snapping
@@ -616,16 +645,179 @@ Nexus does not persist resolved size, visibility, collapse, focus, activation, z
 occupancy, allocations, allocation ratios, peer identity, boundary object, inset, enabled positions,
 fallback layout, or responsive projection.
 
-A completed move, snap, or dock writes the override. Cancellation writes nothing.
-`resetDashPanelLayout()` removes it so the current declared `defaultLayout` applies. A record with
-an unknown position, an invalid mode/disposition combination, or non-finite coordinates enters
-Nexus recovery; a valid record merely disabled by current UI policy remains dormant.
+A completed changed move, snap, dock, or resize writes the override once. Cancellation and no-op
+gestures write nothing. West/north changes commit position and size atomically. Size restoration
+removes only selected `manualSize` axes; full `resetDashPanelLayout()` removes all Panel overrides
+so current declarations apply. Removing the last override removes the Panel record.
+
+During hydration, Nexus recognizes only the exact valid obsolete prototype shape `{ placement,
+preferredPosition }`, discards its Panel preference, retains independently valid same-scope List
+metadata, and emits `panel_layout_obsolete`. Other unsupported/malformed records retain the existing
+whole-scope quarantine policy; canonical values remain intact. Setters and document imports require
+strict v2 and no silent migration is provided. The domain version does not change the containing
+envelope/document `formatVersion: 1`. A valid record merely disabled by current UI policy remains
+dormant. See
+[ADR 0007](../adr/0007-panel-manual-sizing-and-interaction-events.md).
 
 ## Resize and responsive behavior
 
-DashPanel does not offer user resizing in its initial contract. It observes intrinsic content and
-boundary size changes and recomputes containment and dock allocations. Resolved size is never
-persisted.
+> Contract: Revised; the owner accepted manual resizing on 2026-11-12
+> Implementation: Verified for the version-2 sizing/layout cut
+> Evidence: The [conformance matrix](contract-conformance.md#dashpanel-resizing-and-interaction-observation)
+> records isolated, browser, and Bridge evidence separately.
+
+DashPanel offers manual resizing in ordinary `panel` presentation while retaining automatic
+content and boundary accommodation. The initial no-user-resize decision is superseded by
+[PANEL-SIZING-1](dashpanel-contract-decisions.md#31-sizing-intent-panel-sizing-1).
+
+### Sizing inputs and constraints
+
+```ts
+type DashPanelDimension = number | `${number}px` | `${number}rem` | `${number}%`
+type DashPanelHeight = DashPanelDimension | 'auto'
+type DashPanelManualSize =
+  | { readonly width: number; readonly height?: number }
+  | { readonly width?: number; readonly height: number }
+type DashPanelResizeTarget = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw'
+
+interface DashPanelResizeOptions {
+  handles?: 'auto' | 'always' | 'hidden'
+  targets?: readonly DashPanelResizeTarget[]
+}
+
+interface DashPanelContentConstraints {
+  minWidth?: boolean
+  maxWidth?: boolean
+  minHeight?: boolean
+  maxHeight?: boolean
+}
+
+interface DashPanelContentMetrics {
+  minWidth?: number
+  maxWidth?: number
+  minHeight?: number
+  maxHeight?: number
+}
+```
+
+`width` retains its accepted CSS/intrinsic support, including `fit-content`; `height` defaults to
+`auto`. Numeric dimensions are outer border-box CSS pixels. Preferred height and new bounds accept
+finite non-negative pixels or `px`, `rem`, and percentage lengths; height additionally accepts `auto`.
+Resolve these percentages against the definite effective boundary independently of the CSS portal
+containing block. Preferred width retains its existing broad CSS grammar.
+Unsupported expressions and inverted comparable same-unit bounds are contract errors. Mixed-unit
+bounds can become infeasible as the environment changes and use the dynamic recovery policy below.
+Omitted bounds use the measured usable shell minimum and available maximum. Equal preferred/min/max values lock that
+axis; use `resize={false}` to disable the built-in user resize affordances.
+
+Each `contentConstraints` flag independently adds its matching measured bound: width minimum uses
+min-content, width maximum uses max-content, and height uses natural content height at candidate
+width plus shell chrome. Both height flags deliberately lock to content. Optional finite
+`contentMetrics` replace automatic measurements for the supplied quantities when arbitrary content
+cannot be measured semantically. Metrics express outer-shell equivalents of the content
+contribution, including the relevant chrome. Missing measurements are pending/unavailable rather
+than zero.
+
+Resolve width before natural height at that width. Observe natural content separately from the
+capped shell, without cloning/mounting children twice or adding inline containment to DashStack.
+Keep reads/writes frame-coalesced and exclude DashPanel's owned placement-FLIP transform and
+temporary caps across the complete shell/content measurement, not just its initial rectangle. A
+child's animated disclosure follows its intermediate natural size without repeatedly starting a
+second Panel size animation.
+Owned height motion retains its temporary cap until every animated size property has committed
+its final style. Completion then restores the underlying geometry once; no stale animation cap
+may constrain later content growth or a manual resize.
+
+Intersect declared/content bounds, shell minimum, boundary/insets, and allocation. During an
+impossible dynamic combination, containment/allocation caps win, then explicit maxima, content
+maxima, and satisfiable minima. Expose the unsatisfied bound as a structured constraint reason;
+do not overwrite retained intent or crash an observer callback. An unusably small boundary can
+suppress resize targets rather than promise reachable chrome that cannot fit.
+
+### Preferred, manual, and projected sizes
+
+Declared preferred size is application policy. `manualSize` independently overrides selected axes.
+The resolved rectangle is the temporary projection of those inputs and is never persisted.
+Derive manual sizing from override presence, including when the number equals the preferred size.
+Resizing width alone leaves automatic height automatic. Growing content after manual height
+selection scrolls until restoration, except for explicitly enabled content minimums.
+
+The default header exposes “Restore preferred size” while manual overrides exist, with Lucide's
+`square-dimensions` icon immediately before the action menu. Its shape/presence marker is distinct
+from temporary boundary/content limitation. The command and
+`DashPanelRestoreSizeItem` support custom controls. Restoring size preserves preferred position and
+placement; `resetLayout()` clears all Panel overrides. The manual marker clears even when the
+current boundary still limits the rendered result.
+
+Header restoration remains available with `showCloseButton={false}`. If activating that button
+removes it from the DOM, DashPanel repairs focus within the Panel after the change. A programmatic
+restore command does not independently steal focus.
+
+Start edge gestures from the rendered rectangle and save only manipulated axes and changed
+coordinates. For a `600 × 500` saved Panel rendered at `300 × 250`, an east-edge resize to `320`
+saves width `320`, preserves height `500`, and retains untouched preferred position. Numeric or
+programmatic `setSize` expresses explicit desired size: requesting width `600` in a 300px boundary
+retains `600` while rendering `300`, then restores `600` on expansion. Both paths use the same
+validation/projection solver; pointer overshoot does not create an invisible oversized preference.
+
+### Targets, controls, and lifecycle
+
+| Placement                                             | Available targets                                                                                |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Free Floating/Hybrid                                  | All four sides and four corners, subject to configured/locked axes                               |
+| Corner snapped/docked                                 | Inward edges and their shared corner; anchor retained                                            |
+| Edge-midpoint snap/center dock                        | Inward perpendicular edge; centered-axis edges resize symmetrically; corners combine those rules |
+| Full left/right dock                                  | Inward horizontal edge; allocation owns height                                                   |
+| Full top/bottom dock                                  | Inward vertical edge; allocation owns width                                                      |
+| Collapsed/minimized/hidden/modal/unusably constrained | None; overrides retained                                                                         |
+
+Free resizing holds the opposite edge/corner stationary and commits west/north position and size
+together. Centered-axis resizing mirrors the opposite edge, doubling the dimension delta for a
+given pointer movement. No target crosses its opposite edge, creates a negative size, detaches,
+changes placement, or saves peer allocation. Dock resizing updates relevant allocation previews.
+
+Resize is enabled by default on eligible axes. `handles='auto'` reveals grips on hover/focus and
+keeps them visible on coarse pointers; `always` keeps decoration visible; `hidden` hides only
+decoration. Grip segments fade and scale from 80% while sliding up to 4px from their nearest edge;
+corner grips slide along both adjoining axes. The resolved offset controls travel direction, so
+external handles emerge away from the Panel rather than moving toward it. Edge line lengths scale
+from their centres without changing stroke thickness. Perpendicular example strokes scale from
+their shared intersection; diagonal corner strokes preserve their angles. Shared theme duration and easing keep all three properties
+together. Reversing hover/focus state continues from the current pose without restarting. Reduced
+motion makes these changes immediate. Hit targets remain active throughout. Directional cursors,
+focus feedback, keyboard access, and the non-drag control remain.
+Corners take precedence over edges. Hit regions exclude buttons, scrollbars, content interaction,
+and List reorder handles. Border grips are supplementary precision controls: corners are 20px and
+fine edge width defaults to 10px through the hit token. They do not claim 44px-square targets.
+Instead, coarse pointers receive an always-visible 44×44px “Resize panel” header action opening
+the numeric/tap editor, whose inputs/actions are also 44px. This equivalent control provides the
+complete sizing function without eight overlapping border targets. Standard header chrome retains
+its coarse target sizes. `moveHandle` defaults to `header`; `grip` or `both`
+uses a dedicated named move control within the same operation owner.
+
+The default “Resize panel…” menu entry supplies numeric width/height fields and apply/restore
+controls for keyboard and
+single-pointer use without dragging. Keyboard resize uses 1px arrows, Shift-10px arrows, Enter
+commit, and Escape cancel. Announce meaningful lifecycle/limit changes without per-frame speech.
+Use named buttons/instructions rather than a fabricated two-dimensional ARIA slider.
+
+Movement and resizing share one explicit operation lifecycle. Primary-pointer press crosses a
+movement threshold before drag start; click-only is a no-op. Self-induced size observations do not
+cancel. Boundary/inset/coordinate/zoom changes, external metadata writes, policy/placement changes,
+enabled-content-bound invalidation, hide/collapse, capture loss, cancellation, window blur, or
+unmount discard the preview and write nothing. Pointer exit while captured does not cancel. Every
+terminal path releases capture, scheduled frames, subscriptions, cursor/selection state, and active
+feedback once. Native move/up/cancel observation begins synchronously with the gesture, before
+React effects can run. Some browser hosts deliver implicit `lostpointercapture` with the primary
+button already released before `pointerup`, particularly when releasing during motion. That event
+completes the gesture from its own final coordinates; the later `pointerup` is ignored. Loss while
+the primary button remains held is still cancellation. Reduced motion and active gestures make
+size following immediate.
+
+Report owned hover/focus/pointer interactions, move/resize lifecycle/diffs, command outcomes, and
+automatic content/boundary/policy projection through [Nexus events](nexus.md#interaction-events).
+Coalesce motion updates, flush the last sample before one terminal event, and distinguish requested
+from applied geometry and accepted/unchanged/rejected outcomes. Do not persist interaction frames.
 
 Responsive behavior is geometry-derived rather than breakpoint-driven:
 
@@ -725,6 +917,9 @@ target during the drag, applies the documented resistance until `detachDistance`
 retained snap on release. A released Panel resumes the raw contained projection. Hybrid dock
 targeting reads that raw Panel rectangle and the current pointer, while its animated proxy remains
 visual intent only and never becomes geometry input.
+The release event supplies the final pointer coordinates even when its last movement sample was
+not delivered. Update the movement session from that release before committing and flushing the
+final event, so immediate release and a held drag reach the same placement.
 
 Snap acquisition and final detachment animate an independent Motion translation with the owning
 theme's DashPanel motion tokens. Motion also owns measured-height interpolation and the Hybrid dock
@@ -799,7 +994,8 @@ The Panel-owned action exports are:
 
 - `DashPanelActionItems`;
 - `DashPanelPlacementSubmenu`;
-- `DashPanelResetLayoutItem`; and
+- `DashPanelResetLayoutItem`;
+- `DashPanelRestoreSizeItem`; and
 - `DashPanelRequestRemoveItem`.
 
 Generic menu composition primitives are UI-owned explicit reexports; DashPanel owns the built-in
@@ -879,7 +1075,8 @@ presentation and are never persisted by DashPanel. Portaled Panel-owned roots re
 attributes; their descendants inherit.
 
 Density changes shared geometry tokens without changing color roles, placement semantics, or
-durable layout. Compact presentation keeps coarse-pointer hit targets at least 44 CSS pixels. An
+durable layout. Compact presentation keeps standard coarse-pointer action targets at least 44 CSS
+pixels. Supplementary resize border grips use the equivalent large control described above. An
 application may persist its own preference in Nexus and pass it back as an ordinary prop.
 
 Custom themes override public `--picodash-*` tokens under their named theme selector. Consumers must
@@ -887,21 +1084,82 @@ not rely on `--_picodash-*` variables, which are package-private derived values.
 
 DashPanel owns these public product tokens:
 
-| Variable                           | Purpose                                      | Syntax                | Regular default                   |
-| ---------------------------------- | -------------------------------------------- | --------------------- | --------------------------------- |
-| `--picodash-panel-width`           | Preferred intrinsic Panel width.             | `<length-percentage>` | `min(20rem, calc(100dvw - 2rem))` |
-| `--picodash-panel-snap-duration`   | Magnetic snap-settle duration.               | `<time>`              | `160ms`                           |
-| `--picodash-panel-snap-easing`     | Magnetic snap-settle timing function.        | `<easing-function>`   | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
-| `--picodash-panel-snap-bounce`     | Snap overshoot as a fraction of snap travel. | `<number>`            | `0.06`                            |
-| `--picodash-panel-detach-duration` | Magnetic detach-settle duration.             | `<time>`              | `140ms`                           |
-| `--picodash-panel-detach-easing`   | Magnetic detach-settle timing function.      | `<easing-function>`   | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
-| `--picodash-panel-detach-bounce`   | Detach overshoot as a fraction of travel.    | `<number>`            | `0.04`                            |
+| Variable                            | Purpose                                          | Syntax                          | Regular default                   |
+| ----------------------------------- | ------------------------------------------------ | ------------------------------- | --------------------------------- |
+| `--picodash-panel-width`            | Preferred intrinsic Panel width.                 | `<length-percentage>`           | `min(20rem, calc(100dvw - 2rem))` |
+| `--picodash-panel-height`           | Preferred height before manual/projected size.   | `auto` or `px`/`rem`/`%` length | `auto`                            |
+| `--picodash-panel-resize-hit-size`  | Fine-pointer edge hit-region width.              | `<length>`                      | `10px`                            |
+| `--picodash-panel-resize-grip-size` | Visible edge-grip length.                        | `<length-percentage>`           | `18px`                            |
+| `--picodash-panel-resize-offset`    | Outward offset of resize targets and indicators. | `<length>`                      | `0px`                             |
+| `--picodash-panel-snap-duration`    | Magnetic snap-settle duration.                   | `<time>`                        | `160ms`                           |
+| `--picodash-panel-snap-easing`      | Magnetic snap-settle timing function.            | `<easing-function>`             | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
+| `--picodash-panel-snap-bounce`      | Snap overshoot as a fraction of snap travel.     | `<number>`                      | `0.06`                            |
+| `--picodash-panel-detach-duration`  | Magnetic detach-settle duration.                 | `<time>`                        | `140ms`                           |
+| `--picodash-panel-detach-easing`    | Magnetic detach-settle timing function.          | `<easing-function>`             | `cubic-bezier(0.2, 0.8, 0.2, 1)`  |
+| `--picodash-panel-detach-bounce`    | Detach overshoot as a fraction of travel.        | `<number>`                      | `0.04`                            |
 
 The token and prop are two access paths to one preferred-width input:
 
 1. `--picodash-panel-width` supplies the inherited host, Provider-container, or selector default;
 2. `width` supplies a local inline token value for one Panel and takes precedence; and
 3. the token's regular recipe supplies the fallback above when neither application path sets it.
+
+`height` similarly supplies the Panel-local preferred-height token and numeric dimensions are
+normalized to CSS pixels before entering custom properties. A manual override is a separate Nexus
+input; it does not rewrite either preferred token. Grip length and hit width are separate so a
+subtle visual affordance can retain a precise target. The coarse-pointer header resize control and
+editor supply the accepted 44px equivalent functionality; the fine-pointer hit token does not
+create a promise of eight overlapping 44px touch strips.
+
+The default visible edge indicators are centered single 2px strokes drawn by CSS. Grip length accepts CSS lengths
+such as `18px` or `1.25rem`, percentages, and valid CSS combinations. A percentage uses that edge
+button's length, excluding the corner margins on fine pointers; coarse edge buttons are 44px long.
+The four default corner indicators are fixed 10px diagonal strokes in 20px targets and do not use
+the edge-length token. Indicators inherit border color and use focus color on hover, focus, or grab.
+The header and body share a rounded, clipped surface. Resize targets and indicators occupy a
+separate unclipped layer within the Panel's own stacking and activation context. The layer does
+not intercept content input; only its buttons receive pointer events, with corners above edges.
+`--picodash-panel-resize-offset` moves each target and its indicator together: `0px` retains the
+inside-border position, positive lengths move outward, and negative lengths move inward. Offset
+does not change measured Panel geometry, resize limits, or durable layout. Host ancestor clipping
+and the viewport still apply; the resize layer does not escape the Provider's portal or layering.
+Hidden, collapsed, minimized, and otherwise ineligible Panels retain the existing target policy.
+
+#### Themeable resize segments
+
+Each resize button contains two decorative spans, independently styleable through these supported
+hooks:
+
+| Hook                                 | Values                                     | Purpose                               |
+| ------------------------------------ | ------------------------------------------ | ------------------------------------- |
+| `data-picodash-panel-resize-target`  | `n`, `ne`, `e`, `se`, `s`, `sw`, `w`, `nw` | Button direction.                     |
+| `data-picodash-panel-resize-kind`    | `edge`, `corner`                           | Select an entire target family.       |
+| `data-picodash-panel-resize-segment` | `primary`, `secondary`                     | Select either stroke inside a button. |
+
+Both spans share one grid cell. The primary span draws the existing single line; the secondary
+span starts with `display: none`. A theme can reveal it with `display: block` and set each segment's
+size, transform, or self-alignment. Show/hide motion uses the individual `scale` and `translate`
+properties, leaving theme-owned `transform` geometry intact. Straight edge strokes use centre origins
+and scale only along their long axis. The perpendicular corner recipe sets each stroke's origin
+at the shared centreline intersection. Edge percentages continue to resolve against the button's
+length.
+The segments remain `aria-hidden` and `pointer-events: none`, and inherit the same handle visibility,
+hover/focus/grab color, and forced-color rules. Keep those rules when changing their geometry so
+the button remains the single named, focusable drag target.
+
+The [packaged CSS recipes](../../packages/dashpanel/src/resize-handles.css) provide independently
+composable single/parallel external edge strokes, parallel internal edge strokes, perpendicular
+external corner brackets, and unequal parallel internal corner strokes. Import `@picodash/dashpanel/resize-handles.css` after
+`@picodash/dashpanel/style.css`. `resize-edges-parallel` adds a second edge stroke, and
+`resize-edges-external` positions either edge style outside. Combine them with either
+`resize-corners-external` or `resize-corners-internal` through `className`. The selectors can also be adapted to an application's named theme. Removing these
+example classes restores the single-line defaults. The recipes use the existing offset token for
+external target placement and add no resize props or state.
+
+In the Contract Lab, open **Placement → Resize lab** and use the **Handle appearance** selectors.
+Edge choices include internal and external single/parallel lines. Edge and corner styles apply
+immediately, independently of the sizing form. The Lab retains the choices in its session
+configuration; **Reset resize example** restores single-line handles.
 
 Magnetic motion is independent of the live transform rather than a transition on Panel position.
 Duration accepts a non-negative CSS time. Bounce accepts a unitless value from `0` through `0.25`;
@@ -925,7 +1183,7 @@ layout into a circular persistence input.
 `full-top` and `full-bottom` docks own the available inline span, so the preferred width is dormant
 while either is active. Top/bottom sheets follow the same rule. Left/right drawers and ordinary
 floating, snapped, corner, center, and side placements use the preferred width, capped to their
-available geometry. Returning to a width-sensitive presentation restores the same preferred input.
+available geometry. Returning to a width-sensitive presentation restores the same preferred/manual inputs.
 
 No public token is added for header height, collapse offsets, docking allocation, drag opacity,
 placement-preview paint, or runtime z-index. Those values are structural rules, placement
@@ -1041,6 +1299,12 @@ type DashPanelLayoutCommandResult =
       readonly reason: 'unavailable' | 'dock_occupied' | 'position_disabled' | 'modal_presentation'
     }
 
+type DashPanelSizeRequest = DashPanelManualSize
+
+interface DashPanelRestoreSizeOptions {
+  readonly axes?: 'both' | 'width' | 'height'
+}
+
 interface DashPanelControllerCommands {
   show(): DashPanelCommandResult
   hide(): DashPanelCommandResult
@@ -1050,6 +1314,8 @@ interface DashPanelControllerCommands {
   collapse(): DashPanelCommandResult
   toggleCollapsed(): DashPanelCommandResult
   setPlacement(placement: DashPanelPlacement): DashPanelLayoutCommandResult
+  setSize(size: DashPanelSizeRequest): DashPanelLayoutCommandResult
+  restorePreferredSize(options?: DashPanelRestoreSizeOptions): DashPanelLayoutCommandResult
   resetLayout(): DashPanelLayoutCommandResult
 }
 
@@ -1126,13 +1392,33 @@ same snapshot. These observations never write Nexus or persistence. The bounds c
 and logical proxy meaning are the same as `DashPanelDockPreview` above.
 
 Every command rechecks current availability at execution time. Visibility, activation, and collapse
-commands mutate transient Provider runtime. Placement and reset commands invoke Nexus and return its
+commands mutate transient Provider runtime. Placement, size, restoration, and reset commands invoke Nexus and return its
 structured persistent transaction result; `status: 'executed'` means the Nexus command ran, not that
 the transaction necessarily committed. Structured Nexus rejection remains visible in `transaction`.
 Ownership, lifecycle, and malformed-placement contract errors continue to throw.
 
+Metadata commands read the current public scoped Nexus snapshot at execution and merge only their
+requested changes. They never resurrect a removed record or overwrite another axis/position from
+an effect-delayed runtime cache. Active gestures retain their initial authoritative metadata
+reference and synchronously mark themselves stale on external change; the final commit rechecks
+current state. An external write followed by Enter in the same stack cancels the stale gesture
+before React effects can run, preserving that external write without a compensating commit.
+
+`setSize` accepts a nonempty record of positive finite desired manual axes. Restoration defaults
+to both axes, preserves placement/position, and is meaningful even when current projection hides
+its visible effect. `sizing` is optional while geometry is unavailable; its read-only model contains
+preferred, desired, resolved, minimum, maximum and requested-minimum dimensions, per-axis
+preferred/manual source, and structured constraint reasons. Measurements and projected geometry
+remain ephemeral.
+
+`sizing.measurements`, when present, is `{ status, content, bounds }`. `status` is
+`ready | pending | unavailable`; `content` reports natural content width/height and `bounds`
+reports measured outer-shell-equivalent content contributions. Only ready measurements are usable
+metrics. This read model lets an application inspect hidden overflow growth without treating the
+constrained shell as natural content. It grants no measurement or layout mutation authority.
+
 The public hook is now implemented and exposed through the accepted API. It is the command-level entry
-for visibility, activation, placement, collapse, and layout-reset operations when callers need explicit
+for visibility, activation, placement, collapse, sizing, restoration, and layout reset when callers need explicit
 programmatic control. DashPanelTrigger and DashPanelLauncher continue to use their focused control paths.
 
 DashPanel exposes no mutable Provider Nexus, generic runtime selector, or `/advanced` entrypoint in
@@ -1141,12 +1427,13 @@ does not create another equality or value-subscription API.
 
 ## Public package surfaces
 
-| Surface                           | Contract | Implementation | Purpose                                             |
-| --------------------------------- | -------- | -------------- | --------------------------------------------------- |
-| `@picodash/dashpanel`             | Accepted | Prototype      | Provider, Panel, controller, actions, UI reexports. |
-| `@picodash/dashpanel/integration` | Accepted | Implemented    | Narrow default-action contribution seam.            |
-| `@picodash/dashpanel/catalog`     | Accepted | Planned        | Static accepted-component metadata.                 |
-| `@picodash/dashpanel/style.css`   | Accepted | Prototype      | UI foundation plus Panel structural styles.         |
+| Surface                                  | Contract | Implementation | Purpose                                             |
+| ---------------------------------------- | -------- | -------------- | --------------------------------------------------- |
+| `@picodash/dashpanel`                    | Accepted | Partial        | Provider, Panel, controller, actions, UI reexports. |
+| `@picodash/dashpanel/integration`        | Accepted | Implemented    | Narrow default-action contribution seam.            |
+| `@picodash/dashpanel/catalog`            | Accepted | Planned        | Static accepted-component metadata.                 |
+| `@picodash/dashpanel/style.css`          | Accepted | Partial        | UI foundation plus Panel structural styles.         |
+| `@picodash/dashpanel/resize-handles.css` | Accepted | Verified       | Optional edge and corner handle recipes.            |
 
 There is no initial `@picodash/dashpanel/advanced` or `@picodash/dashpanel/ui` surface. Generic UI
 primitives remain canonically imported from `@picodash/ui`; DashPanel explicitly reexports only the

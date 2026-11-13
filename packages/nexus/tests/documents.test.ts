@@ -20,6 +20,7 @@ import type { SerializedDurableScopeMetadata } from '../src/metadata.ts'
 
 const metadata = {
   dashPanel: {
+    version: 2 as const,
     placement: { mode: 'floating', disposition: { kind: 'free' } },
     preferredPosition: { x: 10, y: 20 },
   },
@@ -328,6 +329,7 @@ describe('redaction, migration, and overlay helpers', () => {
   it('detaches unchanged target scopes in pure overlays', () => {
     const mutableMetadata: SerializedDurableScopeMetadata = {
       dashPanel: {
+        version: 2 as const,
         placement: { mode: 'floating', disposition: { kind: 'free' } },
         preferredPosition: { x: 1, y: 2 },
       },
@@ -344,6 +346,7 @@ describe('redaction, migration, and overlay helpers', () => {
         'unchanged',
         {
           dashPanel: {
+            version: 2 as const,
             placement: { mode: 'floating', disposition: { kind: 'free' } },
             preferredPosition: { x: 1, y: 2 },
           },

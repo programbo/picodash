@@ -13,14 +13,16 @@
   },
   "files": [
     "dist",
-    "skills/docked-panel-shortcuts"
+    "skills/docked-panel-shortcuts",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "type": "module",
   "exports": {
     ".": "./dist/index.mjs",
     "./integration": "./dist/integration.mjs",
     "./package.json": "./package.json",
-    "./style.css": "./dist/style.css"
+    "./style.css": "./dist/style.css",
+    "./resize-handles.css": "./dist/resize-handles.css"
   },
   "publishConfig": {
     "access": "public"

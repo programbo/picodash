@@ -1,6 +1,6 @@
 import WebSocket from 'ws'
 
-export const protocol = 'picodash.dev-bridge.v3'
+export const protocol = 'picodash.dev-bridge.v4'
 
 export type RawFrame = Record<string, any>
 
@@ -71,7 +71,7 @@ export function registerFrame(
 ): RawFrame {
   return {
     type: 'register',
-    protocolVersion: 3,
+    protocolVersion: 4,
     token,
     registration: {
       registrationId,

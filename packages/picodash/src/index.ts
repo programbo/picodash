@@ -9,6 +9,8 @@ export {
   ActionSubmenu,
   DashHeader,
   DashPanel,
+  DashPanelRestoreSizeItem,
+  useDashPanel,
 } from '@picodash/dashpanel'
 export {
   CheckboxDashlet,
@@ -56,6 +58,21 @@ export type {
   DashPanelDefaultLayout,
   DashPanelPlacementOptions,
   DashPanelPresentation,
+  DashPanelDimension,
+  DashPanelHeight,
+  DashPanelResize,
+  DashPanelResizeOptions,
+  DashPanelResizeTarget,
+  DashPanelContentConstraints,
+  DashPanelContentMetrics,
+  DashPanelManualSize,
+  DashPanelSizingState,
+  DashPanelSizingConstraint,
+  DashPanelSizeRequest,
+  DashPanelRestoreSizeOptions,
+  DashPanelController,
+  DashPanelCommandResult,
+  DashPanelLayoutCommandResult,
 } from '@picodash/dashpanel'
 export type {
   DashStackProps,

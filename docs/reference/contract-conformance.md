@@ -103,8 +103,8 @@ and persistence records instead of adding separate hand-written tests for every 
 
 ## Agent Dev Bridge
 
-> Contract: Accepted development baseline
-> Implementation: Verified
+> Contract: Revised for protocol-v3 read-only event observation
+> Implementation: Partial; prior inspect/write/wait verification does not imply event conformance
 > Evidence: `bun run --filter @picodash/dev-bridge release:check`, Lab host tests, and the Contract
 > Lab browser journey.
 
@@ -116,6 +116,8 @@ and persistence records instead of adding separate hand-written tests for every 
 
 The verified baseline is private development tooling. Persistence, import, reset, and broader
 agent protocols remain deferred and are not implied by these rows.
+The protocol-v3 event extension has separate rows below; preserve the distinction between earlier
+baseline evidence and current event disclosure/cursor proof.
 
 Browser connector tests cover aborting pending registration before Nexus destruction and ignoring
 late socket frames. The Lab host passes its effect cleanup signal to the connector; the retained
@@ -157,12 +159,37 @@ movement and finishes fading without waiting for the pointer to stop.
 The same placement journey contracts a Hybrid Panel near each bottom corner and checks that release
 restores its intrinsic height with its bottom aligned to the boundary. The phone boundary journey
 checks automatic-band overflow, unfaded start/end lanes, and scroll-fade at the top, middle, and
-bottom, retains the scrolled position after mask events, and records screenshots and playback
+bottom, retains the scrolled position, and records screenshots and playback
 evidence. The Panel portal test distinguishes internal content scroll from viewport scroll.
 The phone placement journey also contracts ordinary non-DashStack content, captures its fade at
 the start/middle/end, retains its scroll offset, and checks that the final action is reachable.
-Shared UI's CSS contract test and motion-policy
-check cover the bundled scroll-timeline exception; unsupported browsers retain unfaded scrolling.
+Shared UI's hook tests cover measured edge feedback, descendant changes, and StrictMode cleanup.
+The same geometry case varies overflow from 2px through 600px and verifies that fade depth stays
+40px; short viewports retain the quarter-height cap, and fitted content clears both cues.
+The CSS contract and motion-policy check prohibit dependence on scroll timelines. The Resize Lab
+animated-content journey samples the bottom fade after layout throughout accordion expansion and
+checks floating body triangles at the start, middle, and end, including mask independence and pointer
+pass-through. The custom mask replaces the former shadcn scroll-timeline recipe; no CSS-keyframe
+exception remains. All six affected Resize Lab and phone journeys pass in Chromium (28.5 seconds;
+`output/scroll-fade/browser-tests.log`). The full Panel and List suites pass 246 and 257 tests;
+shared UI passes 86 tests. Workspace formatting/lint/types and package/agent artifact checks pass.
+The same Resize Lab journeys also verify reversible show/hide transitions for arrows and resize
+grips: pausing native CSS transitions midway, reversing twice, and checking each new transition
+starts from the current opacity, scale, and translation. The same native-transition checks now
+pause and reverse all three properties together, while themed stroke transforms and fixed hit
+targets retain their existing geometry checks. Reduced-motion changes are immediate. The Panel
+portal regression checks that decorative opacity/scale/translation end/cancel events never cause
+intrinsic measurement. The three Resize Lab journeys pass in 18.7 seconds
+(`output/scroll-fade/scale-translate-browser.log`), with no added
+browser test. The same appearance journey also samples all resize cues at the start, midpoint,
+and end of reveal. It checks inward/outward travel on all eight targets, fixed edge centres and
+stroke thickness, and coincident perpendicular intersections throughout scaling. Both external
+single and parallel edge choices are driven through the public Lab selector; configuration tests
+verify their session restoration. The keyboard journey also checks both perpendicular strokes
+reach full size when a hidden-decoration corner is picked up, then cancels without resizing. All
+three Resize Lab journeys pass in 22.0 seconds (`output/scroll-fade/external-handles-browser.log`);
+the four Lab configuration tests, Panel stylesheet tests, workspace checks, and artifact gates pass. A dark-theme visual capture is `output/scroll-fade/dark-indicators.png`. These are local browser
+results, not cross-browser or owner hands-on acceptance.
 
 M3 owner hands-on approval was recorded on 2026-09-09. The persistence journey also covers Console
 and driver reset of settled overrides, malformed JSON and incompatible-envelope fallback to current
@@ -189,7 +216,7 @@ three bands do not overlap and remain reachable, then expand it and verify resto
 | PANEL-DOCK     | Arena occupancy, collision, and allocation   | `packages/dashpanel/src/placement/dock-arena.test.ts`, `packages/dashpanel/src/runtime/panel-runtime.test.ts`, `packages/dashpanel/src/geometry/placement-geometry.test.ts`, `packages/dashpanel/src/portal.test.tsx`, and `apps/lab/tests/contract-lab.spec.ts`                                                                                                                                                                                                            | Verified | Exact-slot and shared-main-slot occupancy, retained hidden/collapsed leases, atomic rejection and explicit retry after release, occupied-target drag release preserving the settled placement, the complete left/right allocation and offset matrix, Fixed/Hybrid parity, adjacent-corner width allocation, mixed-mode rendered rectangles, allocation-aware Hybrid target-proxy geometry, and live peer allocation previews that reverse on Hybrid detach are covered.                                                                                                                                   |
 | PANEL-POINTER  | Pointer capture and committed drag result    | `packages/dashpanel/src/placement/drag-intent.test.ts`, `packages/dashpanel/src/portal.test.tsx`, `packages/dashpanel/tests/dashpanel.test.tsx`, `apps/lab/tests/contract-lab.spec.ts`, and `apps/lab/tests/phone-artifacts.spec.ts`                                                                                                                                                                                                                                        | Partial  | Full-header pickup outside interactive controls, native pointer capture, no-jump docked pickup, live exact snap attraction, resisted detach and catch-up, theme-defined Motion snap/detach translation with continuous in-flight replacement, Motion-driven Hybrid corner/side/return proxy, sticky whole-gesture movement, latest-intent commit after returning to the pickup rectangle, occupied-target rejection, containment, cancellation, drift fencing, focus retention, real browser drag, and phone-sized artifact capture are covered. Transient feedback remains outside Nexus and Dev Bridge. |
 | PANEL-KEYBOARD | Keyboard movement/action parity              | `packages/dashpanel/src/portal.test.tsx`, `packages/dashpanel/tests/dashpanel.test.tsx`, and `apps/lab/tests/contract-lab.spec.ts`                                                                                                                                                                                                                                                                                                                                          | Partial  | Enter/Space movement mode, 1/10-pixel arrows, projected-displacement commits, sticky whole-gesture movement, snap-proximity settlement, Hybrid detach thresholds, descendant layout-motion isolation, Escape restore, containment, focus retention, and pointer-outcome parity are covered.                                                                                                                                                                                                                                                                                                               |
-| PANEL-LAYOUT   | Durable override/reset/recovery              | `packages/dashpanel/src/runtime/panel-runtime.ts`, `packages/dashpanel/src/runtime/panel-runtime.test.ts`, `packages/dashpanel/tests/dashpanel.test.tsx`, and `apps/lab/tests/contract-lab.spec.ts`                                                                                                                                                                                                                                                                         | Verified | Settled placement overrides write through Nexus, survive a real Web Storage reload, and remain independently visible through the disclosed Dev Bridge scope; reset removes the override and survives another reload; malformed persisted Panel metadata is quarantined, emits the scoped diagnostic, and renders the current declared default. Dormant valid records remain reconciled under policy changes and policy-disabled states.                                                                                                                                                                   |
+| PANEL-LAYOUT   | Durable override/reset/recovery              | `packages/dashpanel/src/runtime/panel-runtime.ts`, `packages/dashpanel/src/runtime/panel-runtime.test.ts`, `packages/dashpanel/tests/dashpanel.test.tsx`, and `apps/lab/tests/contract-lab.spec.ts`                                                                                                                                                                                                                                                                         | Verified | Settled v2 placement/manual-size overrides survive real browser storage reload and boundary contraction/expansion; header restoration removes size while retaining placement. Existing layout persistence/reset/recovery and new Resize Lab journeys pass in the final 18-test gate. Strict obsolete-payload and fresh-authority invariants remain Nexus/Panel-test owned.                                                                                                                                                                                                                                |
 | PANEL-PORTAL   | Portal stacking, theme, focus restoration    | `packages/dashpanel/src/portal.test.tsx`, `packages/dashpanel/tests/dashpanel.test.tsx`, and `apps/lab/tests/contract-lab.spec.ts`                                                                                                                                                                                                                                                                                                                                          | Partial  | Exact detached ownership, transformed/scrolled containing-block coordinate mapping, theme/density carriers, root-capture pointer and focus activation of the top Panel, focus retention, and geometry independence are covered; the exhaustive multi-Panel stacking matrix remains Phase 3 work.                                                                                                                                                                                                                                                                                                          |
 | PANEL-A11Y     | Naming, actions, semantic DOM                | `packages/dashpanel/tests/dashpanel.test.tsx`, `packages/dashpanel/src/actions.test.tsx`, and `apps/lab/tests/contract-lab.spec.ts`                                                                                                                                                                                                                                                                                                                                         | Partial  | Semantic aside, naming, retained/inert bodies, edge-directed Minimize/Reveal icons, focus transfer between replacement controls, aligned SVG collapse/close controls, a non-interactive header drag surface plus visually hidden keyboard move control, visible action-menu icon, confirmed removal, rejected placement/reset status, keyboard movement, and browser focus behavior are covered; adaptive modal semantics remain planned.                                                                                                                                                                 |
 | PANEL-ADAPT    | Modal drawer/sheet projection and exclusion  | Component tests; one modal E2E seam                                                                                                                                                                                                                                                                                                                                                                                                                                         | Planned  | —                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
@@ -247,6 +274,195 @@ and never derive deletion from mount absence.
 
 Picodash does not repeat Nexus field matrices, DashPanel geometry matrices, or DashStack ordering
 matrices.
+
+## DashPanel resizing and interaction observation
+
+> Contract: Accepted through [ADR 0007](../adr/0007-panel-manual-sizing-and-interaction-events.md)
+> Implementation: Verified for the scoped resizing/event cut; broader product gates retain their own statuses
+> Evidence: Owning package checks/builds/artifacts, all 18 Contract Lab tests, the Lab production
+> build, and the bounded native-browser profile below pass. This is local configured-browser proof,
+> not production-performance, cross-browser, deployed, or remote-delivery certification.
+
+The rows above retain their established subset evidence. Revised sparse Panel payloads and manual
+sizing require their own assertions; an earlier placement-only browser pass does not prove size
+restoration or event delivery. Scope/domain recovery follows the exact v2 cutover rule, not a claim
+that every malformed Panel can be recovered independently of its List.
+
+| ID                   | Contract area                                                                       | Primary evidence                                                                                                                                                                                                                                                                                                                                                   | Status   | Evidence limit                                                                                                                                                                                                                                                                                                                     |
+| -------------------- | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| NEXUS-PANEL-V2       | Sparse per-axis records, persistence, document and obsolete recovery                | [metadata tests](../../packages/nexus/tests/metadata.test.ts), [v2 cold-restore tests](../../packages/nexus/tests/panel-layout-v2.test.ts), [migration/recovery tests](../../packages/nexus/tests/migration-recovery.test.ts)                                                                                                                                      | Verified | All 473 Nexus tests across 39 files, package check/build/artifacts pass, including strict v2, cold restore, document rejection, and exact obsolete Panel recovery preserving valid List/value data. This is isolated/persistence evidence; browser round trips are separate.                                                       |
+| NEXUS-EVENTS         | Detached typed events, source generations, bounded dispatch, snapshot independence  | [interaction event tests](../../packages/nexus/tests/interaction-events.test.ts), [declarative publisher tests](../../packages/nexus/tests/interaction-publisher.test.tsx)                                                                                                                                                                                         | Verified | The same 473-test gate plus check/build/artifacts passes. Tests cover generations, snapshot/persistence independence, long lexical IDs, pointer button -1, payload/dispatch capacity warning and recovery. Real consumer/Bridge observation remains separate.                                                                      |
+| PANEL-RESIZE         | Bounds, targets, anchors, manual axes, commands and lifecycle                       | [sizing tests](../../packages/dashpanel/src/sizing/sizing.test.ts), [resize component tests](../../packages/dashpanel/src/resize.test.tsx), [authoritative command tests](../../packages/dashpanel/src/runtime/panel-runtime-freshness.test.ts), [measurement tests](../../packages/dashpanel/src/runtime/panel-size-measurement.test.ts), Panel type/style suites | Verified | All 240 Panel tests across 18 files, check/build/artifacts and motion policy pass. Covers authority/freshness, scheduling/cleanup, focus/minimum rendering, owned-FLIP/content allocation measurement, and effective-boundary preferred-height percentages. This is isolated proof; the final fresh full Lab run remains separate. |
+| PANEL-RESIZE-BROWSER | Configurable Resize Lab, capture, content, viewport/storage round trip and feedback | [Resize Lab journeys](../../apps/lab/tests/resize.spec.ts) and local `output/resize-evidence/` captures                                                                                                                                                                                                                                                            | Verified | All 18 Lab tests pass with two workers in 48.9s, including all three Resize Lab journeys, effective-boundary percentages, real List reorder/Bridge events, viewport reload/restore, animated/manual content, input/feedback and existing regressions. Local configured-browser proof only; profile limits are below.               |
+| BRIDGE-EVENTS        | v3 event disclosure, bounded cursor reads, history gaps, generation and abort       | [event observation tests](../../packages/dev-bridge/tests/event-observation.test.ts), [browser connector tests](../../packages/dev-bridge/tests/browser-connector.test.ts)                                                                                                                                                                                         | Verified | All 48 Bridge tests, 13 focused follow-up cases, check/build/artifacts and the final 18-test Lab gate pass. Real Panel and List events are read through disclosed cursors; generation/history-gap/security cases remain protocol-owned.                                                                                            |
+| LIST-EVENTS-ISOLATED | Standalone reorder attribution, final flush, hover/focus, cancel and teardown       | [reorder event tests](../../packages/dashstack/tests/reorder-events.test.tsx)                                                                                                                                                                                                                                                                                      | Verified | Three focused event tests plus all 257 DashStack package tests, check/build/artifacts pass; covers standalone/StrictMode attribution, final flush, hover/focus, zero-write cancellation, and exactly one teardown cancellation. This is isolated/component evidence only.                                                          |
+| LIST-EVENTS-BROWSER  | Shared public event observation against a second UI consumer                        | [Resize Lab animated-content journey](../../apps/lab/tests/resize.spec.ts)                                                                                                                                                                                                                                                                                         | Verified | Real child List reorder and its Nexus/Bridge event cursor are verified by the animated-content journey within the final 18-test Lab pass. This proves shared public event consumption, not disclosure of private responsive state.                                                                                                 |
+| PICODASH-RESIZE      | Exact foundation reexports and public composition                                   | Facade type and package-artifact smoke checks                                                                                                                                                                                                                                                                                                                      | Verified | All seven facade tests plus check/build/artifacts pass for exact foundation reexports and public composition. This does not promote a separate facade resize implementation or duplicate the Panel browser matrix.                                                                                                                 |
+
+The resize-indicator layer now sits outside the rounded header/body clipping surface, within the
+same Panel stacking context. The public `--picodash-panel-resize-offset` keeps the default position
+at zero and supports signed inward/outward placement without changing measured or saved geometry.
+All 240 Panel tests, the Panel check and artifact gate, and the three Resize Lab journeys pass.
+The retained-intent journey verifies native hit testing for all eight targets at inward and outward
+offsets, unchanged shell geometry, and real outside edge/corner drags cancelled without Nexus writes.
+The content journey retains ordinary and root-List scrolling/measurement evidence. This is local
+Chromium proof; host ancestor and viewport clipping still apply. The regular/compact/coarse, live
+placement, and phone-sized boundary journeys also pass.
+
+Resize themes can style two decorative segments per target using the supported direction, kind,
+and primary/secondary segment hooks. The secondary segment is hidden in the default recipe.
+The [CSS examples](../examples/dashpanel-resize-handles.css) run inside the retained-intent Resize
+Lab journey: single-line defaults, parallel edges, perpendicular external corners, and unequal
+parallel internal corners are checked in all directions. Computed geometry, visibility, and native
+hit testing prove that both strokes resolve to one resize button without changing the Panel box.
+Local captures are `output/resize-evidence/resize-handles-{single,parallel,external,internal}.png`.
+All 240 Panel tests, the Panel check/artifact gate, and all three Resize Lab journeys pass for this
+change. The browser test count remains unchanged.
+
+The Resize Lab imports the same example stylesheet and exposes immediate Edge handle style and
+Corner handle style selectors above the sizing form. The retained-intent journey drives these
+public controls rather than injecting CSS or mutating classes, verifies unchanged Nexus metadata,
+and reloads the selected styles through session configuration. The Lab model test rejects unknown
+stored style values. Four Lab model tests, all three Resize Lab journeys, workspace checks, and
+the production Lab build pass.
+Desktop/narrow control captures are under `output/resize-evidence/resize-handle-controls-*.png`.
+
+Moving-release regression evidence identifies a native ordering difference in the in-app browser:
+`lostpointercapture` with `buttons: 0` arrived about 16ms before `pointerup`. Cancelling at that first
+event discarded valid move/resize previews. Both operations now complete from the first matching
+released-button event and ignore the later duplicate; capture loss while the primary button remains
+held still cancels without writing. Native input subscriptions also begin synchronously at gesture
+acquisition, closing the separate pre-effect release gap. Final no-op placement does not materialize
+dormant defaults. Six new component cases fail before their repairs; all 246 Panel tests, package
+check/build/artifacts, workspace checks, and the three Resize Lab journeys pass afterward.
+The two existing browser journeys now deliver release-bearing movement before pointerup and check
+retained dimensions/position, exactly one terminal event, disclosed Nexus metadata, and scroll
+retention. Eight additional native sequences (0/1/3/12 intermediate samples per operation) commit
+once in `output/fast-release/moving-release.json`. The owner confirmed both moving-release paths
+retain changes in the affected in-app browser. The normal browser test count remains unchanged.
+
+Two final findings now have isolated fixes: movement event publication coalesces to frames and
+flushes before the terminal event; commands merge from authoritative public scoped metadata instead
+of an effect-delayed cache. Synchronous scoped observation and a final snapshot fence prevent
+same-stack external-write/Enter clobbering; the regression retains the external height of `400px`
+and writes no stale resize result. Six runtime tests use actual Nexus instances to verify fresh
+axis/position merge, reset/removal, rejection, and unavailable-command behavior. The final fresh 18-test Lab run passes for this corrected head.
+
+The isolated resize-session fixture exercises 10,000 pointer samples over a controlled 10-second,
+60Hz frame clock: 600 previews, 601 drag updates including the final flush, zero early writes, and
+one settled Nexus metadata operation with one affected scoped notification. Another fixture runs
+100 cancellations followed by active unmount and observes no owned listeners or scheduled frames
+remaining. These prove bounded scheduling/cleanup in the controlled component fixture, not native
+browser frame rate. Component tests also cover declared/content-bound invalidation, image/font
+refresh and cleanup, restore without Close, the coarse 44px equivalent control, collapsed bottom
+anchoring, and full-dock read-model projection (resolved height 500 while desired height 120 stays
+retained).
+
+A separate controlled movement fixture sends 10,000 samples over 600 frames and observes 600
+updates, one start/end pair, ordered final flushing, and one canonical commit. A focused header
+restore test verifies that UI-initiated removal of the restore button repairs focus inside the
+Panel; programmatic restoration has no independent focus-stealing effect. An explicit minimum-height
+regression verifies natural height `200px` plus `minHeight=300` renders an actual `300px` shell.
+
+The existing-placement regression exposed owned-FLIP scale feeding the content measurement. The
+fixed helper excludes and restores that transform across its entire shell/content calculation, and
+the exact magnetic-placement browser journey now passes with natural height `217px` rather than
+scaled `43.4px`. Four focused measurement tests additionally prove natural height `450px` is
+retained through peer allocation `400→200→400`, full horizontal content is measured at allocated
+width without overwriting preferred width, and preferred height `50%` resolves against a `200px`
+effective boundary as `100px` even inside a `1000px` portal. The final full 18-test Lab run also passes; these local configured-browser checks do not establish
+cross-browser behavior.
+
+The original regular/compact/coarse journey also passes after a narrow observer-role correction:
+observed natural-content updates refresh measurement without being misclassified as boundary changes
+that cancel owned collapse motion. A component regression distinguishes content updates (motion
+retained) from a true boundary update (motion cancelled). The real browser checks intermediate
+collapse/expand heights and the coarse 44px resize action/editor. This preserves the accepted
+animation/cancellation policy rather than changing it.
+
+Browser readiness uses observed postconditions: the Bridge helper waits for a successful inspect
+and handles only the documented transient `session_unsynchronized` result; discovery alone is not
+snapshot readiness. The persistence journey waits for the actual portal-mounted Panel instead of
+asserting a synchronous count immediately after reset. These are test-readiness corrections with
+unchanged protocol/product semantics. The final fresh run passes all 18 tests, with two workers in
+48.9 seconds and exit code 0 (`output/resize-evidence/final-lab-tests.log`). The Lab production build
+also passes Next.js 16.3.8 type checking and route output (`output/resize-evidence/lab-production-build.log`).
+Lab model/state checks pass 12 tests across three files; seven real dev-host tests cover relay,
+loopback/origin/method policy, credentials, locks, signal forwarding, and cleanup.
+
+A follow-up fast-release regression reproduced ordinary content scrolling from `100px` to `0px`
+even though the requested manual `392×264` size committed. Natural/min-content measurement briefly
+expanded the scrollport and let the browser clamp its offset. The complete measurement now captures
+mounted scrollports and restores their valid horizontal/vertical offsets after restoring sizing
+styles. The existing animated-content journey fails on that scroll assertion before the fix and
+passes afterward, including a one-move/immediate-release resize, exactly one accepted Nexus terminal
+event with the final diff, retained rendered/persisted dimensions, and a root DashStack automatic
+band retaining its `120px` offset through another fast resize. Pin positions are checked relative
+to the Panel so ordinary Lab page scrolling cannot invalidate the assertion. All 18 Lab tests pass
+on the corrected head with two workers in 57.0 seconds (`output/resize-evidence/scroll-lab-tests.log`),
+as do all 237 Panel tests, the Panel check and package-artifact gate. Browser test count remains 18.
+A bounded Chrome confirmation repeats five immediate resize/releases, alternately widening and
+narrowing while increasing height. Every final manual size matches its drag and retains the
+ordinary body's `100px` scroll offset (`output/resize-evidence/scroll-native-confirmation.json`).
+
+A movement-release regression presses at one point and releases at a newer point with no intervening
+movement sample or preview frame. Before repair the browser retained `(24,24)` instead of `(84,48)`;
+the owning component regression likewise observed no saved position. Movement now consumes that
+final release before commit. The new component case checks one scoped write, one accepted terminal
+event with the final delta, and capture cleanup. The first existing Resize Lab journey repeats the
+case with native Chromium input and independently inspects persisted Nexus metadata. It also checks
+Restore is left of the action menu and verifies 40% edge-indicator sizing on both orientations.
+The header uses Lucide's `square-dimensions` SVG with its ISC notice included in the package.
+All 238 Panel tests and all 18 Lab tests pass on this correction, including the three Resize Lab
+journeys (`output/resize-evidence/move-full-lab.log`). Workspace format/lint/type checks, Panel
+package artifacts, and agent-artifact checks also pass. The browser test count remains 18.
+
+A content-maximum-height follow-up reproduced the third-accordion-item sequence: a saved manual
+height of 260px projected down to 193px when all items closed, then remained visually capped near
+197px after opening the first item, despite correct 333px content measurements and accepted manual
+growth. Motion Mini's per-property completion callback released height ownership after one of the
+two animations; the other then committed an obsolete maximum back onto the DOM. Height cleanup now
+waits for the group's completion. The component regression completes height and maximum animations
+separately and verifies cleanup only after both. The existing animated-content browser journey
+checks the actual accordion sequence, retained Nexus manual size, growth back to 260px, and manual
+growth to the current content maximum with no hidden content. Both regressions fail before repair.
+Both native-property finish orders pass in the component matrix. All 240 Panel tests, Panel check
+and package artifacts, and all three Resize Lab journeys pass on this correction.
+The complete 18-test Lab gate also passes (`output/resize-evidence/content-max-full-lab.log`),
+along with workspace formatting, lint/types, motion policy, and agent-artifact checks.
+
+The manual browser inspection found and fixed two composed seams: numeric preferred widths must
+be normalized to CSS pixels before entering the token, and a manually sized shell must cap its body
+so a root DashStack retains its automatic-band scrollport. At a manual `480 × 320` size, the observed
+List automatic band was `126px` high with `672px` scroll extent and pinned start/end bands of `54px`
+each. These measurements prove that inspected configuration, not every minimum-height or content
+permutation. Local desktop/mobile captures are `output/resize-evidence/resize-desktop.png` and
+`resize-mobile.png`; generated local artifacts are not a deployed or cross-browser claim.
+
+A bounded development-browser profile uses Apple M4 Max (Mac16,9), macOS 27.0.1, Chrome
+157.0.8103.51 through agent-browser 0.33.0, Next.js 16.3.8 development mode, and React 19.2.8. At
+1440×1000 with one test Panel plus the Console, three accordion items, and the full event timeline
+active, 120 native pointer moves changed the Panel from `360×333` to `450×309` while height remained
+automatic and preferred position stayed `(24,24)`. It recorded one settled size commit and an idle
+event sequence stable at 252 afterward. No Next MCP issues, configuration errors, or session errors
+were reported; all 11 owned browser processes exited after closure.
+
+The trace records 5,540 Layout entries (242.98ms total, p95 0.14ms, max 1.95ms), 5,581
+UpdateLayoutTree entries (146.8ms total, p95 0.07ms, max 0.52ms), and 5,419 animation-frame callbacks
+(p95 0.15ms, max 1.02ms). It also contains a 122.3ms gesture-start EventDispatch and a 113.95ms
+FunctionCall; no zero-long-task or production-speed claim is made. Development React profiling
+reported whole-tree visits rather than reliable component invocation counts. Native scheduler marks
+locate updates in Panel/inspection/controller work, with no Router/ContractLab update marks observed;
+this is not an exact render-count or FPS measurement. Artifacts are
+`output/resize-evidence/resize-browser-profile.json`, `resize-react-renders.json`, and
+`resize-profile-complete.png`. This one bounded local profile does not replace production or
+cross-browser performance evidence.
+
+Required browser evidence correlates a real interaction with disclosed Nexus metadata/events while
+measuring rendered geometry independently. It includes no-op/cancel without writes, a width-only
+resize while both axes are projected, reload while contracted followed by expansion, automatic
+versus manual scrolling content, animated disclosure interruption, input/focus parity, and owned
+resource cleanup. Package model tests retain the deterministic cross-product matrices.
 
 ## Browser budget
 

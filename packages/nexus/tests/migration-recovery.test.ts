@@ -227,6 +227,7 @@ describe('Nexus beta migration and metadata recovery', () => {
             'good-scope',
             {
               dashPanel: {
+                version: 2 as const,
                 placement: { mode: 'floating', disposition: { kind: 'free' } },
                 preferredPosition: { x: 1, y: 2 },
               },
@@ -254,6 +255,7 @@ describe('Nexus beta migration and metadata recovery', () => {
     expect(nexus.getState().scopes.has('good-scope')).toBe(true)
     expect(
       nexus.setDashPanelLayout('bad-scope', {
+        version: 2 as const,
         placement: { mode: 'floating', disposition: { kind: 'free' } },
         preferredPosition: { x: 1, y: 2 },
       }),
@@ -265,6 +267,7 @@ describe('Nexus beta migration and metadata recovery', () => {
         'good-scope',
         {
           dashPanel: {
+            version: 2 as const,
             placement: { mode: 'floating', disposition: { kind: 'free' } },
             preferredPosition: { x: 1, y: 2 },
           },

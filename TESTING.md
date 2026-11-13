@@ -93,6 +93,13 @@ unmount, move, or restyle the Console. Closing, hiding, deregistering, or breaki
 not remove the host reopen control or status strip. The active preset may survive reload for the
 browser session; no preset is encoded in a route or durable user preference.
 
+The `placement` preset includes the visible **Placement** and **Resize lab** scenarios. The Resize
+lab uses one configurable test Panel, content fixtures, host-owned controls, and independent Nexus
+event/geometry inspection. It remains application state within Placement, preserves the Console and
+status strip, and adds no route, seventh preset, or driver command beyond `loadPreset` and `reset`.
+Resize browser journeys share the same 40-test ceiling; deterministic target and constraint matrices
+remain DashPanel-owned.
+
 The `interaction` preset is labelled **Value binding** for recovery milestones M4/M5. It mounts two
 standalone Stacks over three shared fields, without a Panel or Picodash Provider. The existing
 placement and Bridge/document journeys retain Panel lifecycle evidence. The M4 journey compares

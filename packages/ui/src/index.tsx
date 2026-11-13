@@ -65,3 +65,4 @@ export {
   type TooltipContentProps,
 } from './tooltip.tsx'
 export { Popover, type PopoverProps } from './popover.tsx'
+export { useScrollFade } from './scroll-fade.ts'

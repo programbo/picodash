@@ -1,3 +1,5 @@
+import type { NexusInteractionHub } from './interactions.js'
+
 export type IdentityReason = 'not-string' | 'empty' | 'surrounding-whitespace' | 'control-character'
 
 export function classifyIdentity(value: unknown): IdentityReason | undefined {
@@ -47,6 +49,7 @@ export type EntityRecord = {
   readonly root: object
   readonly scopeId: string
   readonly entityKind: EntityKind
+  readonly generation: number
   readonly host: HostRecord
   lease: object
   active: boolean
@@ -111,6 +114,17 @@ export class RuntimeController {
   private leaseMutationGuard: (() => void) | undefined
   private leaseMutationRunner: (<T>(operation: () => T) => T) | undefined
   lifecycle: RuntimeLifecycle = 'active'
+  interactionHub?: NexusInteractionHub
+  reportInteractionFailure?: (
+    scopeId: string,
+    reason?: 'payload-size' | 'dispatch-capacity',
+  ) => void
+  private entityGeneration = 0
+
+  nextEntityGeneration(): number {
+    this.entityGeneration += 1
+    return this.entityGeneration
+  }
 
   constructor(root: object) {
     this.root = root

@@ -6,6 +6,7 @@ export {
   usePicodashTheme,
   usePicodashDensity,
   usePicodashOverlayDefaults,
+  useScrollFade,
   ActionMenu,
   ActionMenuItem,
   ActionMenuSeparator,

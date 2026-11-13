@@ -12,6 +12,7 @@ vi.mock('motion/mini', () => ({ animate: vi.fn(() => ({ cancel: vi.fn() })) }))
 it('starts dock motion only after a positioned baseline exists', async () => {
   const nexus = createPicodashNexus({ valueOwner: 'nexus', fields: {} })
   nexus.scope('inspector').setDashPanelLayout({
+    version: 2,
     placement: { mode: 'hybrid', disposition: { kind: 'docked', position: 'top-right' } },
     preferredPosition: { x: 0, y: 0 },
   })

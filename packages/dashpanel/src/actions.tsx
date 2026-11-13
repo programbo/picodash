@@ -21,6 +21,7 @@ interface DashPanelActionContextValue {
   readonly scopeId: string
   readonly onRequestRemove?: (details: DashPanelRemoveRequest) => void
   readonly announce: (message: string) => void
+  readonly onResize?: () => void
 }
 
 const DashPanelActionContext = createContext<DashPanelActionContextValue | undefined>(undefined)
@@ -29,10 +30,11 @@ export function DashPanelActionProvider({
   scopeId,
   onRequestRemove,
   announce,
+  onResize,
   children,
 }: DashPanelActionContextValue & { readonly children: ReactNode }) {
   return (
-    <DashPanelActionContext.Provider value={{ scopeId, onRequestRemove, announce }}>
+    <DashPanelActionContext.Provider value={{ scopeId, onRequestRemove, announce, onResize }}>
       {children}
     </DashPanelActionContext.Provider>
   )
@@ -239,6 +241,34 @@ export function DashPanelResetLayoutItem() {
   )
 }
 
+export function DashPanelRestoreSizeItem() {
+  const controller = useDashPanel()
+  const { announce } = useActionContext()
+  if (controller.availability === 'unavailable') return null
+  return (
+    <ActionMenuItem
+      label="Restore preferred size"
+      isDisabled={!controller.manuallySized}
+      onAction={() =>
+        announceDashPanelLayoutFailure(
+          'Restore preferred size',
+          controller.restorePreferredSize(),
+          announce,
+        )
+      }
+    />
+  )
+}
+
+export function DashPanelResizeItem() {
+  const controller = useDashPanel()
+  const { onResize } = useActionContext()
+  if (controller.availability === 'unavailable' || !onResize) return null
+  return (
+    <ActionMenuItem label="Resize panel…" isDisabled={controller.collapsed} onAction={onResize} />
+  )
+}
+
 export function DashPanelRequestRemoveItem() {
   const controller = useDashPanel()
   const { onRequestRemove } = useActionContext()
@@ -266,6 +296,8 @@ export function DashPanelActionItems() {
     <Fragment>
       <DashPanelPlacementSubmenu />
       <ActionMenuSeparator />
+      <DashPanelResizeItem />
+      <DashPanelRestoreSizeItem />
       <DashPanelResetLayoutItem />
       {actionContext?.onRequestRemove ? (
         <Fragment>

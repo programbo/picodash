@@ -8,7 +8,10 @@ import type {
   PicodashDevBridgeSetValuesCommand,
   PicodashDevBridgeWaitCommand,
   PicodashDevBridgeWaitResult,
+  PicodashDevBridgeReadEventsCommand,
+  PicodashDevBridgeEventsResult,
 } from './types.js'
+import { parseEventResponse } from './event-response.js'
 export type PicodashDevBridgeClient = Readonly<{
   listSessions(
     options?: Readonly<{ signal?: AbortSignal }>,
@@ -29,6 +32,11 @@ export type PicodashDevBridgeClient = Readonly<{
     command: PicodashDevBridgeWaitCommand,
     options?: Readonly<{ signal?: AbortSignal }>,
   ): Promise<PicodashDevBridgeWaitResult | PicodashDevBridgeError>
+  readEvents(
+    session: PicodashDevBridgeSessionRef,
+    command: PicodashDevBridgeReadEventsCommand,
+    options?: Readonly<{ signal?: AbortSignal }>,
+  ): Promise<PicodashDevBridgeEventsResult | PicodashDevBridgeError>
 }>
 export function createPicodashDevBridgeClient(
   credential: PicodashDevBridgeClientCredential,
@@ -81,6 +89,22 @@ export function createPicodashDevBridgeClient(
         signal: options?.signal,
       })
       return r.body as PicodashDevBridgeWaitResult | PicodashDevBridgeError
+    },
+    async readEvents(session, command, options) {
+      const r = await request(pathFor(session, 'events'), {
+        method: 'POST',
+        body: JSON.stringify(command),
+        signal: options?.signal,
+      })
+      const result = parseEventResponse(r.body, command.requestId)
+      if (!result) throw bridgeError(undefined)
+      if (
+        result.type === 'events_result' &&
+        (result.session.sessionId !== session.sessionId ||
+          result.session.generation !== session.generation)
+      )
+        throw bridgeError(undefined)
+      return result
     },
   }
 }

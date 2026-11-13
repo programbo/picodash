@@ -24,6 +24,7 @@ assert.deepEqual(manifest.exports, {
 })
 assert.deepEqual(manifest.dependencies, {
   '@internationalized/date': 'catalog:',
+  '@internationalized/number': 'catalog:',
   '@picodash/nexus': 'workspace:*',
   '@picodash/ui': 'workspace:*',
   motion: 'catalog:',
@@ -273,7 +274,7 @@ assert.deepEqual(
 )
 for (const retired of [
   'Dashlist',
-  'PicodashList',
+  'PicodashStack',
   'PicodashGroup',
   'PicodashItem',
   'DashletGroup',
@@ -354,7 +355,7 @@ for (const retired of [
   'DashletStates',
   'DashletStatus',
   'Dashlist',
-  'PicodashList',
+  'PicodashStack',
   'PicodashItem',
 ])
   assert.doesNotMatch(declarations, new RegExp(`\\b${retired}\\b`))

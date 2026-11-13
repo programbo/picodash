@@ -3,6 +3,8 @@ import { describe, expect, expectTypeOf, it } from 'vite-plus/test'
 import { createPicodashNexus } from '@picodash/nexus'
 import {
   DashPanel as OwnerDashPanel,
+  DashPanelRestoreSizeItem as OwnerRestoreSizeItem,
+  useDashPanel as ownerUseDashPanel,
   type DashPanelProps as OwnerDashPanelProps,
 } from '@picodash/dashpanel'
 import {
@@ -73,6 +75,8 @@ import {
   DashHeader,
   DashStack,
   DashPanel,
+  DashPanelRestoreSizeItem,
+  useDashPanel,
   Dashlet,
   DisplayDashlet,
   MeterDashlet,
@@ -394,6 +398,10 @@ describe('@picodash/picodash facade public types', () => {
 
     expectTypeOf(DashPanel).toEqualTypeOf(OwnerDashPanel)
     expectTypeOf(DashStack).toEqualTypeOf(OwnerDashStack)
+    expect(DashPanelRestoreSizeItem).toBe(OwnerRestoreSizeItem)
+    expect(useDashPanel).toBe(ownerUseDashPanel)
+    expectTypeOf(useDashPanel).toEqualTypeOf(ownerUseDashPanel)
+    expectTypeOf(DashStack).toEqualTypeOf(OwnerDashStack)
     expectTypeOf(DashGroup).toEqualTypeOf(OwnerDashGroup)
     expectTypeOf(Dashlet).toEqualTypeOf(OwnerDashlet)
     expectTypeOf<DashPanelProps>().toEqualTypeOf<OwnerDashPanelProps>()
@@ -441,13 +449,12 @@ describe('@picodash/picodash facade public types', () => {
     const runtime = await import('../src/index.ts')
     for (const retired of [
       'PicodashPanel',
-      'PicodashList',
+      'PicodashStack',
       'PicodashGroup',
       'PicodashItem',
       'Dashlist',
       'DashletGroup',
       'DashPanelProvider',
-      'useDashPanel',
       'useDashStackActions',
       'catalog',
     ]) {

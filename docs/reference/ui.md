@@ -63,7 +63,8 @@ The accepted ownership boundary includes:
 - theme and density context, data attributes, and detached-root propagation support;
 - the shared structural stylesheet for UI-owned components;
 - generic accessible chrome and action-menu composition primitives admitted by the rules above;
-- `DashHeader` as presentational header composition.
+- `DashHeader` as presentational header composition;
+- product-neutral vertical scroll feedback through `useScrollFade`.
 
 The initial component inventory, public prop policy, theme utilities, tokens, and product reexports
 are accepted below. Exact compact recipe values, private structural selectors, and exhaustive
@@ -79,19 +80,20 @@ token-consumption tables are implementation evidence rather than unresolved API 
 The initial public components are exported from the `@picodash/ui` root. Every component exports a
 named `*Props` type. No dedicated component subpath is introduced for this inventory.
 
-| Family       | Initial public components                                                      |
-| ------------ | ------------------------------------------------------------------------------ |
-| Theme        | `PicodashThemeProvider`, `PicodashOverlayProvider`, and the accepted context   |
-|              | hooks and public types.                                                        |
-| Header       | `DashHeader`.                                                                  |
-| Button       | `Button`.                                                                      |
-| Confirmation | `AlertDialog`, `AlertDialogAction`, `AlertDialogCancel`, `AlertDialogContent`, |
-|              | `AlertDialogDescription`, `AlertDialogFooter`, `AlertDialogHeader`,            |
-|              | `AlertDialogMedia`, `AlertDialogOverlay`, `AlertDialogTitle`,                  |
-|              | `AlertDialogTrigger`.                                                          |
-| Action menu  | `ActionMenu`, `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`.        |
-| Popover      | `Popover`.                                                                     |
-| Tooltip      | `Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger`.              |
+| Family          | Initial public components                                                      |
+| --------------- | ------------------------------------------------------------------------------ |
+| Theme           | `PicodashThemeProvider`, `PicodashOverlayProvider`, and the accepted context   |
+|                 | hooks and public types.                                                        |
+| Header          | `DashHeader`.                                                                  |
+| Button          | `Button`.                                                                      |
+| Confirmation    | `AlertDialog`, `AlertDialogAction`, `AlertDialogCancel`, `AlertDialogContent`, |
+|                 | `AlertDialogDescription`, `AlertDialogFooter`, `AlertDialogHeader`,            |
+|                 | `AlertDialogMedia`, `AlertDialogOverlay`, `AlertDialogTitle`,                  |
+|                 | `AlertDialogTrigger`.                                                          |
+| Action menu     | `ActionMenu`, `ActionMenuItem`, `ActionSubmenu`, `ActionMenuSeparator`.        |
+| Popover         | `Popover`.                                                                     |
+| Tooltip         | `Tooltip`, `TooltipContent`, `TooltipProvider`, `TooltipTrigger`.              |
+| Scroll feedback | `useScrollFade` callback-ref hook.                                             |
 
 The public `ActionMenu` root replaces the prototype technique in which `ActionSubmenu` changes
 meaning when placed in a hidden root context. `ActionSubmenu` always means a nested submenu in the
@@ -284,6 +286,9 @@ type PopoverProps = Omit<ReactAriaPopoverProps, 'UNSTABLE_portalContainer'> &
 - `portalContainer` and `layerBase` use the standard explicit-over-inherited overlay rules. The
   upstream unstable portal prop is reserved so one Picodash portal vocabulary remains public.
 - The root repeats resolved theme and density attributes without decorating the portal host.
+- The interactive Popover root restores `pointer-events: auto` when a portal host intentionally
+  passes pointer events through. It does not mutate the host. A caller's explicit Popover
+  `style.pointerEvents` still takes precedence, including an intentional `none` value.
 - The semantic popover token, explicit or inherited layer base, and active parent-overlay layer
   form minimums. A nested Popover resolves above its opener and privately supplies its resolved
   layer to descendants.
@@ -600,6 +605,10 @@ type ActionMenuSeparatorProps = Omit<ReactAriaSeparatorProps, 'orientation'>
   after activation; an item requiring confirmation closes the menu before opening AlertDialog.
 - Portal and layer defaults come from `PicodashOverlayProvider`. Explicit root portal/layer props
   override that context; nested submenus inherit the root overlay and do not portal independently.
+- ActionMenu and submenu interactive overlay roots restore `pointer-events: auto` inside a
+  pass-through portal host without changing the host's pointer policy. An inherited `none` must
+  not make a visible menu untouchable. This is an interactive-root CSS rule, not a global pointer
+  override or a change to modal-backdrop behavior.
 - Root menus and nested submenu menus use the same themed menu surface, including background,
   border, shadow, blur, and density treatment.
 - `ActionMenuItem` accepts a string `label`, decorative `icon?: ReactNode`, `onAction`,
@@ -991,10 +1000,11 @@ shell: the DashPanel body or the root DashStack automatic band. No extra consume
 dependency, or scroll listener is required.
 
 At the scroll start, only the bottom fades. Between the ends, both fade; at the scroll end, only
-the top fades. Content that fits remains fully visible. The fade reaches at most 25% of the
-scrollport height or 40px, whichever is smaller, over 96px of scroll travel. Headers and pinned
-content outside the scrollport are unaffected. The quarter-height cap keeps the cue visible beyond
-ordinary content padding in short scrollports without letting the two fades cover the whole body.
+the top fades. Content that fits remains fully visible. Each visible fade has a constant depth of
+40px, capped at 25% of the scrollport height for short viewports. Hidden content determines whether
+the fade appears, not its depth. A distance of
+at most 1px counts as an edge to accommodate rounded browser scroll metrics. Headers and pinned
+content outside the scrollport are unaffected.
 
 This is a reviewed CSS-keyframe exception to the Motion default: CSS scroll timelines drive a mask
 directly from scroll position, with no elapsed-time choreography. It remains enabled with reduced

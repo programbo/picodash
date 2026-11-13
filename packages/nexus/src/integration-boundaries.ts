@@ -1,3 +1,4 @@
+import type { NexusInteractionPublisher } from './interactions.js'
 import {
   createElement,
   useContext,
@@ -135,4 +136,19 @@ export function PicodashNexusEntityBoundary<
     [host, parentContext?.root, parentToken, standaloneHost, nexus, token],
   )
   return createElement(PicodashNexusContext.Provider, { value }, children)
+}
+
+/** Resolve the existing nearest declarative entity's publisher; never acquires another entity. */
+export function useNexusInteractionPublisher(): NexusInteractionPublisher {
+  const context = useContext(PicodashNexusContext)
+  const latest = useRef(context)
+  latest.current = context
+  return useMemo(
+    () => (input) => {
+      const current = latest.current
+      if (!current?.parentToken) return undefined
+      return current.host.publishInteraction(current.parentToken, input)
+    },
+    [],
+  )
 }

@@ -25,6 +25,9 @@ improvement against a real browser Nexus consumer and feed general Nexus gaps ba
 - Never bypass Nexus validation or expose arbitrary evaluation, arbitrary Nexus access, filesystem
   access, or application authority.
 - Treat reload as a new generation and fence stale connections and mutation results.
+- Event observation is read-only and independently disclosed by scope and event type. Bound retained
+  events and payloads, fence cursors by session generation, and report history gaps explicitly.
+  Event subscriptions never grant publication, resizing, reset, or additional value authority.
 - Keep credentials out of argv, browser child environments, and logs; create private files and
   clean them up only when ownership matches.
 - The one-port-per-worktree policy applies only to web application servers. Relay and credential

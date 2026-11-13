@@ -6,7 +6,7 @@ import type {
   DurableScopeMetadata,
 } from './kernel/index.js'
 import type { SerializedDurableScopeMetadata } from './metadata.js'
-import { decodeDurableScopeMetadata, encodeDurableScopeMetadata } from './metadata.js'
+import { decodeHydratedScopeMetadata, encodeDurableScopeMetadata } from './metadata.js'
 import { PicodashInitializationError } from './adapter.js'
 import {
   runSchemaMigrations,
@@ -587,6 +587,7 @@ export function hydratePersistenceEnvelope(
     readonly countUnknownFields?: (values: Readonly<Record<string, PicodashJsonValue>>) => number
     readonly onUnknownFieldCount?: (count: number) => void
     readonly onQuarantine?: (scopeId: string) => void
+    readonly onObsoletePanel?: (scopeId: string) => void
   } = {},
 ):
   | { readonly ok: true; readonly record: PersistenceHydrationRecord }
@@ -625,8 +626,9 @@ export function hydratePersistenceEnvelope(
   try {
     for (const [scopeId, metadata] of migrated.scopes) {
       try {
-        const normalized = decodeDurableScopeMetadata(metadata)
-        if (normalized !== undefined) scopes.set(scopeId, normalized)
+        const recovered = decodeHydratedScopeMetadata(metadata)
+        if (recovered.obsoletePanel) options.onObsoletePanel?.(scopeId)
+        if (recovered.metadata !== undefined) scopes.set(scopeId, recovered.metadata)
       } catch {
         const rawMetadata = clonePicodashValue(metadata as PicodashJsonValue)
         quarantinedScopes.set(scopeId, Object.freeze({ scopeId, raw: rawMetadata }))
@@ -727,6 +729,7 @@ type PersistenceControllerOptions = {
   readonly onUnknownFieldCount?: (count: number) => void
   readonly onUnknownFieldsRecovered?: () => void
   readonly onQuarantine?: (scopeId: string) => void
+  readonly onObsoletePanel?: (scopeId: string) => void
   readonly onExternalValues: (values: PersistenceValues, scopes: PersistenceScopes) => void
   readonly onApply: (
     values: PersistenceValues,
@@ -892,8 +895,9 @@ export function createPersistenceController(
     const quarantinedScopes = new Map<string, PicodashQuarantinedScopeMetadata>()
     for (const [scopeId, metadata] of migrated.scopes) {
       try {
-        const normalized = decodeDurableScopeMetadata(metadata)
-        if (normalized !== undefined) scopes.set(scopeId, normalized)
+        const recovered = decodeHydratedScopeMetadata(metadata)
+        if (recovered.obsoletePanel) options.onObsoletePanel?.(scopeId)
+        if (recovered.metadata !== undefined) scopes.set(scopeId, recovered.metadata)
       } catch {
         quarantinedScopes.set(
           scopeId,

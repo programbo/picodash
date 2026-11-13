@@ -521,6 +521,7 @@ describe('Nexus document namespace integration', () => {
     const target = createNexus('documents-metadata-freshness')
     const layout = (x: number) =>
       ({
+        version: 2 as const,
         placement: { mode: 'floating', disposition: { kind: 'free' } },
         preferredPosition: { x, y: x },
       }) as const
@@ -692,6 +693,7 @@ describe('Nexus document namespace integration', () => {
   it('tracks mapped quarantine freshness, clears imported quarantine, and ignores unrelated quarantine changes', () => {
     const source = createNexus('documents-quarantine-import')
     const panel = {
+      version: 2 as const,
       placement: { mode: 'floating', disposition: { kind: 'free' } },
       preferredPosition: { x: 1, y: 2 },
     } as const

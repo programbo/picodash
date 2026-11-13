@@ -9,6 +9,7 @@ const expectedExports = {
   './integration': './dist/integration.mjs',
   './package.json': './package.json',
   './style.css': './dist/style.css',
+  './resize-handles.css': './dist/resize-handles.css',
 }
 
 async function exists(filePath) {
@@ -35,6 +36,7 @@ async function main() {
     'dist/integration.mjs',
     'dist/integration.d.mts',
     'dist/style.css',
+    'dist/resize-handles.css',
   ])
     assert.equal(await exists(path.join(packageRoot, file)), true, `missing ${file}`)
 
@@ -54,6 +56,7 @@ async function main() {
     'DashPanelProvider',
     'DashPanelRequestRemoveItem',
     'DashPanelResetLayoutItem',
+    'DashPanelRestoreSizeItem',
     'DashPanelTrigger',
     'useDashPanel',
   ])
@@ -81,6 +84,17 @@ async function main() {
     'DashPanelLauncherItem',
     'DashPanelLauncherProps',
     'DashPanelStyle',
+    'DashPanelDimension',
+    'DashPanelHeight',
+    'DashPanelResize',
+    'DashPanelResizeOptions',
+    'DashPanelResizeTarget',
+    'DashPanelContentConstraints',
+    'DashPanelContentMetrics',
+    'DashPanelSizingState',
+    'DashPanelManualSize',
+    'DashPanelRestoreSizeOptions',
+    'DashPanelSizeRequest',
     'DashPanelBoundary',
     'DashPanelBoundaryInset',
     'DashPanelSnapPosition',
@@ -107,6 +121,7 @@ async function main() {
     'DashPanelRemoveRequest',
     'DashPanelRequestRemoveItem',
     'DashPanelResetLayoutItem',
+    'DashPanelRestoreSizeItem',
   ])
     assert.match(declarations, new RegExp(`\\b${name}\\b`))
   const integrationDeclarations = await readFile(
@@ -124,9 +139,11 @@ async function main() {
     assert.doesNotMatch(declarations, new RegExp(`\\b${retired}\\b`))
 
   const css = await readFile(path.join(packageRoot, 'dist/style.css'), 'utf8')
-  assert.match(css, /--picodash-panel-width/)
+  for (const token of ['width', 'height', 'resize-hit-size', 'resize-grip-size', 'resize-offset'])
+    assert.match(css, new RegExp(`--picodash-panel-${token}`))
   assert.match(css, /picodash-dashpanel/)
   assert.match(css, /data-active/)
+  assert.match(css, /data-picodash-panel-resize-segment/)
   assert.doesNotMatch(css, /@picodash\/dashpanel\/src/)
   console.log('@picodash/dashpanel package artifact contract passed')
 }

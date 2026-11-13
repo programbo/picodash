@@ -65,6 +65,7 @@ assert.deepEqual(
     'DashHeader',
     'DashStack',
     'DashPanel',
+    'DashPanelRestoreSizeItem',
     'Dashlet',
     'CheckboxDashlet',
     'CheckboxGroupDashlet',
@@ -92,6 +93,7 @@ assert.deepEqual(
     'TimeDashlet',
     'PicodashProvider',
     'createPicodashNexus',
+    'useDashPanel',
     'usePicodashNexusSelector',
     'getDashStackStructure',
     'subscribeDashStackStructure',
@@ -134,6 +136,7 @@ assert.deepEqual(
     'usePicodashDensity',
     'usePicodashOverlayDefaults',
     'usePicodashTheme',
+    'useScrollFade',
   ].sort(),
 )
 
@@ -172,7 +175,7 @@ for (const name of [
   assert.match(declarations, new RegExp(`\\b${name}\\b`))
 for (const retired of [
   'PicodashPanel',
-  'PicodashList',
+  'PicodashStack',
   'PicodashGroup',
   'PicodashItem',
   'Dashlist',

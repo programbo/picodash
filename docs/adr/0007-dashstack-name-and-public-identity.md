@@ -6,7 +6,7 @@ Accepted.
 
 ## Decision
 
-Rename **DashList** to **DashStack**, published as `@picodash/dashstack`. The name describes its
+Rename **DashStack** to **DashStack**, published as `@picodash/dashstack`. The name describes its
 vertical composition of ordered, groupable Dashlets in normal presentation. Responsive density
 and Dashlet label/value orientation do not change that ordering axis. The separately accepted
 rail presentation remains a distinct target contract; this rename adds no layout behavior. Dashlet,
@@ -19,8 +19,8 @@ Native list semantics and implementation collections keep their ordinary names.
 
 ## Consequences
 
-There is no parallel DashList API or package alias. Existing consumers must update imports and
-product-specific names. The durable metadata key changes from `dashList` to `dashStack`; older
+There is no parallel DashStack API or package alias. Existing consumers must update imports and
+product-specific names. The durable metadata key changes from `dashStack` to `dashStack`; older
 preview documents and persistence containing that key fail strict validation and follow the
 existing invalid-data recovery path. No silent migration or new persistence protocol is added.
 References and historical implementation notes use the current paths so their links remain usable.

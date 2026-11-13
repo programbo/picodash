@@ -85,7 +85,7 @@ foundation retain one canonical public name everywhere:
 - Nexus and shared UI exports retain their owning package names and exact type identities.
 
 `@picodash/picodash` explicitly reexports those components and types without wrapping, cloning, or
-renaming them. The prototype aliases `PicodashPanel`, `PicodashList`, `PicodashGroup`,
+renaming them. The prototype aliases `PicodashPanel`, `PicodashStack`, `PicodashGroup`,
 `PicodashItem`, `Dashlist`, and `DashletGroup` are migration evidence and do not enter the target
 API.
 
@@ -407,6 +407,12 @@ It reexports `Popover` and `PopoverProps` as the exact UI-owned identities witho
 active-layer machinery.
 Product-specific DashStack controls retain their owning package surfaces even when Picodash
 reexports them separately.
+
+Manual sizing remains DashPanel-owned. The facade explicitly reexports the accepted sizing types,
+controller, and `DashPanelRestoreSizeItem` as the same foundation identities, with no wrapper,
+alternate persistence channel, or facade-specific resize lifecycle. Interaction subscriptions
+remain Nexus-owned. The [resize conformance rows](contract-conformance.md#dashpanel-resizing-and-interaction-observation)
+separate foundation evidence from the facade smoke check.
 
 There is no initial `@picodash/picodash/advanced` or `@picodash/picodash/dashlet` entrypoint.
 Advanced Nexus inspection remains Nexus-owned, DashStack anatomy remains DashStack-owned, and

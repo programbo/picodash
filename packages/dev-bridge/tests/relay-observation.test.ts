@@ -48,11 +48,17 @@ describe('dev bridge relay observation and command lifecycle', () => {
     frame(socket, registerFrame(credential.token))
     const registered = await readFrame(socket)
     const session = registered.session as Record<string, any>
+    const client = createPicodashDevBridgeClient(relay.agentCredential)
+    await expect(client.listSessions()).resolves.toMatchObject([
+      { sessionId: session.sessionId, generation: session.generation },
+    ])
+    await expect(
+      client.inspect({ sessionId: session.sessionId, generation: 1, sequence: 0 }),
+    ).rejects.toMatchObject({ type: 'bridge_error', error: { code: 'session_unsynchronized' } })
     frame(socket, snapshotFrame(session, 2, { values: { count: 1 } }))
     expect(await readFrame(socket)).toMatchObject({ type: 'resync_request', nextSequence: 0 })
     frame(socket, snapshotFrame(session, 0, { values: { count: 1 } }))
     frame(socket, snapshotFrame(session, 1, { values: { count: 2 } }))
-    const client = createPicodashDevBridgeClient(relay.agentCredential)
     await expect(
       client.inspect({ sessionId: session.sessionId, generation: 1, sequence: 1 }),
     ).resolves.toMatchObject({ session: { sequence: 1 }, snapshot: { values: { count: 2 } } })

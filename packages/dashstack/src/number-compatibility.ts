@@ -1,4 +1,4 @@
-function roundToStepPrecision(value: number, step: number): number {
+function stepPrecision(step: number): number {
   let precision = 0
   const stepString = step.toString()
   const exponentIndex = stepString.toLowerCase().indexOf('e-')
@@ -10,8 +10,94 @@ function roundToStepPrecision(value: number, step: number): number {
     if (pointIndex >= 0) precision = stepString.length - pointIndex
   }
 
+  return precision
+}
+
+export function isStepPrecisionScalable(step: number): boolean {
+  return Number.isFinite(Math.pow(10, stepPrecision(step)))
+}
+
+type DecimalInteger = {
+  readonly coefficient: bigint
+  readonly exponent: number
+}
+
+function decimalInteger(value: number): DecimalInteger {
+  const [mantissa, exponentText = '0'] = Math.abs(value).toString().toLowerCase().split('e')
+  const [whole, fraction = ''] = mantissa!.split('.')
+  const sign = value < 0 ? -1n : 1n
+  return {
+    coefficient: sign * BigInt(`${whole}${fraction}`),
+    exponent: Number(exponentText) - fraction.length,
+  }
+}
+
+function alignDecimalIntegers(values: readonly number[]): {
+  readonly coefficients: readonly bigint[]
+  readonly exponent: number
+} {
+  const decimals = values.map(decimalInteger)
+  const exponent = Math.min(...decimals.map((value) => value.exponent))
+  return {
+    coefficients: decimals.map(
+      (value) => value.coefficient * 10n ** BigInt(value.exponent - exponent),
+    ),
+    exponent,
+  }
+}
+
+function numberFromDecimalInteger(coefficient: bigint, exponent: number): number {
+  return Number(`${coefficient}e${exponent}`)
+}
+
+export function addUnscaledStep(
+  value: number,
+  step: number,
+  direction: 'increment' | 'decrement',
+): number {
+  const { coefficients, exponent } = alignDecimalIntegers([value, step])
+  const [valueCoefficient, stepCoefficient] = coefficients
+  return numberFromDecimalInteger(
+    direction === 'increment'
+      ? valueCoefficient! + stepCoefficient!
+      : valueCoefficient! - stepCoefficient!,
+    exponent,
+  )
+}
+
+function snapNumberToUnscaledStep(
+  value: number,
+  min: number | undefined,
+  max: number | undefined,
+  step: number,
+): number {
+  const anchor = min ?? 0
+  const values = max === undefined ? [value, anchor, step] : [value, anchor, step, max]
+  const { coefficients, exponent } = alignDecimalIntegers(values)
+  const [valueCoefficient, anchorCoefficient, stepCoefficient, maxCoefficient] = coefficients
+  const delta = valueCoefficient! - anchorCoefficient!
+  const remainder = delta % stepCoefficient!
+  let stepCount = delta / stepCoefficient!
+  if ((remainder < 0n ? -remainder : remainder) * 2n >= stepCoefficient!)
+    stepCount += remainder < 0n ? -1n : 1n
+  let snapped = anchorCoefficient! + stepCount * stepCoefficient!
+
+  if (min !== undefined && snapped < anchorCoefficient!) snapped = anchorCoefficient!
+  if (maxCoefficient !== undefined && snapped > maxCoefficient) {
+    const available = maxCoefficient - anchorCoefficient!
+    snapped = anchorCoefficient! + (available / stepCoefficient!) * stepCoefficient!
+  }
+
+  const result = numberFromDecimalInteger(snapped, exponent)
+  return result === 0 && Object.is(value, -0) ? -0 : result
+}
+
+function roundToStepPrecision(value: number, step: number): number {
+  const precision = stepPrecision(step)
+
   if (precision === 0) return value
   const power = Math.pow(10, precision)
+  if (!Number.isFinite(power)) return value
   return Math.round(value * power) / power
 }
 
@@ -22,6 +108,7 @@ export function snapNumberToStep(
   max: number | undefined,
   step: number,
 ): number {
+  if (!isStepPrecisionScalable(step)) return snapNumberToUnscaledStep(value, min, max, step)
   const numericMin = Number(min)
   const numericMax = Number(max)
   const anchor = Number.isNaN(numericMin) ? 0 : numericMin

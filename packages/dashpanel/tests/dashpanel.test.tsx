@@ -163,6 +163,7 @@ describe('@picodash/dashpanel alpha shell', () => {
   it('keeps a policy-disabled durable dock dormant and also enforces policy on its fallback', () => {
     const nexus = makeNexus()
     nexus.setDashPanelLayout('panel', {
+      version: 2,
       placement: { mode: 'fixed', disposition: { kind: 'docked', position: 'full-right' } },
       preferredPosition: { x: 12, y: 18 },
     })
@@ -288,7 +289,7 @@ describe('@picodash/dashpanel alpha shell', () => {
         preventDefault: vi.fn(),
         currentTarget: pointerTarget,
       })
-      pointerMove.props.onPointerUpCapture({ pointerId: 1 })
+      pointerMove.props.onPointerUpCapture({ pointerId: 1, clientX: 10, clientY: 10 })
     })
     expect(nexus.getState().scopes.get('panel')?.dashPanel).toBeUndefined()
     act(() => {
@@ -347,6 +348,7 @@ describe('@picodash/dashpanel alpha shell', () => {
       void move.props.onKeyDown({ key: 'Enter', preventDefault() {} })
     })
     expect(nexus.getState().scopes.get('panel')?.dashPanel).toEqual({
+      version: 2,
       placement: { mode: 'hybrid', disposition: { kind: 'free' } },
       preferredPosition: { x: 1, y: 0 },
     })
@@ -995,6 +997,17 @@ describe('@picodash/dashpanel alpha shell', () => {
     expect(body.props.hidden).toBe(false)
     expect(body.props.inert).toBeUndefined()
     expect(body.props['data-picodash-scroll-fade']).toBe(true)
+    expect(
+      renderer.root
+        .findAll((node) => node.props['data-picodash-panel-scroll-indicator'] !== undefined)
+        .map((node) => [
+          node.props['data-picodash-panel-scroll-indicator'],
+          node.props['aria-hidden'],
+        ]),
+    ).toEqual([
+      ['start', 'true'],
+      ['end', 'true'],
+    ])
     act(() => renderer.unmount())
     expect(() => nexus.destroy()).not.toThrow()
   })
@@ -1380,7 +1393,18 @@ describe('@picodash/dashpanel alpha shell', () => {
       }),
     )
     let asides = renderer.root.findAllByType('aside')
-    await act(async () => asides[0]?.props.onPointerDownCapture({}))
+    await act(async () =>
+      asides[0]?.props.onPointerDownCapture({
+        clientX: 0,
+        clientY: 0,
+        button: 0,
+        buttons: 1,
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+        shiftKey: false,
+      }),
+    )
     asides = renderer.root.findAllByType('aside')
     expect(onPointerDownCapture).toHaveBeenCalledOnce()
     expect(asides[0]?.props['data-active']).toBe('true')

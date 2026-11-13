@@ -990,14 +990,14 @@ describe('@picodash/dashstack alpha shell', () => {
     Object.defineProperty(globalThis, 'ResizeObserver', {
       configurable: true,
       value: class {
-        constructor(callback: ResizeObserverCallback) {
+        constructor(readonly callback: ResizeObserverCallback) {
           callbacks.push(callback)
         }
         observe(target: Element) {
           observed.push(target)
         }
         disconnect() {
-          disconnect()
+          disconnect(this.callback)
         }
       },
     })
@@ -1037,7 +1037,7 @@ describe('@picodash/dashstack alpha shell', () => {
     expect(root.hasAttribute('data-picodash-dashstack-compact')).toBe(true)
 
     act(() => renderer.unmount())
-    expect(disconnect).toHaveBeenCalledTimes(callbacks.length)
+    for (const callback of callbacks) expect(disconnect).toHaveBeenCalledWith(callback)
     expect(remProbe.isConnected).toBe(false)
     if (original) Object.defineProperty(globalThis, 'ResizeObserver', original)
     else Reflect.deleteProperty(globalThis, 'ResizeObserver')
@@ -1090,7 +1090,13 @@ describe('@picodash/dashstack alpha shell', () => {
     const outer = roots[0]!.element
     const inner = roots[1]!.element
     const notify = (target: Element, inlineSize: number) => {
-      const observer = observers.find((record) => record.targets.includes(target))!
+      const observer = observers.find(
+        (record) =>
+          record.targets.includes(target) &&
+          record.targets.some((element) =>
+            element.hasAttribute('data-picodash-dashstack-rem-probe'),
+          ),
+      )!
       observer.callback(
         [
           {

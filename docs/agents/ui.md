@@ -19,6 +19,9 @@ Nexuses, Panels, Stacks, Dashlets, placement, ordering, or persistence.
 - Preserve coarse-pointer hit targets when compact density reduces geometry.
 - Keep detached portal roots aligned with resolved theme and density without mutating their shared
   portal container.
+- Interactive Popover/menu roots restore pointer interaction under a pass-through portal host
+  without changing that host. Preserve explicit Popover pointer styles; test the inherited and
+  caller-overridden cases at the shared owner.
 - Use semantic `--picodash-*` tokens and named Picodash-owned public prop types.
 - Extend React Aria interfaces deliberately and omit reserved semantic or structural props.
 - Do not publish internal variant-helper types or `ComponentProps<typeof InternalComponent>`.

@@ -67,7 +67,11 @@ const listRecord = (rootOrder?: readonly string[]) => ({
 
 describe('Nexus built-in metadata codec', () => {
   it.each(placements)('accepts the %s placement family', (placement) => {
-    const record = normalizeDashPanelLayoutRecord({ placement, preferredPosition: { x: 4, y: -2 } })
+    const record = normalizeDashPanelLayoutRecord({
+      version: 2,
+      placement,
+      preferredPosition: { x: 4, y: -2 },
+    })
     expect(record.placement).toEqual(placement)
     expect(Object.isFrozen(record)).toBe(true)
     expect(Object.isFrozen(record.preferredPosition)).toBe(true)
@@ -79,6 +83,7 @@ describe('Nexus built-in metadata codec', () => {
     for (const position of snapPositions)
       expect(() =>
         normalizeDashPanelLayoutRecord({
+          version: 2 as const,
           placement: { mode: 'floating', disposition: { kind: 'snapped', position } },
           preferredPosition: { x: 0, y: 0 },
         }),
@@ -87,6 +92,7 @@ describe('Nexus built-in metadata codec', () => {
       for (const mode of ['fixed', 'hybrid'] as const)
         expect(() =>
           normalizeDashPanelLayoutRecord({
+            version: 2 as const,
             placement: { mode, disposition: { kind: 'docked', position } },
             preferredPosition: { x: 0, y: 0 },
           }),
@@ -101,19 +107,21 @@ describe('Nexus built-in metadata codec', () => {
     { mode: 'floating', disposition: { kind: 'snapped', position: 'center-left' } },
   ])('rejects invalid mode/disposition combinations', (placement) => {
     expect(() =>
-      normalizeDashPanelLayoutRecord({ placement, preferredPosition: { x: 0, y: 0 } }),
+      normalizeDashPanelLayoutRecord({ version: 2, placement, preferredPosition: { x: 0, y: 0 } }),
     ).toThrow()
   })
 
   it.each([NaN, Infinity, -Infinity])('rejects non-finite coordinate %s', (coordinate) => {
     expect(() =>
       normalizeDashPanelLayoutRecord({
+        version: 2 as const,
         placement: placements[0],
         preferredPosition: { x: coordinate, y: 0 },
       }),
     ).toThrow()
     expect(() =>
       normalizeDashPanelLayoutRecord({
+        version: 2 as const,
         placement: placements[0],
         preferredPosition: { x: 0, y: coordinate },
       }),
@@ -401,6 +409,7 @@ describe('Nexus built-in metadata codec', () => {
     const scope = normalizeDurableScopeMetadata({
       dashStack: undefined,
       dashPanel: {
+        version: 2 as const,
         placement: placements[2],
         preferredPosition: { x: 1, y: 2 },
       },
@@ -410,6 +419,7 @@ describe('Nexus built-in metadata codec', () => {
       normalizeDurableScopeMetadata({
         dashStack: undefined,
         dashPanel: {
+          version: 2 as const,
           placement: placements[2],
           preferredPosition: { x: 1, y: 2 },
           visibility: 'hidden',
@@ -442,6 +452,7 @@ describe('Nexus built-in metadata codec', () => {
           normalizeDashStackMetadataRecord(listRecord(['a'])),
         ),
         dashPanel: {
+          version: 2 as const,
           placement: { mode: 'fixed', disposition: { kind: 'free' } },
           preferredPosition: { x: 0, y: 0 },
         },

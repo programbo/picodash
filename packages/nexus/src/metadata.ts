@@ -81,22 +81,52 @@ export function normalizeDashStackMetadataRecord(input: unknown): DashStackMetad
 
 /** Normalizes and validates a complete in-memory DashPanel layout record. */
 export function normalizeDashPanelLayoutRecord(input: unknown): DashPanelLayoutRecord {
-  if (!isRecord(input) || !hasExactKeys(input, ['placement', 'preferredPosition']))
+  if (
+    !isRecord(input) ||
+    Object.keys(input).some(
+      (key) => !['version', 'placement', 'preferredPosition', 'manualSize'].includes(key),
+    ) ||
+    ownValue(input, 'version') !== 2
+  )
     throw invalidMetadata()
-
-  const placement = normalizePlacement(ownValue(input, 'placement'))
-  const position = ownValue(input, 'preferredPosition')
-  if (!isRecord(position) || !hasExactKeys(position, ['x', 'y'])) throw invalidMetadata()
-  if (!isFiniteNumber(ownValue(position, 'x')) || !isFiniteNumber(ownValue(position, 'y')))
-    throw invalidMetadata()
-
-  return freezeRecord({
-    placement,
-    preferredPosition: freezeRecord({
-      x: normalizeNumber(ownValue(position, 'x') as number),
-      y: normalizeNumber(ownValue(position, 'y') as number),
-    }),
-  })
+  const placement = Object.hasOwn(input, 'placement')
+    ? normalizePlacement(ownValue(input, 'placement'))
+    : undefined
+  let preferredPosition: { readonly x: number; readonly y: number } | undefined
+  if (Object.hasOwn(input, 'preferredPosition')) {
+    const position = ownValue(input, 'preferredPosition')
+    if (!isRecord(position) || !hasExactKeys(position, ['x', 'y'])) throw invalidMetadata()
+    const x = ownValue(position, 'x'),
+      y = ownValue(position, 'y')
+    if (!isFiniteNumber(x) || !isFiniteNumber(y)) throw invalidMetadata()
+    preferredPosition = freezeRecord({ x: normalizeNumber(x), y: normalizeNumber(y) })
+  }
+  let manualSize: DashPanelLayoutRecord['manualSize']
+  if (Object.hasOwn(input, 'manualSize')) {
+    const size = ownValue(input, 'manualSize')
+    if (!isRecord(size) || Object.keys(size).some((key) => key !== 'width' && key !== 'height'))
+      throw invalidMetadata()
+    const width = ownValue(size, 'width'),
+      height = ownValue(size, 'height')
+    if (Object.hasOwn(size, 'width') && (!isFiniteNumber(width) || width <= 0))
+      throw invalidMetadata()
+    if (Object.hasOwn(size, 'height') && (!isFiniteNumber(height) || height <= 0))
+      throw invalidMetadata()
+    if (isFiniteNumber(width) && width > 0)
+      manualSize = freezeRecord({ width, ...(isFiniteNumber(height) ? { height } : {}) })
+    else if (isFiniteNumber(height) && height > 0) manualSize = freezeRecord({ height })
+    else throw invalidMetadata()
+  }
+  const base = {
+    version: 2 as const,
+    ...(placement ? { placement } : {}),
+    ...(preferredPosition ? { preferredPosition } : {}),
+    ...(manualSize ? { manualSize } : {}),
+  }
+  if (placement) return freezeRecord({ ...base, placement })
+  if (preferredPosition) return freezeRecord({ ...base, preferredPosition })
+  if (manualSize) return freezeRecord({ ...base, manualSize })
+  throw invalidMetadata()
 }
 
 /** Normalizes both product domains atomically; empty domains are omitted. */
@@ -190,6 +220,39 @@ export function decodeDurableScopeMetadata(input: unknown): DurableScopeMetadata
     ...(dashPanelHotkey === undefined ? {} : { dashPanelHotkey }),
     ...(!dashGroupHotkeys?.size ? {} : { dashGroupHotkeys }),
   })
+}
+
+/**
+ * Hydration-only cutover for the exact, obsolete prototype Panel payload. This discards that
+ * product's preference rather than migrating it, while retaining independently valid List data.
+ * Documents and ordinary writes remain strict v2 and never invoke this recovery path.
+ */
+export function decodeHydratedScopeMetadata(input: unknown): {
+  readonly metadata: DurableScopeMetadata | undefined
+  readonly obsoletePanel: boolean
+} {
+  if (
+    isRecord(input) &&
+    hasExactKeys(input, ['dashStack', 'dashPanel', 'dashPanelHotkey', 'dashGroupHotkeys'])
+  ) {
+    const panel = ownValue(input, 'dashPanel')
+    if (isRecord(panel) && hasExactKeys(panel, ['placement', 'preferredPosition'])) {
+      normalizePlacement(ownValue(panel, 'placement'))
+      const position = ownValue(panel, 'preferredPosition')
+      if (
+        !isRecord(position) ||
+        !hasExactKeys(position, ['x', 'y']) ||
+        !isFiniteNumber(ownValue(position, 'x')) ||
+        !isFiniteNumber(ownValue(position, 'y'))
+      )
+        throw invalidMetadata()
+      const retained = { ...input }
+      delete retained.dashPanel
+      const metadata = decodeDurableScopeMetadata(retained)
+      return { metadata, obsoletePanel: true }
+    }
+  }
+  return { metadata: decodeDurableScopeMetadata(input), obsoletePanel: false }
 }
 
 export function decodeDashStackMetadataRecord(input: unknown): DashStackMetadataRecord {
