@@ -772,6 +772,7 @@ test('loads all six accepted presets, persists the selection for the session, an
 test('proves standalone value binding parity through UI, Bridge, themes, reset, and persistence', async ({
   page,
 }, testInfo) => {
+  test.setTimeout(60_000)
   await page.setViewportSize({ width: 1440, height: 1000 })
   await openLab(page)
   await page.getByRole('button', { name: 'Reset lab', exact: true }).click()
@@ -1341,6 +1342,7 @@ test('proves standalone value binding parity through UI, Bridge, themes, reset, 
 test('renders the two-panel Dashlet style lab with the accepted groups and lanes', async ({
   page,
 }) => {
+  test.setTimeout(60_000)
   await openLab(page)
   await page.getByRole('button', { name: /^Style lab:/ }).click()
 

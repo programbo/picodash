@@ -107,3 +107,12 @@ Linux also exposed scheduler overhead in the 10,000-input telemetry stress test 
 The telemetry test still advances 600 frames and verifies 600 updates followed by one commit, using synchronous `act` for each manually driven frame.
 Help keyboard actions now wait for the dialog's focus handoff and completed dismissal before the next action. These assertions exercise the focus contract
 rather than racing pending autofocus and exit work. No product behavior, timeout or retry budget changed for either correction.
+
+The facade's detached-group tests also awaited focus after a fixed 20 ms even though opening schedules two animation frames.
+Their focus assertions now wait for the required element through Testing Library; all eight detached-group tests pass.
+The retained editor identity, draft text, contextual shortcut arbitration and hidden-context assertions are unchanged.
+
+The combined Linux browser run exhausted the default 30-second whole-test budget late in the value-binding and style-lab journeys.
+Each spans hundreds of lines of independent actions, reloads or presentation checks. They now use the same 60-second journey budget
+as the other long composed scenario; ordinary assertion deadlines remain unchanged, with no retries, skips or extra test lane.
+Both targeted journeys passed together locally (12.1 and 17.4 seconds).

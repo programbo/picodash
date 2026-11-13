@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { createRef, useState, StrictMode, type RefObject } from 'react'
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, it, vi } from 'vite-plus/test'
 import { createPicodashNexus } from '@picodash/nexus'
 import { getDashStackStructure, revealDashlet } from '@picodash/dashstack'
@@ -87,8 +87,10 @@ it('retains one editor, its draft, logical membership and values over repeated r
   expect(screen.queryByRole('complementary', { name: 'Geometry' })).toBeNull()
   expect(screen.getByRole('textbox', { name: 'Unfinished value' })).toBe(editor)
   expect(editor.getAttribute('value')).toBe('unfinished -')
-  expect(document.activeElement).toBe(
-    screen.getByRole('button', { name: 'Collapse group Geometry' }),
+  await waitFor(() =>
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Collapse group Geometry' }),
+    ),
   )
   fireEvent.click(screen.getByRole('button', { name: 'Detach group Geometry' }))
   await flush()
@@ -126,7 +128,11 @@ it('keeps inline collapse preference, reveals detached controls and returns on u
   await flush()
   expect(screen.queryByRole('complementary', { name: 'Geometry' })).toBeNull()
   expect(screen.queryByRole('textbox', { name: 'Unfinished value' })).toBeNull()
-  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Expand group Geometry' }))
+  await waitFor(() =>
+    expect(document.activeElement).toBe(
+      screen.getByRole('button', { name: 'Expand group Geometry' }),
+    ),
+  )
   act(() => {
     desktop = true
     mediaChange?.()
@@ -194,7 +200,9 @@ it('retains a pinned non-reorderable group through Strict Mode and isolates two 
   await flush()
   expect(screen.getAllByRole('complementary')).toHaveLength(1)
   expect(screen.getByRole('complementary', { name: 'Last' })).toBeTruthy()
-  expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Detach group First' }))
+  await waitFor(() =>
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Detach group First' })),
+  )
   expect(screen.getByRole('textbox', { name: 'First draft' })).toBe(first)
   mounted.unmount()
   await flush()
@@ -329,7 +337,7 @@ it('records scoped group hotkeys, arbitrates visible parents, retains editors an
   await flush()
   expect(screen.getByRole('complementary', { name: 'Geometry A' }).contains(draft)).toBe(true)
   expect(screen.queryByRole('complementary', { name: 'Geometry B' })).toBeNull()
-  expect(document.activeElement).toBe(draft)
+  await waitFor(() => expect(document.activeElement).toBe(draft))
   // Typing and held chords do not activate a different group.
   key()
   expect(screen.queryByRole('complementary', { name: 'Geometry B' })).toBeNull()

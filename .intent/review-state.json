@@ -83,18 +83,18 @@
       ]
     },
     "source:apps/lab/tests/contract-lab.spec.ts": {
-      "fingerprint": "95c8f6e597a17a9a8a5676dc1cf22305cdd93c5f6ae42acddfb966c54c09cd90",
+      "fingerprint": "d175d4bd35e2e33e54467c47ce7e275a31983d17dbc457cbd1e00da5aa587587",
       "snapshot": {
-        "apps/lab/tests/contract-lab.spec.ts": "0ddca0d6baa3e43113e8ba48baa6dd89964f91d97c230bf635cbe2d3fae20a6f"
+        "apps/lab/tests/contract-lab.spec.ts": "4690497598ea9843d5ecea35e16164d3b67fa5a5fc42ae708f45969c07276b84"
       },
-      "head": "6d8710efc4cb5ce3ba18be9faa24a87972284b94",
+      "head": "7ef73bd063e1aa3bfe7e730056115e734faaa665",
       "outcome": "no-change",
-      "reason": "The help journey now asserts dialog focus and completed dismissal between keyboard actions, preventing subsequent keys from racing autofocus or retained exits. Public behavior and the two binding/shortcut task recipes are unchanged; focused Chromium help journey passed.",
+      "reason": "Two cohesive browser journeys exhausted their default 30-second whole-test budget late in Linux CI. They now use the established 60-second long-journey budget while preserving individual assertion deadlines, all behaviors, normal suite admission and zero retries. Both targeted journeys passed together locally at 12.1 and 17.4 seconds. The integration evidence records this distinction. Both public consumer recipes and all three planning documents remain accurate.",
       "evidence": [
         "apps/lab/tests/contract-lab.spec.ts",
-        "Full bun run ready: passed; Lab 23/23 and website 3/3.",
-        "Cold CI-equivalent facade release: passed 35 tests; resize suite: 27/27; focused help browser journey: 1/1.",
-        "vp check: zero warnings, lint errors or type errors; docs:check: 6 packages, 244 archive files and 38 current Markdown files verified."
+        "/tmp/picodash-long-journeys.log: 2/2 passed.",
+        "vp check: zero formatting, lint or type errors. docs:check and Lab 23-test cap passed.",
+        "GitHub Actions run 43360881476: whole-test deadline expired late at reset-dialog cancellation and style-lab reveal focus; no individual-assertion deadline was extended."
       ]
     },
     "source:docs/development/dogfooding.md": {
@@ -541,17 +541,18 @@
       ]
     },
     "source:packages/picodash/tests/detachable-groups.test.tsx": {
-      "fingerprint": "409185a03eff3e7f1616eb69d4d596537154b936e62870352cb3c38c8d413242",
+      "fingerprint": "8b6c77901124b6c5ae24319424025f9649602a5e96ff0ab80e5b637c1eb8fe0e",
       "snapshot": {
-        "packages/picodash/tests/detachable-groups.test.tsx": "e4c6b6ad7c526ef48adadd237c5d783bf58f8fe7d4c8e0c2639cff67b9f010f2"
+        "packages/picodash/tests/detachable-groups.test.tsx": "9192fd2a0c4175b44553da685ebd72eca6f98a3e0868dfeb6758cdc77eb96061"
       },
-      "head": "9af52fac60fe68367b3d71201abb130f7985f2d6",
-      "outcome": "updated",
-      "reason": "Extended the existing Panel and integrated-control guides for closeable visibility, contextual detachable-group shortcuts, persistence, conflicts and recorder placement; retained the existing skill identities.",
+      "head": "7ef73bd063e1aa3bfe7e730056115e734faaa665",
+      "outcome": "no-change",
+      "reason": "The detached-group tests replace fixed-delay focus snapshots with bounded observable focus assertions. Opening intentionally schedules two requestAnimationFrame callbacks; Linux CI caught the old 20 ms assumption. All eight owning tests pass without changing component behavior, retained identity or either public consumer task recipe.",
       "evidence": [
-        "tests/skills/README.md: fresh installed consumer and unchanged grader pass; persistence-free negative control fails restored binding",
-        "docs/reference/contract-conformance.md: 1157 package tests, five bundle tests and three affected browser journeys pass",
-        "packages/dashpanel/skills/docked-panel-shortcuts/SKILL.md and packages/picodash/skills/bind-controls/SKILL.md: Intent validation passes"
+        "packages/picodash/tests/detachable-groups.test.tsx",
+        "packages/picodash/src/detachable-group.tsx: register schedules opening and content focus in two frames.",
+        "bun run --cwd packages/picodash test tests/detachable-groups.test.tsx: 8/8 passed.",
+        "vp check passed; docs:check verified all generated APIs, archive digests and current links. Existing task guides unchanged; no new independent agent task claimed."
       ]
     },
     "source:packages/picodash/tests/dogfood/contextual-shortcuts.test.tsx": {
@@ -2232,18 +2233,18 @@
       ]
     },
     "source:docs/internal/consolidation-audit.md": {
-      "fingerprint": "5cd576c9f738d09f640094f1396d53f7e892c44f61229b739c5645fca3a3e7c4",
+      "fingerprint": "b101880ebd47e05d5e2e591f454a6290b9e90a00d455b50d782217be9a04101f",
       "snapshot": {
-        "docs/internal/consolidation-audit.md": "6a69c42f338ce182feb739a1d31f32e6d08a56a70d568851d00078420bf7b240"
+        "docs/internal/consolidation-audit.md": "abd029f873fde124f9be883516ce5e615b34a204e836ab3a267fdeb299c2346c"
       },
-      "head": "6d8710efc4cb5ce3ba18be9faa24a87972284b94",
+      "head": "7ef73bd063e1aa3bfe7e730056115e734faaa665",
       "outcome": "no-change",
-      "reason": "Recorded the successful complete release gate, cold facade/Bridge dependency proof, and targeted CI test corrections. This updates verification evidence without changing the two public consumer recipes or claiming independent agent task authorship.",
+      "reason": "Two cohesive browser journeys exhausted their default 30-second whole-test budget late in Linux CI. They now use the established 60-second long-journey budget while preserving individual assertion deadlines, all behaviors, normal suite admission and zero retries. Both targeted journeys passed together locally at 12.1 and 17.4 seconds. The integration evidence records this distinction. Both public consumer recipes and all three planning documents remain accurate.",
       "evidence": [
         "docs/internal/consolidation-audit.md",
-        "Full bun run ready: passed; Lab 23/23 and website 3/3.",
-        "Cold CI-equivalent facade release: passed 35 tests; resize suite: 27/27; focused help browser journey: 1/1.",
-        "vp check: zero warnings, lint errors or type errors; docs:check: 6 packages, 244 archive files and 38 current Markdown files verified."
+        "/tmp/picodash-long-journeys.log: 2/2 passed.",
+        "vp check: zero formatting, lint or type errors. docs:check and Lab 23-test cap passed.",
+        "GitHub Actions run 43360881476: whole-test deadline expired late at reset-dialog cancellation and style-lab reveal focus; no individual-assertion deadline was extended."
       ]
     },
     "source:docs/internal/d1-nexus-dashpanel-decision.md": {
