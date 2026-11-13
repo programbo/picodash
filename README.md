@@ -46,6 +46,7 @@ No registry publication is required.
 - [Nexus architecture decision](docs/adr/0002-provider-level-nexus-and-scoped-views.md)
 - [Shared UI architecture decision](docs/adr/0003-shared-ui-foundation.md)
 - [Nexus target API](docs/reference/nexus.md)
+- [Nexus API inventory from source](docs/internal/nexus-api-inventory.md) (audited implementation snapshot)
 - [Shared UI target reference](docs/reference/ui.md)
 - [DashPanel target reference](docs/reference/dashpanel.md)
 - [DashStack naming decision](docs/adr/0007-dashstack-name-and-public-identity.md)
